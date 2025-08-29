@@ -1,9 +1,9 @@
-import 'package:eco_venture/core/constants/app_colors.dart';
 import 'package:eco_venture/core/constants/app_text_styles.dart';
 import 'package:eco_venture/core/widgets/custom_elevated_button.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'dart:math';
+import 'package:flutter/scheduler.dart';
 
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
@@ -15,13 +15,8 @@ class LandingScreen extends StatefulWidget {
 class _LandingScreenState extends State<LandingScreen>
     with TickerProviderStateMixin {
   // Controllers
-  late final AnimationController _bgController;
   late final AnimationController _centerController;
   late final AnimationController _pulseController;
-
-  // Slides
-  late final Animation<Offset> _bgSlide;
-  late final Animation<Offset> _centerSlide;
 
   // Opacities
   late final Animation<double> _logoOpacity;
@@ -32,41 +27,23 @@ class _LandingScreenState extends State<LandingScreen>
   // Pulsing (scale)
   late final Animation<double> _pulseAnimation;
 
+  // For background animation
+  late Ticker _ticker;
+
   @override
   void initState() {
     super.initState();
 
-    // Background (slow)
-    _bgController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    );
-
     // Foreground entry (faster)
     _centerController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 5),
+      duration: const Duration(seconds: 3),
     );
 
-    // Pulse (will start AFTER entry completes)
+    // Pulse (after entry completes)
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
-    );
-
-    // Slides
-    _bgSlide = Tween<Offset>(
-      begin: const Offset(0, -0.10),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _bgController, curve: Curves.easeOut),
-    );
-
-    _centerSlide = Tween<Offset>(
-      begin: const Offset(0, 0.45),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _centerController, curve: Curves.easeOut),
     );
 
     // Opacities (staggered)
@@ -93,7 +70,6 @@ class _LandingScreenState extends State<LandingScreen>
     );
 
     // Start entry animations
-    _bgController.forward();
     _centerController.forward();
 
     // When entry finishes, start pulsing
@@ -102,38 +78,67 @@ class _LandingScreenState extends State<LandingScreen>
         _pulseController.repeat(reverse: true);
       }
     });
+
+    // Start ticker for background animation
+    _ticker = Ticker((d) {
+      setState(() {});
+    })..start();
   }
 
   @override
   void dispose() {
-    _bgController.dispose();
     _centerController.dispose();
     _pulseController.dispose();
+    _ticker.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Background animation values
+    var time = DateTime.now().millisecondsSinceEpoch / 2000;
+    var scaleX = 1.2 + sin(time) * .05;
+    var scaleY = 1.2 + cos(time) * .07;
+    var offsetY = 20 + cos(time) * 20;
+
     return Scaffold(
       body: Stack(
         children: [
-          // Background image slide
-          SlideTransition(
-            position: _bgSlide,
-            child: Image.asset(
-              "assets/images/landing.jpeg",
-              fit: BoxFit.cover,
-              height: double.infinity,
-              width: double.infinity,
-            ),
+          //Background fluid animation
+          LayoutBuilder(
+            builder: (_, constraints) {
+              final width = constraints.maxWidth;
+              final height = constraints.maxHeight;
+
+              return Transform.translate(
+                offset: Offset(
+                  -(scaleX - 1) / 2 * width,
+                  -(scaleY - 1) / 2 * height + offsetY,
+                ),
+                child: Transform(
+                  transform: Matrix4.diagonal3Values(scaleX, scaleY, 1),
+                  child: Image.asset(
+                    "assets/images/landing.jpeg",
+                    fit: BoxFit.cover,
+                    height: double.infinity,
+                    width: double.infinity,
+                  ),
+                ),
+              );
+            },
           ),
 
-          // Foreground content slide
+          // Foreground content
           Center(
             child: SlideTransition(
-              position: _centerSlide,
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.45),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(parent: _centerController, curve: Curves.easeOut),
+              ),
               child: Padding(
-                padding:  EdgeInsets.only(top: 12.h, left: 5.w, right: 5.w),
+                padding: EdgeInsets.only(top: 12.h, left: 5.w, right: 5.w),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -148,7 +153,7 @@ class _LandingScreenState extends State<LandingScreen>
                             height: 55,
                             width: 55,
                           ),
-                           SizedBox(width: 3.5.w),
+                          SizedBox(width: 3.5.w),
                           Text(
                             "ECOVENTURE",
                             style: AppTextStyles.heading28Bold,
@@ -160,22 +165,21 @@ class _LandingScreenState extends State<LandingScreen>
                     FadeTransition(
                       opacity: _logoOpacity,
                       child: Padding(
-                        padding:  EdgeInsets.only(
-                            top: 8, left: 15.w, bottom: 8),
+                        padding: EdgeInsets.only(top: 8, left: 15.w, bottom: 8),
                         child: Align(
                           alignment: Alignment.center,
                           child: Text(
                             "Adventure into Nature, Learn with Fun!",
                             textAlign: TextAlign.center,
-                            style:AppTextStyles.body16RegularForestGreen,
+                            style: AppTextStyles.body16RegularForestGreen,
                           ),
                         ),
                       ),
                     ),
 
-                     SizedBox(height: 10.h),
+                    SizedBox(height: 10.h),
 
-                    // Buttons: Parent + Child
+                    // Buttons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
@@ -185,7 +189,8 @@ class _LandingScreenState extends State<LandingScreen>
                             scale: _pulseAnimation,
                             child: CustomElevatedButton(
                               text: "Parent",
-                              textStyle: AppTextStyles.body16RegularPureWhite,),
+                              textStyle: AppTextStyles.body16RegularPureWhite,
+                            ),
                           ),
                         ),
                         FadeTransition(
@@ -194,7 +199,8 @@ class _LandingScreenState extends State<LandingScreen>
                             scale: _pulseAnimation,
                             child: CustomElevatedButton(
                               text: "Child",
-                              textStyle: AppTextStyles.body16RegularPureWhite,),
+                              textStyle: AppTextStyles.body16RegularPureWhite,
+                            ),
                           ),
                         ),
                       ],
@@ -202,14 +208,14 @@ class _LandingScreenState extends State<LandingScreen>
 
                     const SizedBox(height: 20),
 
-                    // Button: Teacher
                     FadeTransition(
                       opacity: _teacherOpacity,
                       child: ScaleTransition(
                         scale: _pulseAnimation,
                         child: CustomElevatedButton(
                           text: "Teacher",
-                          textStyle: AppTextStyles.body16RegularPureWhite,),
+                          textStyle: AppTextStyles.body16RegularPureWhite,
+                        ),
                       ),
                     ),
                   ],
@@ -221,5 +227,4 @@ class _LandingScreenState extends State<LandingScreen>
       ),
     );
   }
-
 }

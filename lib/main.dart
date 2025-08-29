@@ -1,3 +1,7 @@
+import 'package:eco_venture/views/auth/forgot_password_screen.dart';
+import 'package:eco_venture/views/auth/login_screen.dart';
+import 'package:eco_venture/views/auth/sign_up_screen.dart';
+import 'package:eco_venture/views/child_section/child_home_screen.dart';
 import 'package:eco_venture/views/landing/landing_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -21,7 +25,7 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           ),
-          home:LandingScreen(),
+          home:ChildHomeScreen(),
         );
       },
     );
