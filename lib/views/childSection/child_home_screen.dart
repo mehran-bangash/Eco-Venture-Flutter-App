@@ -1,5 +1,6 @@
-import 'package:eco_venture/views/child_section/widgets/click_able_info_card.dart';
-import 'package:eco_venture/views/child_section/widgets/container_grid.dart';
+
+import 'package:eco_venture/views/childSection/widgets/click_able_info_card.dart';
+import 'package:eco_venture/views/childSection/widgets/container_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -21,8 +22,8 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF95C8FC), // Gentle Frost Blue,
-              Color(0xFFF1FCFF), // Almost White Aqua
+              Color(0xFFD7D7E0),
+              Color(0xFFAEBAF5) // Almost White Aqua
             ],
             stops: [0.0, 1.0],
           ),
