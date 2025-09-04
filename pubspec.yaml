@@ -39,6 +39,8 @@ dependencies:
   floating_bottom_navigation_bar: ^1.5.2
   firebase_auth: ^6.0.2
   firebase_core: ^4.1.0
+  riverpod: ^2.6.1
+  flutter_riverpod: ^2.6.1
 
 dev_dependencies:
   flutter_test:

@@ -1,6 +1,7 @@
 
 import 'package:eco_venture/views/childSection/multimedia/child_multimedia_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -11,7 +12,12 @@ void main() async{
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(
+    ProviderScope(             //  Riverpod state root
+      child: MyApp(),
+    ),
+  );
+
 }
 
 class MyApp extends StatelessWidget {
