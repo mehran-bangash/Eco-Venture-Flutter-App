@@ -5,9 +5,11 @@ class UserModel {
   final String email;
   final String displayName;
   final String role;
+  final DateTime createdAt;
 
   UserModel({
     required this.uid,
+    required this.createdAt,
     required this.email,
     required this.displayName,
     required this.role,
@@ -20,6 +22,7 @@ class UserModel {
       "email": email,
       "displayName": displayName,
       "role": role,
+      "createdAt": createdAt.toIso8601String(),
     };
   }
 
@@ -33,6 +36,7 @@ class UserModel {
       email: map['email'],
       displayName: map['displayName'],
       role: map['role'],
+      createdAt: DateTime.parse(map['createdAt']),
     );
   }
 
@@ -45,12 +49,14 @@ class UserModel {
     String? email,
     String? displayName,
     String? role,
+    DateTime? createdAt,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       role: role ?? this.role,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }
