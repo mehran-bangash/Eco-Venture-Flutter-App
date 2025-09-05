@@ -1,46 +1,53 @@
+import 'package:eco_venture/core/utils/validators.dart';
+import 'package:eco_venture/navigation/bottom_nav_child.dart';
+import 'package:eco_venture/navigation/bottom_nav_parent.dart';
+import 'package:eco_venture/navigation/bottom_nav_teacher.dart';
+import 'package:eco_venture/viewmodels/auth/auth_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../core/constants/app_text_styles.dart';
 import '../../core/widgets/auth_text_field.dart';
-class SignUpScreen extends StatefulWidget {
+
+class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
 
   @override
-  State<SignUpScreen> createState() => _SignUpScreenState();
+  ConsumerState<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMixin{
+class _SignUpScreenState extends ConsumerState<SignUpScreen>
+    with TickerProviderStateMixin {
 
   // Animation controllers
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late AnimationController _logoController;
   late AnimationController _formController;
-  late AnimationController _cardContentController; // 🔥 NEW
+  late AnimationController _cardContentController;
 
-  final TextEditingController _testController = TextEditingController();
+  final TextEditingController _firstNameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController(
+    text: "test@example.com",
+  );
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
-// Animations
+  // Animations
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _logoScale;
   late Animation<double> _logoRotation;
   late Animation<Offset> _formSlideAnimation;
 
-// 🔥 NEW: list of animations for card contents
+  // NEW: list of animations for card contents
   late List<Animation<double>> _cardItemAnimations;
-
-// Dummy controllers for hardcoded data
-  final TextEditingController _emailController = TextEditingController(
-    text: "test@example.com",
-  );
-  final TextEditingController _passwordController = TextEditingController(
-    text: "password123",
-  );
-  final bool _isPasswordVisible = false;
-
+  
   @override
   void initState() {
     super.initState();
@@ -69,7 +76,7 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
       vsync: this,
     );
 
-    // 🔥 NEW controller for inside card staggered animation
+    // NEW controller for inside card staggered animation
     _cardContentController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -111,7 +118,6 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
         ),
       );
     });
-
   }
 
   void _startAnimations() async {
@@ -127,13 +133,14 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
     await Future.delayed(const Duration(milliseconds: 600));
     _formController.forward();
 
-    // 🔥 When slideController (card) finishes, animate card contents
+    //  When slideController (card) finishes, animate card contents
     _slideController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _cardContentController.forward();
       }
     });
   }
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -141,7 +148,7 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
     _slideController.dispose();
     _logoController.dispose();
     _formController.dispose();
-    _cardContentController.dispose(); // 🔥 dispose new controller
+    _cardContentController.dispose(); //  dispose new controller
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -150,25 +157,27 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        body: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF8092E9), Color(0xFF8092E9), Color(0xFF4B41DA)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                stops: [0.0, 0.6, 1.0],
-              ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF8092E9), Color(0xFF8092E9), Color(0xFF4B41DA)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              stops: [0.0, 0.6, 1.0],
             ),
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  // Scrollable Column with logo + card
-                  SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                // Scrollable Column with logo + card
+                SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                  child: Form(
+                    key: _formKey,
                     child: Column(
                       mainAxisSize: MainAxisSize.min, // important!
                       children: [
@@ -192,10 +201,9 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
                                       style: GoogleFonts.poppins(
                                         fontSize: 24.sp,
                                         fontWeight: FontWeight.w800,
-                                        color: Theme.of(context)
-                                            .textTheme
-                                            .headlineSmall
-                                            ?.color,
+                                        color: Theme.of(
+                                          context,
+                                        ).textTheme.headlineSmall?.color,
                                       ),
                                     ),
                                   ),
@@ -206,7 +214,8 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
                                   child: Center(
                                     child: Text(
                                       'Fill in your detail to create an account',
-                                      style: AppTextStyles.subtitle14MediumBlackOpacity1,
+                                      style: AppTextStyles
+                                          .subtitle14MediumBlackOpacity1,
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
@@ -218,39 +227,43 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
                                       child: FadeTransition(
                                         opacity: _cardItemAnimations[3],
                                         child: AuthTextField(
-                                          customFieldWidth:32.w ,
+                                          customFieldWidth: 32.w,
                                           showPrefixIcon: Icons.person,
                                           showText: "First Name",
                                           hintTitle: "Enter First name",
-                                          controller: _testController,
+                                          controller: _firstNameController,
                                           keyBoardType: TextInputType.text,
+                                          validator: Validators.firstName,
                                         ),
                                       ),
                                     ),
-                                    SizedBox(width:3.5.w ,),
+                                    SizedBox(width: 3.5.w),
                                     Flexible(
                                       child: FadeTransition(
                                         opacity: _cardItemAnimations[4],
                                         child: AuthTextField(
-                                          customFieldWidth:32.w ,
+                                          customFieldWidth: 32.w,
                                           showPrefixIcon: Icons.person,
                                           showText: "Last Name",
                                           hintTitle: "Enter Last name",
-                                          controller: _testController,
+                                          controller: _lastNameController,
+                                          validator: Validators.lastName,
                                           keyBoardType: TextInputType.text,
                                         ),
                                       ),
                                     ),
-                                ],),
-                                SizedBox(height: 2.h,),
+                                  ],
+                                ),
+                                SizedBox(height: 2.h),
                                 FadeTransition(
                                   opacity: _cardItemAnimations[5],
                                   child: AuthTextField(
                                     showPrefixIcon: Icons.email_outlined,
                                     showText: "Email",
                                     hintTitle: "Enter Email Address",
-                                    controller: _testController,
+                                    controller: _emailController,
                                     keyBoardType: TextInputType.emailAddress,
+                                    validator: Validators.email,
                                   ),
                                 ),
                                 SizedBox(height: 2.h),
@@ -260,7 +273,8 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
                                     showPrefixIcon: Icons.phone,
                                     showText: "Phone Number",
                                     hintTitle: "Enter Phone Number",
-                                    controller: _testController,
+                                    controller: _phoneController,
+                                    validator: Validators.phone,
                                     keyBoardType: TextInputType.number,
                                   ),
                                 ),
@@ -272,6 +286,7 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
                                     showText: "Password",
                                     hintTitle: "Enter Password",
                                     controller: _passwordController,
+                                    validator: Validators.password,
                                     keyBoardType: TextInputType.visiblePassword,
                                     isPassword: true,
                                   ),
@@ -283,52 +298,132 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
                                     showPrefixIcon: Icons.verified,
                                     showText: "Confirm Password",
                                     hintTitle: "confirm password",
-                                    controller: _passwordController,
+                                    controller: _confirmPasswordController,
+                                    validator: (value) => Validators.confirmPassword(
+                                      value,
+                                      _passwordController.text,
+                                    ),
                                     keyBoardType: TextInputType.visiblePassword,
                                     isPassword: true,
                                   ),
                                 ),
                                 SizedBox(height: 2.h),
-                                FadeTransition(
-                                  opacity: _cardItemAnimations[9],
-                                  child: Material(
-                                    elevation: 5,
-                                    borderRadius: BorderRadius.all(Radius.circular(16)),
-                                    child: Container(
-                                      height: 5.5.h,
-                                      width: 68.w,
-                                      decoration: BoxDecoration(
-                                        borderRadius:
-                                        BorderRadius.all(Radius.circular(16)),
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            Color(0xFF8092E9),
-                                            Color(0xFF4B41DA),
-                                          ],
+                                Consumer(builder: (context, ref, child) {
+                                  final signUpState = ref.watch(authViewModelProvider);
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    if (signUpState.navigateToRole != null) {
+                                      switch (signUpState.navigateToRole) {
+                                        case 'child':
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => BottomNavChild()),
+                                          );
+                                          break;
+                                        case 'teacher':
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => BottomNavTeacher()),
+                                          );
+                                          break;
+                                        case 'parent':
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => BottomNavParent()),
+                                          );
+                                          break;
+                                      }
+
+                                      // Reset navigateToRole to prevent repeated navigation
+                                      ref.read(authViewModelProvider.notifier).resetNavigation();
+                                    }
+                                  });
+                                  return Column(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          if (_formKey.currentState!.validate()) {
+                                            // proceed with SignUp screen
+                                            String selectedRole = "child";// just for now testing purpose
+                                            ref.read(authViewModelProvider.notifier).signUp(
+                                              _emailController.text,
+                                              _passwordController.text,
+                                              selectedRole,
+                                            );
+                                          }
+
+                                        },
+                                        child: FadeTransition(
+                                          opacity: _cardItemAnimations[9],
+                                          child: Material(
+                                            elevation: 5,
+                                            borderRadius: BorderRadius.all(Radius.circular(16)),
+                                            child: Container(
+                                              height: 5.5.h,
+                                              width: 68.w,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.all(Radius.circular(16)),
+                                                gradient: LinearGradient(
+                                                  colors: [Color(0xFF8092E9), Color(0xFF4B41DA)],
+                                                ),
+                                              ),
+                                              child:  Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children:
+                                                signUpState.isLoading ? [
+                                                  SizedBox(
+                                                    height: 18,
+                                                    width: 18,
+                                                    child: CircularProgressIndicator(
+                                                      color: Colors.white,
+                                                      strokeWidth: 2,
+                                                    ),
+                                                  ),
+                                                  SizedBox(width: 2.w),
+                                                  Text(
+                                                    "Sign In...",
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 16.sp,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ] :[
+                                                  Icon(Icons.person_add, color: Colors.white, size: 20.sp),
+                                                  SizedBox(width: 2.w),
+                                                  Text(
+                                                    "Create Account",
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 16.sp,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ],
+                                            ),
+
+                                          ),
+                                          ),
                                         ),
                                       ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.person_add,
-                                            color: Colors.white,
-                                            size: 20.sp,
-                                          ),
-                                          SizedBox(width: 2.w),
-                                          Text(
-                                            'Create Account',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 16.sp,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
+                                    //  Error message
+                                      if (signUpState.error != null)
+                                        Padding(
+                                          padding: EdgeInsets.only(top: 2.h),
+                                          child: Text(
+                                            signUpState.error!,
+                                            style: TextStyle(
+                                              color: Colors.red,
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w500,
                                             ),
+                                            textAlign: TextAlign.center,
                                           ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
+                                        ),
+                                    ],
+                                  );
+                                }
                                 ),
+
                                 SizedBox(height: 3.h),
                                 FadeTransition(
                                   opacity: _cardItemAnimations[10],
@@ -337,13 +432,14 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
                                       text: TextSpan(
                                         style: GoogleFonts.poppins(
                                           fontSize: 14.sp,
-                                          color: Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.color,
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge?.color,
                                         ),
                                         children: [
-                                          const TextSpan(text: "Already have an account? "),
+                                          const TextSpan(
+                                            text: "Already have an account? ",
+                                          ),
                                           TextSpan(
                                             text: 'Sign in',
                                             style: GoogleFonts.poppins(
@@ -356,7 +452,7 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
                                       ),
                                     ),
                                   ),
-                                )
+                                ),
                               ],
                             ),
                           ),
@@ -364,13 +460,14 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ));
+        ),
+      ),
+    );
   }
-
 
   Widget _buildLogoSection() {
     return Padding(
@@ -404,7 +501,10 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
           //  Fade-in Welcome Text
           FadeTransition(
             opacity: _fadeAnimation,
-            child: Text("Join EcoVenture", style: AppTextStyles.body25RegularPureWhite),
+            child: Text(
+              "Join EcoVenture",
+              style: AppTextStyles.body25RegularPureWhite,
+            ),
           ),
           SizedBox(height: 2.h),
 
@@ -425,32 +525,4 @@ class _SignUpScreenState extends State<SignUpScreen> with  TickerProviderStateMi
       ),
     );
   }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }

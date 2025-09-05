@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen>
   final TextEditingController _passwordController = TextEditingController(
     text: "password123",
   );
-  final bool _isPasswordVisible = false;
+
 
   @override
   void initState() {
