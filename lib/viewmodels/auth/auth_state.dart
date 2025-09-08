@@ -1,27 +1,40 @@
 import '../../models/user_model.dart';
 
 class AuthState {
-  final bool isLoading;
-  final String? error;
+  // Email login state
+  final bool isEmailLoading;
+  final String? emailError;
+
+  // Google login state
+  final bool isGoogleLoading;
+  final String? googleError;
+
+  // Common fields
   final UserModel? user;
   final String? navigateToRole;
 
   AuthState({
-    this.isLoading = false,
-    this.error,
+    this.isEmailLoading = false,
+    this.emailError,
+    this.isGoogleLoading = false,
+    this.googleError,
     this.user,
     this.navigateToRole,
   });
 
   AuthState copyWith({
-    bool? isLoading,
-    String? error,
+    bool? isEmailLoading,
+    String? emailError,
+    bool? isGoogleLoading,
+    String? googleError,
     UserModel? user,
     String? navigateToRole,
   }) {
     return AuthState(
-      isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      isEmailLoading: isEmailLoading ?? this.isEmailLoading,
+      emailError: emailError ?? this.emailError,
+      isGoogleLoading: isGoogleLoading ?? this.isGoogleLoading,
+      googleError: googleError ?? this.googleError,
       user: user ?? this.user,
       navigateToRole: navigateToRole ?? this.navigateToRole,
     );

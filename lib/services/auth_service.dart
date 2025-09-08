@@ -1,23 +1,58 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
+import '../models/google_user_data.dart';
 
 class AuthService {
   AuthService._();
+
   static final AuthService authInstance = AuthService._();
-
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn signIn = GoogleSignIn.instance;
+  bool _initialized = false;
 
-  Future<User?> signUp(String email, String password) async {
+  /// Call this once in main.dart after Firebase.initializeApp()
+  Future<void> init() async {
+    if (_initialized) return;
+    await signIn.initialize();
+    _initialized = true;
+  }
+
+  /// Get Google token + profile (for sending to Node.js backend)
+  Future<GoogleUserData> continueWithGoogle() async {
     try {
-      UserCredential credential = await _auth.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+      if (!_initialized) {
+        await init();
+      }
+
+      //  New API: authenticate()
+      final GoogleSignInAccount account = await signIn.authenticate();
+
+      final googleAuth = account.authentication;
+      final idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw Exception("Failed to retrieve Google ID Token");
+      }
+
+      return GoogleUserData(
+        idToken: idToken,
+        email: account.email ?? "",
+        displayName: account.displayName ?? "",
       );
-      return credential.user;
+    } catch (e, stack) {
+      debugPrint("Google sign-in failed: $e\n$stack");
+      throw Exception("Google sign-in failed: $e");
+    }
+  }
+
+  Future<void> forgot(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
-      // Handle Firebase-specific errors
-      throw Exception(e.message);
+      throw Exception(e.message ?? "An authentication error occurred");
     } catch (e) {
-      // Handle any other errors
       throw Exception("Something went wrong: $e");
     }
   }

@@ -47,7 +47,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
 
   // NEW: list of animations for card contents
   late List<Animation<double>> _cardItemAnimations;
-  
+
   @override
   void initState() {
     super.initState();
@@ -310,47 +310,35 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                 SizedBox(height: 2.h),
                                 Consumer(builder: (context, ref, child) {
                                   final signUpState = ref.watch(authViewModelProvider);
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                                    if (signUpState.navigateToRole != null) {
-                                      switch (signUpState.navigateToRole) {
-                                        case 'child':
-                                          Navigator.pushReplacement(
-                                            context,
-                                            MaterialPageRoute(builder: (_) => BottomNavChild()),
-                                          );
-                                          break;
-                                        case 'teacher':
-                                          Navigator.pushReplacement(
-                                            context,
-                                            MaterialPageRoute(builder: (_) => BottomNavTeacher()),
-                                          );
-                                          break;
-                                        case 'parent':
-                                          Navigator.pushReplacement(
-                                            context,
-                                            MaterialPageRoute(builder: (_) => BottomNavParent()),
-                                          );
-                                          break;
-                                      }
-
-                                      // Reset navigateToRole to prevent repeated navigation
-                                      ref.read(authViewModelProvider.notifier).resetNavigation();
-                                    }
-                                  });
                                   return Column(
                                     children: [
                                       GestureDetector(
-                                        onTap: () {
+                                        onTap: () async {
                                           if (_formKey.currentState!.validate()) {
-                                            // proceed with SignUp screen
-                                            String selectedRole = "child";// just for now testing purpose
+                                            String selectedRole = "child"; // example role
                                             ref.read(authViewModelProvider.notifier).signUp(
-                                              _emailController.text,
-                                              _passwordController.text,
+                                              _emailController.text.trim(),
+                                              _passwordController.text.trim(),
                                               selectedRole,
+                                              "${_firstNameController.text.trim()} ${_lastNameController.text.trim()}",
+                                              onSuccess: () {
+                                                switch (selectedRole) {
+                                                  case 'child':
+                                                    Navigator.pushReplacement(
+                                                        context, MaterialPageRoute(builder: (_) => BottomNavChild()));
+                                                    break;
+                                                  case 'teacher':
+                                                    Navigator.pushReplacement(
+                                                        context, MaterialPageRoute(builder: (_) => BottomNavTeacher()));
+                                                    break;
+                                                  case 'parent':
+                                                    Navigator.pushReplacement(
+                                                        context, MaterialPageRoute(builder: (_) => BottomNavParent()));
+                                                    break;
+                                                }
+                                              },
                                             );
                                           }
-
                                         },
                                         child: FadeTransition(
                                           opacity: _cardItemAnimations[9],
@@ -369,7 +357,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                               child:  Row(
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children:
-                                                signUpState.isLoading ? [
+                                                signUpState.isEmailLoading ? [
                                                   SizedBox(
                                                     height: 18,
                                                     width: 18,
@@ -406,11 +394,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                         ),
                                       ),
                                     //  Error message
-                                      if (signUpState.error != null)
+                                      if (signUpState.emailError != null)
                                         Padding(
                                           padding: EdgeInsets.only(top: 2.h),
                                           child: Text(
-                                            signUpState.error!,
+                                            signUpState.emailError!,
                                             style: TextStyle(
                                               color: Colors.red,
                                               fontSize: 14.sp,

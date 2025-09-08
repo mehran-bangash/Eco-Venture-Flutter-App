@@ -1,26 +1,95 @@
+import 'dart:convert';
+
+import 'package:eco_venture/core/config/api_constants.dart';
 import 'package:eco_venture/models/user_model.dart';
 import 'package:eco_venture/services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import '../services/api_service.dart';
 
 class AuthRepo {
   AuthRepo._();
 
   static final AuthRepo getInstance = AuthRepo._();
+  final ApiService _apiService = ApiService();
 
-  Future<UserModel?> signUpUser(String email, String password,String role) async {
-    User? firebaseUser = await AuthService.authInstance.signUp(email, password);
+  Future<UserModel?> signUpUser(
+    String email,
+    String password,
+    String role,
+    String name,
+  ) async {
+    var requestBody = {
+      'email': email,
+      'password': password,
+      'role': role,
+      'name': name,
+    };
 
-    if (firebaseUser != null) {
-      String? idToken = await firebaseUser.getIdToken(); // token here
-      // await ApiService.sendUserToBackend(idToken); // Node.js API call here
+    final userData = await _apiService.sendUserToken(
+      ApiConstants.signUpEndpoint,
+      requestBody,
+    );
+
+    // 🔹 Sign in to Firebase with custom token from Node.js
+    if (userData.containsKey("token")) {
+      await FirebaseAuth.instance.signInWithCustomToken(userData["token"]);
+    }
+
+    return UserModel(
+      uid: userData['uid'],
+      displayName: name,
+      email: email,
+      role: role,
+      createdAt: DateTime.now(),
+    );
+  }
+  Future<UserModel?> loginUser(String email, String password) async {
+    try {
+
+      final userData = await _apiService.sendUserToken(
+        ApiConstants.signInEndpoint,
+        {
+          'email': email,
+          'password': password,
+        },
+      );
+
       return UserModel(
-        uid: firebaseUser.uid,
-        displayName: firebaseUser.displayName ?? "",
-        email: firebaseUser.email ?? '',
-        role: role,
+        uid: userData['uid'],
+        displayName: userData['name'] ?? '',
+        email: userData['email'] ?? '',
+        role: userData['role'] ?? 'unknown',
         createdAt: DateTime.now(),
       );
+    } catch (e) {
+      throw Exception("Login failed: $e");
     }
-    return null;
+  }
+
+  Future<UserModel?> sendTokenOfGoogle(String role) async {
+    // Step 1: Get Google user data (idToken + profile info)
+    final googleUser = await AuthService.authInstance.continueWithGoogle();
+
+    // Step 2: Prepare request body for Node.js
+    final requestBody = {
+      'idToken': googleUser.idToken,
+      'email': googleUser.email,
+      'name': googleUser.displayName,
+      'role': role,
+    };
+
+    // Step 3: Send request to backend
+    final response = await _apiService.sendUserToken(
+      ApiConstants.googleEndpoint,
+      requestBody,
+    );
+
+    return UserModel.fromMap(response['user']);
+  }
+
+
+  Future<void> forgotUser(String email) async {
+    await AuthService.authInstance.forgot(email);
   }
 }

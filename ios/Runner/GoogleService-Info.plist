@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>547444130498-i7k9q2h5feklommt23ln3173p0j542tc.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.547444130498-i7k9q2h5feklommt23ln3173p0j542tc</string>
+	<key>API_KEY</key>
+	<string>AIzaSyA4NxkLg0YqeWaxF_g8CCIIQDxPULBxD5s</string>
+	<key>GCM_SENDER_ID</key>
+	<string>547444130498</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.ecoVenture</string>
+	<key>PROJECT_ID</key>
+	<string>ecoventure-app</string>
+	<key>STORAGE_BUCKET</key>
+	<string>ecoventure-app.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:547444130498:ios:6ebe374385239ed867b15b</string>
+</dict>
+</plist>
