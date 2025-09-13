@@ -1,10 +1,10 @@
 import 'package:eco_venture/services/auth_service.dart';
-import 'package:eco_venture/views/auth/login_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'core/routes/router_providers.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -17,25 +17,25 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   await AuthService.authInstance.init();
-  runApp(ProviderScope(child: MyApp()));
+  runApp(const ProviderScope(child: MyApp()));
 }
 
-
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(goRouterProvider);
+
     return ResponsiveSizer(
       builder: (context, orientation, screenType) {
-        return MaterialApp(
+        return MaterialApp.router(
           debugShowCheckedModeBanner: false,
           title: 'EcoVenture',
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           ),
-          home: LoginScreen(),
+          routerConfig: router,
         );
       },
     );

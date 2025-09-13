@@ -1,6 +1,6 @@
 
-import 'package:eco_venture/views/childSection/widgets/click_able_info_card.dart';
-import 'package:eco_venture/views/childSection/widgets/container_grid.dart';
+import 'package:eco_venture/views/child_section/widgets/click_able_info_card.dart';
+import 'package:eco_venture/views/child_section/widgets/container_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';

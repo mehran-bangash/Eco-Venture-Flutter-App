@@ -1,10 +1,12 @@
-import 'package:eco_venture/views/childSection/ai_chat_screen.dart';
-import 'package:eco_venture/views/childSection/child_home_screen.dart';
-import 'package:eco_venture/views/childSection/profile/child_profile_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../views/childSection/report_safety_screen.dart';
+import '../views/child_section/ai_chat_screen.dart';
+import '../views/child_section/child_home_screen.dart';
+import '../views/child_section/profile/child_profile_screen.dart';
+import '../views/child_section/report_safety_screen.dart';
+
 
 class BottomNavChild extends StatefulWidget {
   const BottomNavChild({super.key});

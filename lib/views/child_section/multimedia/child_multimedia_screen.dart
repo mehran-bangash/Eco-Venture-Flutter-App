@@ -1,5 +1,6 @@
-import 'package:eco_venture/views/childSection/multimedia/story_screen.dart';
-import 'package:eco_venture/views/childSection/multimedia/video_screen.dart';
+
+import 'package:eco_venture/views/child_section/multimedia/story_screen.dart';
+import 'package:eco_venture/views/child_section/multimedia/video_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
