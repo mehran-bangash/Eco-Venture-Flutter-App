@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../views/teacher_section/teacher_home_screen.dart';
 import '../constants/route_names.dart';

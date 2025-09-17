@@ -3,7 +3,10 @@ class RouteNames {
   static const landing = '/landing';
   static const login = '/login';
   static const signup = '/signup';
+  static const forgotPassword = '/forgotPassword';
 
+  //child section
+    static const bottomNavChild='/child';
   // Role-based homes
   static const childHome = '/child/home';
   static const teacherHome = '/teacher/home';

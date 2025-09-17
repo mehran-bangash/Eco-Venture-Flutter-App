@@ -2,6 +2,7 @@
 import 'package:eco_venture/views/child_section/multimedia/story_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
@@ -40,12 +41,17 @@ class _ChildMultimediaScreenState extends State<ChildMultimediaScreen>
           style: GoogleFonts.poppins(fontSize: 18.sp, color: Color(0xFF0A2540)),
         ),
         centerTitle: true,
-        leading: Padding(
-          padding: EdgeInsetsGeometry.only(left: 1.w),
-          child: SizedBox(
-            height: 50,
-            width: 50,
-            child: Icon(Icons.arrow_back_ios),
+        leading: GestureDetector(
+          onTap: () {
+            context.goNamed('bottomNavChild');
+          },
+          child: Padding(
+            padding: EdgeInsetsGeometry.only(left: 1.w),
+            child: SizedBox(
+              height: 50,
+              width: 50,
+              child: Icon(Icons.arrow_back_ios),
+            ),
           ),
         ),
         bottom: TabBar(

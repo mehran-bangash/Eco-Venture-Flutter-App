@@ -27,7 +27,7 @@ class CustomElevatedButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: () {},
+      onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor:backgroundColor?? AppColors.indigo.withValues(alpha: 0.8),
         foregroundColor:foregroundColor?? Colors.white,     //  Text/icon color

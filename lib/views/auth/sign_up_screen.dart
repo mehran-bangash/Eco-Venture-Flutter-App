@@ -1,10 +1,9 @@
+import 'package:eco_venture/core/constants/route_names.dart';
 import 'package:eco_venture/core/utils/validators.dart';
-import 'package:eco_venture/navigation/bottom_nav_child.dart';
-import 'package:eco_venture/navigation/bottom_nav_parent.dart';
-import 'package:eco_venture/navigation/bottom_nav_teacher.dart';
 import 'package:eco_venture/viewmodels/auth/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
@@ -324,18 +323,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                               onSuccess: () {
                                                 switch (selectedRole) {
                                                   case 'child':
-                                                    Navigator.pushReplacement(
-                                                        context, MaterialPageRoute(builder: (_) => BottomNavChild()));
+                                                    context.goNamed("bottomNavChild"); // GoRouter builds BottomNavChild + Home tab
                                                     break;
                                                   case 'teacher':
-                                                    Navigator.pushReplacement(
-                                                        context, MaterialPageRoute(builder: (_) => BottomNavTeacher()));
+                                                    context.go(RouteNames.teacherHome);
                                                     break;
                                                   case 'parent':
-                                                    Navigator.pushReplacement(
-                                                        context, MaterialPageRoute(builder: (_) => BottomNavParent()));
+                                                    context.go(RouteNames.parentHome);
                                                     break;
                                                 }
+
                                               },
                                             );
                                           }
@@ -413,30 +410,35 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                 ),
 
                                 SizedBox(height: 3.h),
-                                FadeTransition(
-                                  opacity: _cardItemAnimations[10],
-                                  child: Center(
-                                    child: RichText(
-                                      text: TextSpan(
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14.sp,
-                                          color: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge?.color,
-                                        ),
-                                        children: [
-                                          const TextSpan(
-                                            text: "Already have an account? ",
+                                GestureDetector(
+                                  onTap: () {
+                                    context.goNamed('login');
+                                  },
+                                  child: FadeTransition(
+                                    opacity: _cardItemAnimations[10],
+                                    child: Center(
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14.sp,
+                                            color: Theme.of(
+                                              context,
+                                            ).textTheme.bodyLarge?.color,
                                           ),
-                                          TextSpan(
-                                            text: 'Sign in',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 14.sp,
-                                              color: const Color(0xFF667EEA),
-                                              fontWeight: FontWeight.bold,
+                                          children: [
+                                            const TextSpan(
+                                              text: "Already have an account? ",
                                             ),
-                                          ),
-                                        ],
+                                            TextSpan(
+                                              text: 'Sign in',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14.sp,
+                                                color: const Color(0xFF667EEA),
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),

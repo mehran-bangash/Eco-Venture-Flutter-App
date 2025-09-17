@@ -38,7 +38,7 @@ class AuthService {
 
       return GoogleUserData(
         idToken: idToken,
-        email: account.email ?? "",
+        email: account.email ,
         displayName: account.displayName ?? "",
       );
     } catch (e, stack) {

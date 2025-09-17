@@ -1,3 +1,4 @@
+import 'package:eco_venture/views/auth/forgot_password_screen.dart';
 import 'package:eco_venture/views/auth/sign_up_screen.dart';
 import 'package:go_router/go_router.dart';
 
@@ -13,7 +14,7 @@ import '../../views/auth/login_screen.dart';
 
 class AppRouter {
   static GoRouter router = GoRouter(
-    initialLocation: RouteNames.splash,
+    initialLocation: RouteNames.childHome,
     routes: [
       // // Splash
       // GoRoute(
@@ -33,7 +34,10 @@ class AppRouter {
       GoRoute(
         path: RouteNames.login,
         name: 'login',
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) {
+          final role =state.extra as String?;
+          return LoginScreen(selectRole: role,);
+        },
       ),
 
       // Signup
@@ -43,6 +47,13 @@ class AppRouter {
         builder: (context, state) => const SignUpScreen(),
       ),
 
+      //forgot Password
+      // Login
+      GoRoute(
+        path: RouteNames.forgotPassword,
+        name: 'forgotPassword',
+        builder: (context, state) => ForgotPasswordScreen(),
+      ),
       // Child role routes
       ChildRouter.routes,
 

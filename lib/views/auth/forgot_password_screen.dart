@@ -4,6 +4,7 @@ import 'package:eco_venture/core/utils/validators.dart';
 import 'package:eco_venture/viewmodels/auth/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
@@ -312,19 +313,24 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: EdgeInsets.only(top: 6.h, left: 3.5.w),
-            child: Container(
-              height: 6.h,
-              width: 14.w,
-              decoration: BoxDecoration(
-                color: AppColors.pureWhite.withValues(alpha: 0.2),
-                borderRadius: const BorderRadius.all(Radius.circular(10)),
-              ),
-              child: Icon(
-                Icons.arrow_back_ios,
-                color: AppColors.pureWhite,
-                size: 8.w,
+          GestureDetector(
+            onTap: () {
+              context.goNamed('login');
+            },
+            child: Padding(
+              padding: EdgeInsets.only(top: 6.h, left: 3.5.w),
+              child: Container(
+                height: 6.h,
+                width: 14.w,
+                decoration: BoxDecoration(
+                  color: AppColors.pureWhite.withValues(alpha: 0.2),
+                  borderRadius: const BorderRadius.all(Radius.circular(10)),
+                ),
+                child: Icon(
+                  Icons.arrow_back_ios,
+                  color: AppColors.pureWhite,
+                  size: 8.w,
+                ),
               ),
             ),
           ),

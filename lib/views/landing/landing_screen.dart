@@ -1,6 +1,7 @@
 import 'package:eco_venture/core/constants/app_text_styles.dart';
 import 'package:eco_venture/core/widgets/custom_elevated_button.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'dart:math';
 import 'package:flutter/scheduler.dart';
@@ -14,6 +15,7 @@ class LandingScreen extends StatefulWidget {
 
 class _LandingScreenState extends State<LandingScreen>
     with TickerProviderStateMixin {
+
   // Controllers
   late final AnimationController _centerController;
   late final AnimationController _pulseController;
@@ -188,6 +190,9 @@ class _LandingScreenState extends State<LandingScreen>
                           child: ScaleTransition(
                             scale: _pulseAnimation,
                             child: CustomElevatedButton(
+                              onPressed: () {
+                                context.goNamed('login', extra: "parent");
+                              },
                               text: "Parent",
                               textStyle: AppTextStyles.body16RegularPureWhite,
                             ),
@@ -200,6 +205,9 @@ class _LandingScreenState extends State<LandingScreen>
                             child: CustomElevatedButton(
                               text: "Child",
                               textStyle: AppTextStyles.body16RegularPureWhite,
+                              onPressed: () {
+                                context.goNamed('login', extra: "child");
+                              },
                             ),
                           ),
                         ),
@@ -214,6 +222,9 @@ class _LandingScreenState extends State<LandingScreen>
                         scale: _pulseAnimation,
                         child: CustomElevatedButton(
                           text: "Teacher",
+                          onPressed: () {
+                            context.goNamed('login', extra: "teacher");
+                          },
                           textStyle: AppTextStyles.body16RegularPureWhite,
                         ),
                       ),

@@ -5,15 +5,14 @@ import 'package:eco_venture/core/widgets/auth_text_field.dart';
 import 'package:eco_venture/viewmodels/auth/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-import '../../navigation/bottom_nav_child.dart';
-import '../../navigation/bottom_nav_parent.dart';
-import '../../navigation/bottom_nav_teacher.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  final String? selectRole;
+  const LoginScreen({super.key, this.selectRole});
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -241,16 +240,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   ),
                                 ),
                                 SizedBox(height: 2.h),
-                                FadeTransition(
-                                  opacity: _cardItemAnimations[5],
-                                  child: Align(
-                                    alignment: Alignment.centerRight,
-                                    child: Text(
-                                      "Forgot Password?",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 16.sp,
-                                        color: Color(0xFF667EEA),
-                                        fontWeight: FontWeight.w700,
+                                GestureDetector(
+                                  onTap: () {
+                                    context.goNamed('forgotPassword');
+                                  },
+                                  child: FadeTransition(
+                                    opacity: _cardItemAnimations[5],
+                                    child: Align(
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        "Forgot Password?",
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 16.sp,
+                                          color: Color(0xFF667EEA),
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -286,36 +290,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                                           ?.role; // role from backend
                                                       switch (role) {
                                                         case 'child':
-                                                          Navigator.pushReplacement(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                              builder: (_) =>
-                                                                  BottomNavChild(),
-                                                            ),
-                                                          );
+                                                          context.goNamed('bottomNavChild');
                                                           break;
                                                         case 'teacher':
-                                                          Navigator.pushReplacement(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                              builder: (_) =>
-                                                                  BottomNavTeacher(),
-                                                            ),
-                                                          );
+                                                          context.goNamed('teacherHome');
                                                           break;
                                                         case 'parent':
-                                                          Navigator.pushReplacement(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                              builder: (_) =>
-                                                                  BottomNavParent(),
-                                                            ),
-                                                          );
+                                                          context.goNamed('parentHome');
                                                           break;
                                                       }
                                                     },
                                                   );
-
                                             }
                                           },
                                           child: FadeTransition(
@@ -438,14 +423,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       children: [
                                         GestureDetector(
                                           onTap: () async {
-                                            final role ="child";
+
                                             await ref
                                                 .read(
                                                   authViewModelProvider
                                                       .notifier,
                                                 )
                                                 .continueWithGoogle(
-                                                  role,
+                                                  widget.selectRole??"",
                                                   onSuccess: () {
                                                     final role = ref
                                                         .read(
@@ -455,31 +440,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                                         ?.role; // role from backend
                                                     switch (role) {
                                                       case 'child':
-                                                        Navigator.pushReplacement(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder: (_) =>
-                                                                BottomNavChild(),
-                                                          ),
-                                                        );
+                                                        context.goNamed('bottomNavChild');
                                                         break;
                                                       case 'teacher':
-                                                        Navigator.pushReplacement(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder: (_) =>
-                                                                BottomNavTeacher(),
-                                                          ),
-                                                        );
+                                                        context.goNamed('teacherHome');
                                                         break;
                                                       case 'parent':
-                                                        Navigator.pushReplacement(
-                                                          context,
-                                                          MaterialPageRoute(
-                                                            builder: (_) =>
-                                                                BottomNavParent(),
-                                                          ),
-                                                        );
+                                                        context.goNamed('parentHome');
                                                         break;
                                                     }
                                                   },
@@ -505,18 +472,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.center,
                                                   children:
-                                                      googleState.isGoogleLoading
+                                                      googleState
+                                                          .isGoogleLoading
                                                       ? [
-                                                          SizedBox(
-                                                            height: 18,
-                                                            width: 18,
-                                                            child:
-                                                                CircularProgressIndicator(
-                                                                  color: Colors
-                                                                      .white,
-                                                                  strokeWidth:
-                                                                      2,
-                                                                ),
+                                                          Padding(
+                                                            padding:  EdgeInsets.only(left: 15.w),
+                                                            child: SizedBox(
+                                                              height: 18,
+                                                              width: 18,
+                                                              child:
+                                                                  CircularProgressIndicator(
+                                                                    color: Colors
+                                                                        .black,
+                                                                    strokeWidth:
+                                                                        2,
+                                                                  ),
+                                                            ),
                                                           ),
                                                           SizedBox(width: 2.w),
                                                           Text(
@@ -529,7 +500,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                                                       FontWeight
                                                                           .bold,
                                                                   color: Colors
-                                                                      .white,
+                                                                      .black,
                                                                 ),
                                                           ),
                                                         ]
@@ -571,7 +542,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                           ),
                                         ),
                                         //error message
-                                        if (googleState.googleError!= null)
+                                        if (googleState.googleError != null)
                                           Padding(
                                             padding: EdgeInsets.only(top: 2.h),
                                             child: Text(
@@ -589,30 +560,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   },
                                 ),
                                 SizedBox(height: 3.h),
-                                FadeTransition(
-                                  opacity: _cardItemAnimations[9],
-                                  child: Center(
-                                    child: RichText(
-                                      text: TextSpan(
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14.sp,
-                                          color: Theme.of(
-                                            context,
-                                          ).textTheme.bodyLarge?.color,
-                                        ),
-                                        children: [
-                                          const TextSpan(
-                                            text: "Don't have an account? ",
+                                GestureDetector(
+                                  onTap: () {
+                                    context.goNamed('signup');
+                                  },
+                                  child: FadeTransition(
+                                    opacity: _cardItemAnimations[9],
+                                    child: Center(
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 14.sp,
+                                            color: Theme.of(
+                                              context,
+                                            ).textTheme.bodyLarge?.color,
                                           ),
-                                          TextSpan(
-                                            text: 'Sign Up',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 14.sp,
-                                              color: const Color(0xFF667EEA),
-                                              fontWeight: FontWeight.bold,
+                                          children: [
+                                            const TextSpan(
+                                              text: "Don't have an account? ",
                                             ),
-                                          ),
-                                        ],
+                                            TextSpan(
+                                              text: 'Sign Up',
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 14.sp,
+                                                color: const Color(0xFF667EEA),
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
