@@ -1,4 +1,6 @@
+import 'package:eco_venture/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
@@ -41,111 +43,120 @@ class _StoryScreenState extends State<StoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(2.h),
-        child: GridView.builder(
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // 2 per row
-            crossAxisSpacing: 2.h,
-            mainAxisSpacing: 2.h,
-            childAspectRatio: 0.8, // Controls card height
-          ),
-          itemCount: videos.length,
-          itemBuilder: (context, index) {
-            final video = videos[index];
-            return Container(
-              decoration: BoxDecoration(
-                color: Color(0xFFB5EFFF).withValues(alpha: 0.7),
+      body: GestureDetector(
+        onTap: () {
+          context.goNamed('storyPlayScreen');
+        },
+        child: Padding(
+          padding: EdgeInsets.all(2.h),
+          child: GridView.builder(
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2, // 2 per row
+              crossAxisSpacing: 2.h,
+              mainAxisSpacing: 2.h,
+              childAspectRatio: 0.8, // Controls card height
+            ),
+            itemCount: videos.length,
+            itemBuilder: (context, index) {
+              final video = videos[index];
+              return Material(
+                elevation: 5,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 5,
-                    offset: Offset(2, 4),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.whiteBackGroundCard,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black12,
+                        blurRadius: 5,
+                        offset: Offset(2, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.asset(
-                        video["image"],
-                        height: 13.h,
-                        width: 100.w,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Image
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.asset(
+                            video["image"],
                             height: 13.h,
                             width: 100.w,
-                            color: Colors.grey[300],
-                            child: Icon(Icons.broken_image,
-                                size: 40, color: Colors.red),
-                          );
-                        },
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 13.h,
+                                width: 100.w,
+                                color: Colors.grey[300],
+                                child: Icon(Icons.broken_image,
+                                    size: 40, color: Colors.red),
+                              );
+                            },
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
 
-                  // Title
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 2.w),
-                    child: Text(
-                      video["title"],
-                      style: GoogleFonts.poppins(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black87,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.start,
-                    ),
-                  ),
-
-                  SizedBox(height: 0.5.h),
-
-                  // Duration + Rating
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8.0, vertical: 6),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Duration
-                        Text(
-                          video["pages"],
+                      // Title
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 2.w),
+                        child: Text(
+                          video["title"],
                           style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF0A2540).withValues(alpha: 0.9),
-                            fontSize: 12.sp,
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.black87,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.start,
                         ),
+                      ),
 
-                        // Rating Star
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          padding: EdgeInsets.all(4),
-                          child: Icon(
-                            Icons.star,
-                            size: 14,
-                            color: Colors.orangeAccent,
-                          ),
+                      SizedBox(height: 0.5.h),
+
+                      // Duration + Rating
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0, vertical: 6),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Duration
+                            Text(
+                              video["pages"],
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0A2540).withValues(alpha: 0.9),
+                                fontSize: 12.sp,
+                              ),
+                            ),
+
+                            // Rating Star
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: EdgeInsets.all(4),
+                              child: Icon(
+                                Icons.star,
+                                size: 14,
+                                color: Colors.orangeAccent,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

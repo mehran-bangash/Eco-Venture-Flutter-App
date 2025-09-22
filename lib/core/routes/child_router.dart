@@ -1,3 +1,6 @@
+
+import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
+import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
@@ -34,11 +37,26 @@ class ChildRouter {
                 path: 'video-screen',
                 name: 'videoScreen',
                 builder: (context, state) => const VideoScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'video-play-screen',
+                    name: 'videoPlayScreen',
+                    builder: (context, state) => const VideoPlayerScreen(),
+
+                  )
+                ]
               ),
               GoRoute(
                 path: 'story-screen',
                 name: 'storyScreen',
                 builder: (context, state) => const StoryScreen(),
+                routes: [
+                  GoRoute(
+                      path: 'story-play-screen',
+                      name: 'storyPlayScreen',
+                    builder: (context, state) => const StoryPlayScreen(),
+                  )
+                ]
               ),
             ],
           ),

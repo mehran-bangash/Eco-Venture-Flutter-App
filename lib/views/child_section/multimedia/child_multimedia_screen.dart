@@ -1,4 +1,5 @@
 
+import 'package:eco_venture/core/constants/app_colors.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_screen.dart';
 import 'package:flutter/material.dart';
@@ -35,10 +36,12 @@ class _ChildMultimediaScreenState extends State<ChildMultimediaScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.greenAccent.withValues(alpha: 0.4),
+        backgroundColor: AppColors.appBar,
+        foregroundColor: Colors.white,
+        elevation: 0,
         title: Text(
           "Multimedia Content",
-          style: GoogleFonts.poppins(fontSize: 18.sp, color: Color(0xFF0A2540)),
+          style: GoogleFonts.poppins(fontSize: 18.sp, color: Colors.white),
         ),
         centerTitle: true,
         leading: GestureDetector(
@@ -70,9 +73,7 @@ class _ChildMultimediaScreenState extends State<ChildMultimediaScreen>
             color: Colors.grey,
           ),
           labelColor: Colors.deepOrange, // Active tab text + icon color
-          unselectedLabelColor: Color(
-            0xFF0A2540,
-          ).withValues(alpha: 0.7), // Inactive tab text + icon color
+          unselectedLabelColor:Colors.white, // Inactive tab text + icon color
           tabs: [
             Tab(
               icon: Icon(Icons.movie, size: 6.w),

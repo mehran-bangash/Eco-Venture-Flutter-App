@@ -7,8 +7,12 @@ class AppColors{
   static const Color primaryBlue = Color(0xFF1565C0);
   // You can adjust opacity when using: AppColors.primaryBlue.withValues(alpha: 0.8)
 
+  static Color appBar=  Color(0xFF002B5B).withValues(alpha: 0.8);
+
   // Green for success/positive role (Teacher/Parent)
   static const Color forestGreen = Color(0xFF2E7D32);
+
+   static const Color whiteBackGroundCard=Color(0xFFE6F2FA);
 
   // Pure white
   static const Color pureWhite = Color(0xFFFFFFFF);

@@ -1,4 +1,5 @@
 
+import 'package:eco_venture/core/constants/app_gradients.dart';
 import 'package:eco_venture/views/child_section/widgets/click_able_info_card.dart';
 import 'package:eco_venture/views/child_section/widgets/container_grid.dart';
 import 'package:flutter/material.dart';
@@ -18,15 +19,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFFD7D7E0),
-              Color(0xFFAEBAF5) // Almost White Aqua
-            ],
-            stops: [0.0, 1.0],
-          ),
+          gradient: AppGradients.backgroundGradient.withOpacity(0.8)
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -40,14 +33,14 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
                   height: 3.5.h,
                   width: 26.w,
                   decoration: BoxDecoration(
-                    color: Color(0xFF0A2540).withValues(alpha: 0.7),
+                    color: Colors.white,
                     borderRadius: BorderRadius.all(Radius.circular(10)),
                   ),
                   child: Center(
                     child: Text(
                       "Parent Section",
                       style: GoogleFonts.poppins(
-                        color: Colors.white,
+                        color: Colors.black,
                         fontWeight: FontWeight.bold,
                         fontSize: 14.sp,
                       ),
@@ -73,7 +66,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
                           height: 35,
                           width: 35,
                           decoration: BoxDecoration(
-                            color: Color(0xFF1E3A8A).withValues(alpha: 0.9),
+                            color: Color(0xFF1565C0).withValues(alpha: 0.9),
                             borderRadius: BorderRadius.all(Radius.circular(10)),
                           ),
                           child: Center(
@@ -140,14 +133,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
           width: double.infinity,
           height: 25.h, // same as image height
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF95C8FC).withValues(alpha: 0.6), // Gentle Frost Blue
-                Color(0xFFF1FCFF).withValues(alpha: 0.6), // Almost White Aqua
-              ],
-            ),
+            gradient: AppGradients.backgroundGradient.withOpacity(0.6)
           ),
         ),
 
@@ -176,7 +162,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
                         style: GoogleFonts.poppins(
                           fontStyle: FontStyle.italic,
                           fontSize: 18, // use 18.sp if using sizer
-                          color: Color(0xFF0A2540),
+                          color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -184,7 +170,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
                   ),
                   Icon(
                     Icons.notifications,
-                    color: Color(0xFF1E3A8A),
+                    color: Colors.white,
                     size: 24, // use 6.w if using sizer
                   ),
                 ],
@@ -196,7 +182,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
                   style: GoogleFonts.poppins(
                     fontStyle: FontStyle.italic,
                     fontSize: 18.sp,
-                    color: Color(0xFF0A2540),
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

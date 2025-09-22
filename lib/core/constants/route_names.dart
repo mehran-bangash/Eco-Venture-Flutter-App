@@ -21,7 +21,9 @@ class RouteNames {
 
   // nested inside child Section multiMediaContent
    static const videoScreen='/child/multimedia-content/video-screen';
+  static const videoPlayScreen='/child/multimedia-content/video-screen/video-play-screen';
   static const storyScreen='/child/multimedia-content/story-screen';
+  static const storyPlayScreen='/child/multimedia-content/story-screen/story-play-screen';
 
 
 }

@@ -1,3 +1,4 @@
+import 'package:eco_venture/core/constants/app_gradients.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -17,7 +18,7 @@ class ClickableInfoCard extends StatelessWidget {
       height: 6.h,
       width: 35.w,
       decoration: BoxDecoration(
-          color: Colors.lightBlue.withValues(alpha: 0.8),
+          gradient: AppGradients.buttonGradient,
           borderRadius: BorderRadius.circular(20)
       ),
       child: Row(
