@@ -1,10 +1,9 @@
 
+import 'package:eco_venture/views/child_section/settings/child_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
 import '../views/child_section/ai_chat_screen.dart';
 import '../views/child_section/child_home_screen.dart';
-import '../views/child_section/profile/child_profile_screen.dart';
 import '../views/child_section/report_safety_screen.dart';
 
 
@@ -22,7 +21,7 @@ class _BottomNavChildState extends State<BottomNavChild> {
     ChildHomeScreen(),
     AiChatScreen(),
     ReportSafetyScreen(),
-    ChildProfile(),
+    ChildSettings(),
   ];
 
   @override
@@ -70,8 +69,8 @@ class _BottomNavChildState extends State<BottomNavChild> {
               label: 'Safety',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Profile',
+              icon: Icon(Icons.settings),
+              label: 'Settings',
             ),
           ],
         ),

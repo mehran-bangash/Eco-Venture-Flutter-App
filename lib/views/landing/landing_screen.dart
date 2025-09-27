@@ -6,6 +6,8 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'dart:math';
 import 'package:flutter/scheduler.dart';
 
+import '../../services/shared_preferences_helper.dart';
+
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
 
@@ -190,8 +192,9 @@ class _LandingScreenState extends State<LandingScreen>
                           child: ScaleTransition(
                             scale: _pulseAnimation,
                             child: CustomElevatedButton(
-                              onPressed: () {
+                              onPressed: () async{
                                 context.goNamed('login', extra: "parent");
+                                await SharedPreferencesHelper.instance.saveUserRole('parent');
                               },
                               text: "Parent",
                               textStyle: AppTextStyles.body16RegularPureWhite,
@@ -205,8 +208,9 @@ class _LandingScreenState extends State<LandingScreen>
                             child: CustomElevatedButton(
                               text: "Child",
                               textStyle: AppTextStyles.body16RegularPureWhite,
-                              onPressed: () {
+                              onPressed: () async{
                                 context.goNamed('login', extra: "child");
+                                await SharedPreferencesHelper.instance.saveUserRole('child');
                               },
                             ),
                           ),
@@ -222,8 +226,9 @@ class _LandingScreenState extends State<LandingScreen>
                         scale: _pulseAnimation,
                         child: CustomElevatedButton(
                           text: "Teacher",
-                          onPressed: () {
+                          onPressed: () async{
                             context.goNamed('login', extra: "teacher");
+                            await SharedPreferencesHelper.instance.saveUserRole('teacher');
                           },
                           textStyle: AppTextStyles.body16RegularPureWhite,
                         ),

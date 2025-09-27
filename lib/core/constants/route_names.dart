@@ -16,8 +16,11 @@ class RouteNames {
   static const treasureHunt = '/child/treasure-hunt';
   static const multiMediaContent='/child/multimedia-content';
   static const stemChallenges='/child/stem-challenges';
-  static const naturePhotoJournel='/child/nature-photo-journel';
+  static const naturePhotoJournal='/child/nature-photo-journal';
   static const interactiveQuiz='/child/interactive-quiz';
+  static const childProfile='/child/child-profile';
+  static const editProfile='/child/child-profile/edit-profile';
+  static const childSettings='/child/child-settings';
 
   // nested inside child Section multiMediaContent
    static const videoScreen='/child/multimedia-content/video-screen';

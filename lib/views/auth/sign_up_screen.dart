@@ -9,6 +9,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../core/constants/app_text_styles.dart';
 import '../../core/widgets/auth_text_field.dart';
+import '../../services/shared_preferences_helper.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -314,7 +315,18 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                       GestureDetector(
                                         onTap: () async {
                                           if (_formKey.currentState!.validate()) {
-                                            String selectedRole = "child"; // example role
+                                            final selectedRole =
+                                            await SharedPreferencesHelper.instance.getUserRole();
+                                            await SharedPreferencesHelper.instance.saveUserPhoneNumber(_phoneController.toString());
+                                            if (selectedRole == null) {
+                                              //  Stop process here
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text("Please select a role first")),
+                                              );
+                                              return; //  Exit function
+                                            }
+
+                                            //  Safe: role is not null
                                             ref.read(authViewModelProvider.notifier).signUp(
                                               _emailController.text.trim(),
                                               _passwordController.text.trim(),
@@ -323,7 +335,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                               onSuccess: () {
                                                 switch (selectedRole) {
                                                   case 'child':
-                                                    context.goNamed("bottomNavChild"); // GoRouter builds BottomNavChild + Home tab
+                                                    context.goNamed("bottomNavChild");
                                                     break;
                                                   case 'teacher':
                                                     context.go(RouteNames.teacherHome);
@@ -332,7 +344,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                                     context.go(RouteNames.parentHome);
                                                     break;
                                                 }
-
                                               },
                                             );
                                           }

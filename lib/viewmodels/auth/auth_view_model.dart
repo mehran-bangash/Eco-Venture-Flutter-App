@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:eco_venture/services/shared_preferences_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../repositories/auth_repo.dart';
 import 'auth_state.dart';
@@ -7,26 +9,38 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
   AuthViewModel(this._repo) : super(AuthState.initial());
 
-  // ---------------- Email/Password ----------------
+  // Email/Password
   Future<void> signUp(
       String email,
       String password,
       String role,
       String name, {
-        Function? onSuccess,
+        VoidCallback? onSuccess,
       }) async {
     state = state.copyWith(isEmailLoading: true, emailError: null);
 
     try {
       final user = await _repo.signUpUser(email, password, role, name);
-
+      if (user == null) {
+        state = state.copyWith(
+          isEmailLoading: false,
+          emailError: "Signup failed: user is null",
+        );
+        return;
+      }
       state = state.copyWith(
         isEmailLoading: false,
         user: user,
-        navigateToRole: user?.role,
+        navigateToRole: user.role,
       );
+      await SharedPreferencesHelper.instance.saveUserId(user.uid);
+      await SharedPreferencesHelper.instance.saveUserName(user.displayName);
+      await SharedPreferencesHelper.instance.saveUserEmail(user.email);
 
-      if (onSuccess != null) onSuccess();
+
+
+
+      onSuccess?.call();
     } catch (e) {
       state = state.copyWith(
         isEmailLoading: false,
@@ -75,7 +89,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
     }
   }
 
-  // ---------------- Google Login ----------------
+  // Google Login
   Future<void> continueWithGoogle(String role, {Function? onSuccess}) async {
     state = state.copyWith(isGoogleLoading: true, googleError: null);
 
@@ -96,7 +110,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
     }
   }
 
-  // ---------------- Navigation ----------------
+  //  Navigation
   void resetNavigation() {
     state = state.copyWith(navigateToRole: null);
   }

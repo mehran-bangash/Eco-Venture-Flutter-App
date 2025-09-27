@@ -1,0 +1,75 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
+class SharedPreferencesHelper {
+  SharedPreferencesHelper._();
+
+  static SharedPreferencesHelper instance =
+      SharedPreferencesHelper._();
+  static String userIdKey = 'USERIDKEY';
+  static String userNameKey = 'USERNAMEKEY';
+  static String userEmailKey = 'USEREMAILKEY';
+  static String userRoleKey = 'USERROLEKEY';
+  static String userPhoneNumberKey = 'USERPHONENUMBERKEY';
+  static String userImgUrlKey = 'USERIMGURLKEY';
+  static String userTokenKey = 'USERTOKENKEY';
+
+  Future<bool> saveUserId(String userId) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(userIdKey, userId);
+  }
+
+  Future<bool> saveUserName(String userName) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(userNameKey, userName);
+  }
+
+  Future<bool> saveUserEmail(String userEmail) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(userEmailKey, userEmail);
+  }
+
+  Future<bool> saveUserRole(String userRole) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(userRoleKey, userRole);
+  }
+
+  Future<bool> saveUserToken(String userToken) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(userTokenKey, userToken);
+  }
+
+  Future<bool> saveUserPhoneNumber(String userPhoneNumber) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(userPhoneNumber, userPhoneNumber);
+  }
+
+  Future<String?> getUserId() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(userIdKey);
+  }
+
+  Future<String?> getUserEmail() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(userEmailKey);
+  }
+
+  Future<String?> getUserName() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(userNameKey);
+  }
+
+  Future<String?> getUserPhoneNumber() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(userPhoneNumberKey);
+  }
+
+  Future<String?> getUserRole() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(userRoleKey);
+  }
+
+  Future<String?> getUserImgUrl() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(userImgUrlKey);
+  }
+}

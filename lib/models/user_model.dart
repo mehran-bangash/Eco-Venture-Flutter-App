@@ -6,10 +6,14 @@ class UserModel {
   final String displayName;
   final String role;
   final DateTime createdAt;
+  final String? imgUrl;
+  final String? phoneNumber;
   final String? token; // optional, in case backend sends token with user
 
   UserModel({
     required this.uid,
+    this.imgUrl,
+    this.phoneNumber,
     required this.createdAt,
     required this.email,
     required this.displayName,
@@ -26,6 +30,8 @@ class UserModel {
       "role": role,
       "createdAt": createdAt.toIso8601String(),
       "token": token,
+      "imgUrl":imgUrl,
+      "phoneNumber":phoneNumber
     };
   }
 
@@ -39,6 +45,8 @@ class UserModel {
       final userMap = map['user'] as Map<String, dynamic>;
       return UserModel(
         uid: userMap['uid'],
+        imgUrl: userMap['imgUrl'],
+        phoneNumber: userMap['phoneNumber'],
         email: userMap['email'],
         displayName: userMap['displayName'],
         role: userMap['role'],
@@ -52,6 +60,8 @@ class UserModel {
       uid: map['uid'],
       email: map['email'],
       displayName: map['displayName'],
+      imgUrl: map['imgUrl'],
+      phoneNumber: map['phoneNumber'],
       role: map['role'],
       createdAt: DateTime.parse(map['createdAt']),
       token: map['token'], // may or may not exist
@@ -68,10 +78,14 @@ class UserModel {
     String? displayName,
     String? role,
     DateTime? createdAt,
+    String? imgUrl,
+    String? phoneNumber,
     String? token,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
+      imgUrl: imgUrl ?? this.imgUrl,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       role: role ?? this.role,

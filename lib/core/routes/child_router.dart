@@ -1,6 +1,9 @@
 
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dart';
+import 'package:eco_venture/views/child_section/settings/child_settings.dart';
+import 'package:eco_venture/views/child_section/settings/profile/child_profile_screen.dart';
+import 'package:eco_venture/views/child_section/settings/profile/edit_profile_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
@@ -18,6 +21,23 @@ class ChildRouter {
     name: 'bottomNavChild',
     builder: (context, state) => const BottomNavChild(), // wrap with your nav container
     routes: [
+      GoRoute(
+        path: 'child-profile',
+        name: 'childProfile',
+        builder: (context, state) => const ChildProfile(),
+        routes: [
+          GoRoute(
+              path: 'edit-profile',
+              name: 'editProfile',
+              builder: (context, state) => const EditProfileScreen(),
+          )
+        ]
+      ),
+      GoRoute(
+          path: 'child-settings',
+          name: 'childSettings',
+         builder: (context, state) =>const ChildSettings(),
+      ),
       GoRoute(
         path: 'home', //  relative path, not /child/home
         name: 'childHome',
@@ -70,6 +90,7 @@ class ChildRouter {
             name: 'naturePhotoJournal',
             builder: (context, state) => const NaturePhotoJournalScreen(),
           ),
+
           GoRoute(
             path: 'interactive-quiz',
             name: 'interactiveQuiz',
