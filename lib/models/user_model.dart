@@ -58,13 +58,15 @@ class UserModel {
     // 🔎 Case 2: Backend sends flat JSON { uid, email, displayName, ... }
     return UserModel(
       uid: map['uid'],
-      email: map['email'],
-      displayName: map['displayName'],
-      imgUrl: map['imgUrl'],
+      email: map['email']??"",
+      displayName: map['displayName']??"",
+      imgUrl: map['imgUrl']??"",
       phoneNumber: map['phoneNumber'],
-      role: map['role'],
-      createdAt: DateTime.parse(map['createdAt']),
-      token: map['token'], // may or may not exist
+      role: map['role']??"",
+      createdAt: map['createdAt'] != null
+          ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
+          : DateTime.now(),
+      token: map['token']??"", // may or may not exist
     );
   }
 

@@ -12,35 +12,31 @@ class AuthService {
   final GoogleSignIn signIn = GoogleSignIn.instance;
   bool _initialized = false;
 
-  /// Call this once in main.dart after Firebase.initializeApp()
   Future<void> init() async {
     if (_initialized) return;
     await signIn.initialize();
     _initialized = true;
   }
 
-  /// Get Google token + profile (for sending to Node.js backend)
   Future<GoogleUserData> continueWithGoogle() async {
     try {
       if (!_initialized) {
         await init();
       }
 
-      //  New API: authenticate()
-      final GoogleSignInAccount account = await signIn.authenticate();
+      final GoogleSignInAccount? account = await signIn.authenticate();
+      if (account == null) throw Exception("Google sign-in cancelled");
 
       final googleAuth = account.authentication;
       final idToken = googleAuth.idToken;
-
-      if (idToken == null) {
-        throw Exception("Failed to retrieve Google ID Token");
-      }
+      if (idToken == null) throw Exception("Google ID token is null");
 
       return GoogleUserData(
         idToken: idToken,
-        email: account.email ,
-        displayName: account.displayName ?? "",
+        email: account.email ?? "",
+        displayName: account.displayName ?? "Unknown User",
       );
+
     } catch (e, stack) {
       debugPrint("Google sign-in failed: $e\n$stack");
       throw Exception("Google sign-in failed: $e");

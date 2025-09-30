@@ -149,11 +149,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
                         ),
                       ),
                       //  Error message here
-                      if (forgotState.emailError != null)
+                      if (forgotState.forgotPasswordError != null)
                         Padding(
                           padding: EdgeInsets.only(top: 2.h),
                           child: Text(
-                            forgotState.emailError!,
+                            forgotState.forgotPasswordError!,
                             style: TextStyle(
                               color: Colors.red,
                               fontSize: 14.sp,
@@ -193,7 +193,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen>
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children:sendLinkState.isEmailLoading? [
+            children:sendLinkState.isForgotPasswordLoading? [
             SizedBox(
               height: 18,
               width: 18,

@@ -329,7 +329,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                                   mainAxisAlignment:
                                                       MainAxisAlignment.center,
                                                   children:
-                                                      signInState.isEmailLoading
+                                                      signInState.isSignInLoading
                                                       ? [
                                                           SizedBox(
                                                             height: 18,
@@ -384,11 +384,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                           ),
                                         ),
                                         //error message
-                                        if (signInState.emailError != null)
+                                        if (signInState.signInError != null)
                                           Padding(
                                             padding: EdgeInsets.only(top: 2.h),
                                             child: Text(
-                                              signInState.emailError!,
+                                              signInState.signInError!,
                                               style: TextStyle(
                                                 color: Colors.red,
                                                 fontSize: 14.sp,

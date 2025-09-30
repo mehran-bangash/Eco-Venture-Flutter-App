@@ -17,19 +17,19 @@ class AuthViewModel extends StateNotifier<AuthState> {
       String name, {
         VoidCallback? onSuccess,
       }) async {
-    state = state.copyWith(isEmailLoading: true, emailError: null);
+    state = state.copyWith(isSignUpLoading: true, signUpError: null);
 
     try {
       final user = await _repo.signUpUser(email, password, role, name);
       if (user == null) {
         state = state.copyWith(
-          isEmailLoading: false,
-          emailError: "Signup failed: user is null",
+          isSignUpLoading: false,
+          signUpError: "Signup failed: user is null",
         );
         return;
       }
       state = state.copyWith(
-        isEmailLoading: false,
+        isSignUpLoading: false,
         user: user,
         navigateToRole: user.role,
       );
@@ -43,8 +43,8 @@ class AuthViewModel extends StateNotifier<AuthState> {
       onSuccess?.call();
     } catch (e) {
       state = state.copyWith(
-        isEmailLoading: false,
-        emailError: e.toString(),
+        isSignUpLoading: false,
+        signUpError: e.toString(),
       );
     }
   }
@@ -54,13 +54,13 @@ class AuthViewModel extends StateNotifier<AuthState> {
       String password, {
         Function? onSuccess,
       }) async {
-    state = state.copyWith(isEmailLoading: true, emailError: null);
+    state = state.copyWith(isSignInLoading: true,signInError: null);
 
     try {
       final user = await _repo.loginUser(email, password);
 
       state = state.copyWith(
-        isEmailLoading: false,
+        isSignInLoading: false,
         user: user,
         navigateToRole: user?.role,
       );
@@ -68,23 +68,23 @@ class AuthViewModel extends StateNotifier<AuthState> {
       if (onSuccess != null) onSuccess();
     } catch (e) {
       state = state.copyWith(
-        isEmailLoading: false,
-        emailError: e.toString(),
+        isSignInLoading: false,
+        signInError: e.toString(),
       );
     }
   }
 
   Future<void> forgotPassword(String email, {Function? onSuccess}) async {
-    state = state.copyWith(isEmailLoading: true, emailError: null);
+    state = state.copyWith(isForgotPasswordLoading: true, forgotPasswordError: null);
 
     try {
       await _repo.forgotUser(email);
-      state = state.copyWith(isEmailLoading: false);
+      state = state.copyWith(isForgotPasswordLoading: false);
       if (onSuccess != null) onSuccess();
     } catch (e) {
       state = state.copyWith(
-        isEmailLoading: false,
-        emailError: e.toString(),
+        isForgotPasswordLoading: false,
+        forgotPasswordError: e.toString(),
       );
     }
   }

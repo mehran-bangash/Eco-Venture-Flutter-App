@@ -1,11 +1,19 @@
 import '../../models/user_model.dart';
 
 class AuthState {
-  // Email login state
-  final bool isEmailLoading;
-  final String? emailError;
+  //  Sign In state
+  final bool isSignInLoading;
+  final String? signInError;
 
-  // Google login state
+  // Sign Up state
+  final bool isSignUpLoading;
+  final String? signUpError;
+
+  // Forgot Password state
+  final bool isForgotPasswordLoading;
+  final String? forgotPasswordError;
+
+  //Google login state
   final bool isGoogleLoading;
   final String? googleError;
 
@@ -14,8 +22,12 @@ class AuthState {
   final String? navigateToRole;
 
   AuthState({
-    this.isEmailLoading = false,
-    this.emailError,
+    this.isSignInLoading = false,
+    this.signInError,
+    this.isSignUpLoading = false,
+    this.signUpError,
+    this.isForgotPasswordLoading = false,
+    this.forgotPasswordError,
     this.isGoogleLoading = false,
     this.googleError,
     this.user,
@@ -23,16 +35,25 @@ class AuthState {
   });
 
   AuthState copyWith({
-    bool? isEmailLoading,
-    String? emailError,
+    bool? isSignInLoading,
+    String? signInError,
+    bool? isSignUpLoading,
+    String? signUpError,
+    bool? isForgotPasswordLoading,
+    String? forgotPasswordError,
     bool? isGoogleLoading,
     String? googleError,
     UserModel? user,
     String? navigateToRole,
   }) {
     return AuthState(
-      isEmailLoading: isEmailLoading ?? this.isEmailLoading,
-      emailError: emailError ?? this.emailError,
+      isSignInLoading: isSignInLoading ?? this.isSignInLoading,
+      signInError: signInError ?? this.signInError,
+      isSignUpLoading: isSignUpLoading ?? this.isSignUpLoading,
+      signUpError: signUpError ?? this.signUpError,
+      isForgotPasswordLoading:
+      isForgotPasswordLoading ?? this.isForgotPasswordLoading,
+      forgotPasswordError: forgotPasswordError ?? this.forgotPasswordError,
       isGoogleLoading: isGoogleLoading ?? this.isGoogleLoading,
       googleError: googleError ?? this.googleError,
       user: user ?? this.user,

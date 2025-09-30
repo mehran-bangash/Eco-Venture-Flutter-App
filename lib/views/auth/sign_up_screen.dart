@@ -365,7 +365,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                               child:  Row(
                                               mainAxisAlignment: MainAxisAlignment.center,
                                               children:
-                                                signUpState.isEmailLoading ? [
+                                                signUpState.isSignUpLoading? [
                                                   SizedBox(
                                                     height: 18,
                                                     width: 18,
@@ -402,11 +402,11 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                         ),
                                       ),
                                     //  Error message
-                                      if (signUpState.emailError != null)
+                                      if (signUpState.signUpError != null)
                                         Padding(
                                           padding: EdgeInsets.only(top: 2.h),
                                           child: Text(
-                                            signUpState.emailError!,
+                                            signUpState.signUpError!,
                                             style: TextStyle(
                                               color: Colors.red,
                                               fontSize: 14.sp,

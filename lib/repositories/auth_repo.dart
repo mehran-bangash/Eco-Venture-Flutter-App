@@ -30,7 +30,7 @@ class AuthRepo {
       requestBody,
     );
 
-    // 🔹 Sign in to Firebase with custom token from Node.js
+    // Sign in to Firebase with custom token from Node.js
     if (userData.containsKey("token")) {
       await FirebaseAuth.instance.signInWithCustomToken(userData["token"]);
     }
@@ -65,26 +65,22 @@ class AuthRepo {
       throw Exception("Login failed: $e");
     }
   }
-
   Future<UserModel?> sendTokenOfGoogle(String role) async {
-    // Step 1: Get Google user data (idToken + profile info)
     final googleUser = await AuthService.authInstance.continueWithGoogle();
 
-    // Step 2: Prepare request body for Node.js
     final requestBody = {
-      'idToken': googleUser.idToken,
-      'email': googleUser.email,
-      'name': googleUser.displayName,
-      'role': role,
+      'idToken': googleUser.idToken ?? "",
+      'email': googleUser.email ?? "",
+      'name': googleUser.displayName ?? "Unknown User",
+      'role': role.isNotEmpty ? role : "user",  // safer check
     };
 
-    // Step 3: Send request to backend
     final response = await _apiService.sendUserToken(
       ApiConstants.googleEndpoint,
       requestBody,
     );
 
-    return UserModel.fromMap(response['user']);
+    return UserModel.fromMap(response);
   }
 
 

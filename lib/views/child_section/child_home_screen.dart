@@ -26,29 +26,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeaderSection(),
-              SizedBox(height: 1.h),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Container(
-                  height: 3.5.h,
-                  width: 26.w,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      "Parent Section",
-                      style: GoogleFonts.poppins(
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 1.h),
+              SizedBox(height: 1.5.h),
               Padding(
                 padding: EdgeInsets.only(left: 5.w, right: 2.w),
                 child: Container(
