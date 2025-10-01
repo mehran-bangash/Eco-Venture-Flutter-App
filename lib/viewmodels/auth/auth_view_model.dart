@@ -95,6 +95,16 @@ class AuthViewModel extends StateNotifier<AuthState> {
 
     try {
       final user = await _repo.sendTokenOfGoogle(role);
+      if (user == null) {
+        state = state.copyWith(
+          isGoogleLoading: false,
+          googleError: "Google login failed: user is null",
+        );
+        return;
+      }
+      await SharedPreferencesHelper.instance.saveUserId(user.uid);
+      await SharedPreferencesHelper.instance.saveUserName(user.displayName);
+      await SharedPreferencesHelper.instance.saveUserEmail(user.email);
 
       state = state.copyWith(
         isGoogleLoading: false,
@@ -106,6 +116,24 @@ class AuthViewModel extends StateNotifier<AuthState> {
       state = state.copyWith(
         isGoogleLoading: false,
         googleError: e.toString(),
+      );
+    }
+  }
+  Future<void> signOut() async {
+    state = state.copyWith(isSignOutLoading: true, signOutError: null);
+
+    try {
+      await _repo.logout();
+      await SharedPreferencesHelper.instance.clearAll();
+      state = state.copyWith(
+        isSignOutLoading: false,
+        user: null,
+        navigateToRole: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isSignOutLoading: false,
+        signOutError: e.toString(),
       );
     }
   }

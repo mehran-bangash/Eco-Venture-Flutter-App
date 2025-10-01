@@ -9,7 +9,8 @@ class SettingsTile extends StatelessWidget {
   final Color circleColor;
   final IconData leadingIcon;
   final Color leadingIconColor;
-  final Widget? trailing; // <-- this controls arrow/switch/custom widget
+  final Widget? trailing;
+  final VoidCallback? onPressed; // 👈 added
 
   const SettingsTile({
     super.key,
@@ -20,7 +21,8 @@ class SettingsTile extends StatelessWidget {
     this.titleColor,
     this.subtitleColor,
     this.leadingIconColor = Colors.blue,
-    this.trailing, // optional
+    this.trailing,
+    this.onPressed, // 👈 added
   });
 
   @override
@@ -30,79 +32,83 @@ class SettingsTile extends StatelessWidget {
       child: Material(
         elevation: 10,
         borderRadius: BorderRadius.all(Radius.circular(20.sp)),
-        child: Container(
-          height: 12.h,
-          width: 100.w,
-          decoration: BoxDecoration(
-            color: Colors.white70,
-            borderRadius: BorderRadius.all(Radius.circular(20.sp)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Leading circle
-              Padding(
-                padding: EdgeInsets.only(top: 2.5.h, left: 6.w),
-                child: Container(
-                  height: 7.h,
-                  width: 16.w,
-                  decoration: BoxDecoration(
-                    color: circleColor,
-                    borderRadius: BorderRadius.all(Radius.circular(10)),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      leadingIcon,
-                      color: Colors.white,
-                      size: 8.w,
+        child: InkWell( // 👈 makes it tappable
+          borderRadius: BorderRadius.all(Radius.circular(20.sp)),
+          onTap: onPressed, // 👈 trigger callback
+          child: Container(
+            height: 12.h,
+            width: 100.w,
+            decoration: BoxDecoration(
+              color: Colors.white70,
+              borderRadius: BorderRadius.all(Radius.circular(20.sp)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Leading circle
+                Padding(
+                  padding: EdgeInsets.only(top: 2.5.h, left: 6.w),
+                  child: Container(
+                    height: 7.h,
+                    width: 16.w,
+                    decoration: BoxDecoration(
+                      color: circleColor,
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        leadingIcon,
+                        color: Colors.white,
+                        size: 8.w,
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              // Title + Subtitle
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    top: 2.5.h,
-                    left: 6.w,
-                    right: 3.w,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.poppins(
-                          fontSize: 18.sp,
-                          color: titleColor ?? Colors.black,
-                          fontWeight: FontWeight.w600,
+                // Title + Subtitle
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      top: 2.5.h,
+                      left: 6.w,
+                      right: 3.w,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: GoogleFonts.poppins(
+                            fontSize: 18.sp,
+                            color: titleColor ?? Colors.black,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 0.5.h,),
-                      Text(
-                        subtitle,
-                        style: GoogleFonts.poppins(
-                          fontSize: 15.sp,
-                          color: subtitleColor ?? Colors.black.withValues(alpha: 0.7),
-                          fontWeight: FontWeight.w400,
+                        SizedBox(height: 0.5.h),
+                        Text(
+                          subtitle,
+                          style: GoogleFonts.poppins(
+                            fontSize: 15.sp,
+                            color: subtitleColor ?? Colors.black.withValues(alpha: 0.7),
+                            fontWeight: FontWeight.w400,
+                          ),
+                          softWrap: true,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        softWrap: true,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
 
-              // Trailing (arrow, switch, or null)
-              if (trailing != null)
-                Padding(
-                  padding: EdgeInsets.only(right: 5.w, top: 3.5.h),
-                  child: trailing!,
-                ),
-            ],
+                // Trailing
+                if (trailing != null)
+                  Padding(
+                    padding: EdgeInsets.only(right: 5.w, top: 3.5.h),
+                    child: trailing!,
+                  ),
+              ],
+            ),
           ),
         ),
       ),

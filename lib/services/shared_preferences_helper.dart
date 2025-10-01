@@ -11,6 +11,7 @@ class SharedPreferencesHelper {
   static String userRoleKey = 'USERROLEKEY';
   static String userPhoneNumberKey = 'USERPHONENUMBERKEY';
   static String userImgUrlKey = 'USERIMGURLKEY';
+  static String userDOBKey = 'USERDOBKEY';
   static String userTokenKey = 'USERTOKENKEY';
 
   Future<bool> saveUserId(String userId) async {
@@ -27,6 +28,10 @@ class SharedPreferencesHelper {
     final pref = await SharedPreferences.getInstance();
     return pref.setString(userEmailKey, userEmail);
   }
+  Future<bool> saveUserDOB(String dOB) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(userDOBKey, dOB);
+  }
 
   Future<bool> saveUserRole(String userRole) async {
     final pref = await SharedPreferences.getInstance();
@@ -40,8 +45,9 @@ class SharedPreferencesHelper {
 
   Future<bool> saveUserPhoneNumber(String userPhoneNumber) async {
     final pref = await SharedPreferences.getInstance();
-    return pref.setString(userPhoneNumber, userPhoneNumber);
+    return pref.setString(userPhoneNumberKey, userPhoneNumber);
   }
+
 
   Future<String?> getUserId() async {
     final pref = await SharedPreferences.getInstance();
@@ -67,9 +73,26 @@ class SharedPreferencesHelper {
     final pref = await SharedPreferences.getInstance();
     return pref.getString(userRoleKey);
   }
+  Future<String?> getUserDOB() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(userDOBKey);
+  }
 
   Future<String?> getUserImgUrl() async {
     final pref = await SharedPreferences.getInstance();
     return pref.getString(userImgUrlKey);
   }
+
+  Future<void> clearAll() async {
+    final pref = await SharedPreferences.getInstance();
+    await pref.remove(userIdKey);
+    await pref.remove(userNameKey);
+    await pref.remove(userEmailKey);
+    await pref.remove(userRoleKey);
+    await pref.remove(userPhoneNumberKey);
+    await pref.remove(userImgUrlKey);
+    await pref.remove(userDOBKey);
+    await pref.remove(userTokenKey);
+  }
+
 }

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../core/constants/app_gradients.dart';
+import '../../../../services/shared_preferences_helper.dart';
 import '../../widgets/profile_info_tile.dart';
 import '../../widgets/settings_tile.dart';
 
@@ -14,6 +15,32 @@ class ChildProfile extends StatefulWidget {
 }
 
 class _ChildProfileState extends State<ChildProfile> {
+  String username = "Guest";
+  String userEmail= "";
+  String userDOB="unknown";
+  String userPhone="";
+
+ @override
+  void initState() {
+    // TODO: implement initState
+   _loadSharedPreferences();
+    super.initState();
+  }
+
+  Future<void> _loadSharedPreferences() async {
+    final name = await SharedPreferencesHelper.instance.getUserName();
+    final email= await SharedPreferencesHelper.instance.getUserEmail();
+    final dob=await SharedPreferencesHelper.instance.getUserDOB();
+    final phone=await SharedPreferencesHelper.instance.getUserPhoneNumber();
+
+    setState(() {
+      username = name ?? "Guest";
+      userEmail= email ?? "";
+      userDOB=dob ?? "unknown";
+      userPhone=phone ?? "";
+
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,7 +123,7 @@ class _ChildProfileState extends State<ChildProfile> {
                           ),
                         SizedBox(height: 0.5.h),
                         Text(
-                          "Mehran Ali",
+                          username,
                           style: GoogleFonts.poppins(
                             fontSize: 20.sp,
                             color: Colors.white,
@@ -105,7 +132,7 @@ class _ChildProfileState extends State<ChildProfile> {
                         ),
                         SizedBox(height: 0.5.h),
                         Text(
-                          "mehranbangash@gmail.com",
+                          userEmail,
                           style: GoogleFonts.poppins(
                             fontSize: 17.sp,
                             color: Colors.white,
@@ -229,7 +256,7 @@ class _ChildProfileState extends State<ChildProfile> {
                     icon: Icons.email,
                     iconColor: Colors.blue,
                     title: "Email Address",
-                    secondTitle: "mehranbangash@gmail.com",
+                    secondTitle: userEmail,
                   ),
                   SizedBox(height: 2.5.h),
                   ProfileInfoTile(
@@ -237,13 +264,14 @@ class _ChildProfileState extends State<ChildProfile> {
                     iconColor: Colors.purpleAccent,
                     rectangleColor: Colors.purpleAccent.withValues(alpha: 0.1),
                     title: "Date of Birth",
-                    secondTitle: "Unknown",
+                    secondTitle: userDOB,
                   ),
                   SizedBox(height: 2.5.h),
                   ProfileInfoTile(
                     icon: Icons.call,
                     iconColor: Colors.green,
                     title: "Phone Number",
+                    secondTitle:userPhone,
                     rectangleColor: Colors.green.shade50,
                   ),
                 ],

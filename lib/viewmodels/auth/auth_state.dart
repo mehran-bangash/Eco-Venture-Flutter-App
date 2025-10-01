@@ -9,6 +9,10 @@ class AuthState {
   final bool isSignUpLoading;
   final String? signUpError;
 
+  // signOut
+  final bool isSignOutLoading;
+  final String? signOutError;
+
   // Forgot Password state
   final bool isForgotPasswordLoading;
   final String? forgotPasswordError;
@@ -24,6 +28,8 @@ class AuthState {
   AuthState({
     this.isSignInLoading = false,
     this.signInError,
+    this.isSignOutLoading=false,
+    this.signOutError,
     this.isSignUpLoading = false,
     this.signUpError,
     this.isForgotPasswordLoading = false,
@@ -37,6 +43,8 @@ class AuthState {
   AuthState copyWith({
     bool? isSignInLoading,
     String? signInError,
+    bool? isSignOutLoading,
+    String? signOutError,
     bool? isSignUpLoading,
     String? signUpError,
     bool? isForgotPasswordLoading,
@@ -57,6 +65,8 @@ class AuthState {
       isGoogleLoading: isGoogleLoading ?? this.isGoogleLoading,
       googleError: googleError ?? this.googleError,
       user: user ?? this.user,
+      isSignOutLoading: isSignInLoading ?? this.isSignOutLoading,
+      signOutError: signOutError ?? this.signOutError,
       navigateToRole: navigateToRole ?? this.navigateToRole,
     );
   }

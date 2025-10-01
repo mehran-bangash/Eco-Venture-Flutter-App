@@ -8,17 +8,21 @@ class EditProfileTextField extends StatelessWidget {
   final Color iconBgColor;
   final Color iconColor;
   final Widget? trailing;
-  final VoidCallback? onTap; // <-- new callback
+  final VoidCallback? onTap;
+  final TextEditingController controller;
+  final bool readOnly; // <--- NEW
 
   const EditProfileTextField({
     super.key,
     required this.icon,
+    required this.controller,
     required this.hintText,
     this.fillColor = Colors.white70,
     this.iconBgColor = const Color(0xFFE0E0E0),
     this.iconColor = Colors.blue,
     this.trailing,
     this.onTap,
+    this.readOnly = false, // <--- default false
   });
 
   @override
@@ -29,9 +33,10 @@ class EditProfileTextField extends StatelessWidget {
         elevation: 10,
         borderRadius: const BorderRadius.all(Radius.circular(20)),
         child: TextField(
-          readOnly: onTap != null, // disable keyboard if onTap is set
+          controller: controller,
           onTap: onTap,
           cursorColor: Colors.blue,
+          readOnly: readOnly || onTap != null, // <--- use both cases
           decoration: InputDecoration(
             contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
             hintText: hintText,

@@ -87,4 +87,10 @@ class AuthRepo {
   Future<void> forgotUser(String email) async {
     await AuthService.authInstance.forgot(email);
   }
+
+  Future<void> logout()async{
+    await AuthService.authInstance.logout();
+  }
+
+
 }

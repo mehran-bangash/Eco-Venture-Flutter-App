@@ -24,8 +24,7 @@ class AuthService {
         await init();
       }
 
-      final GoogleSignInAccount? account = await signIn.authenticate();
-      if (account == null) throw Exception("Google sign-in cancelled");
+      final GoogleSignInAccount account = await signIn.authenticate();
 
       final googleAuth = account.authentication;
       final idToken = googleAuth.idToken;
@@ -52,4 +51,14 @@ class AuthService {
       throw Exception("Something went wrong: $e");
     }
   }
+
+  Future<void> logout() async {
+    try {
+      await _auth.signOut();
+    } catch (e, stack) {
+      throw Exception("Logout failed: $e");
+    }
+  }
+
+
 }

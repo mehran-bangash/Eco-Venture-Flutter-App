@@ -1,22 +1,38 @@
 import 'package:eco_venture/core/constants/app_gradients.dart';
+import 'package:eco_venture/services/shared_preferences_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
+import '../../../viewmodels/auth/auth_provider.dart';
 import '../widgets/settings_tile.dart';
 
-class ChildSettings extends StatefulWidget {
+class ChildSettings extends ConsumerStatefulWidget {
   const ChildSettings({super.key});
 
   @override
-  State<ChildSettings> createState() => _ChildSettingsState();
+  ConsumerState<ChildSettings> createState() => _ChildSettingsState();
 }
 
-class _ChildSettingsState extends State<ChildSettings>
+class _ChildSettingsState extends ConsumerState<ChildSettings>
     with TickerProviderStateMixin {
   late AnimationController _profileImageController;
   late Animation<double> _profileImagePulse;
+  String username = "Guest";
+
+
+
+
+  Future<void> _loadUsername() async {
+    final name = await SharedPreferencesHelper.instance.getUserName();
+    setState(() {
+      username = name ?? "Guest";
+      print(" user Name: $username");
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -32,6 +48,8 @@ class _ChildSettingsState extends State<ChildSettings>
     );
 
     _profileImageController.repeat(reverse: true); // smooth loop
+    _loadUsername();
+
   }
 
   @override
@@ -94,7 +112,7 @@ class _ChildSettingsState extends State<ChildSettings>
                         ),
                         SizedBox(height: 1.h),
                         Text(
-                          "Mehran Ali",
+                          username,
                           style: GoogleFonts.poppins(
                             fontSize: 18.sp,
                             color: Colors.white,
@@ -173,7 +191,11 @@ class _ChildSettingsState extends State<ChildSettings>
                   ),
                 ),
                 SizedBox(height: 2.h,),
-                SettingsTile(
+            Consumer(
+              builder: (context, ref, child) {
+                final authVM = ref.read(authViewModelProvider.notifier);
+
+                return SettingsTile(
                   title: "Logout",
                   subtitle: "Sign out of your account",
                   circleColor: Colors.redAccent,
@@ -182,13 +204,52 @@ class _ChildSettingsState extends State<ChildSettings>
                     height: 5.h,
                     width: 10.w,
                     decoration: BoxDecoration(
-                      color: Colors.orangeAccent.withValues(alpha: 0.2),
+                      color: Colors.orangeAccent.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(Icons.arrow_forward_ios, color: Colors.orangeAccent),
                   ),
-                ),
-                SizedBox(height: 10.h,)
+                  onPressed: () async {
+                    // Step 1: Ask for confirmation
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text("Confirm Logout"),
+                        content: const Text("Do you really want to log out?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text("Cancel"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text("Logout"),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    // Step 2: If confirmed, call ViewModel
+                    if (confirmed == true) {
+                      await authVM.signOut();
+
+                      // Step 3: Show feedback to user
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("User successfully logged out"),
+                          backgroundColor: Colors.green,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+
+                      // Step 4: Navigate to login page
+                       context.goNamed('login');
+                    }
+                  },
+                );
+              },
+            ),
+            SizedBox(height: 10.h,)
               ],
             ),
           ),

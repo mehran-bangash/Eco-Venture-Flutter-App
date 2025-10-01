@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
+import '../../services/shared_preferences_helper.dart';
+
 class ChildHomeScreen extends StatefulWidget {
   const ChildHomeScreen({super.key});
 
@@ -14,6 +16,22 @@ class ChildHomeScreen extends StatefulWidget {
 }
 
 class _ChildHomeScreenState extends State<ChildHomeScreen> {
+  String username = "unknown";
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    _loadUsername();
+    super.initState();
+
+  }
+
+  Future<void> _loadUsername() async {
+    final name = await SharedPreferencesHelper.instance.getUserName();
+    setState(() {
+      username = name ?? "unknown";
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -136,7 +154,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen> {
                       ),
                       SizedBox(width: 8), // can use 2.w if using sizer
                       Text(
-                        "Hi, Mehran Ali",
+                        "Hi, $username",
                         style: GoogleFonts.poppins(
                           fontStyle: FontStyle.italic,
                           fontSize: 18, // use 18.sp if using sizer
