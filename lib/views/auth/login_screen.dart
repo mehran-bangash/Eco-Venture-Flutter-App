@@ -44,6 +44,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     super.initState();
     _initializeAnimations();
     _startAnimations();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authViewModelProvider.notifier).clearErrors();
+    });
   }
 
   void _initializeAnimations() {

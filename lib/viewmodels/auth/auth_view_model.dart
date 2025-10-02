@@ -54,25 +54,42 @@ class AuthViewModel extends StateNotifier<AuthState> {
       String password, {
         Function? onSuccess,
       }) async {
-    state = state.copyWith(isSignInLoading: true,signInError: null);
+    // Clear old error + start loading
+    state = state.copyWith(isSignInLoading: true, signInError: null);
 
     try {
       final user = await _repo.loginUser(email, password);
 
+      if (user == null) {
+        state = state.copyWith(  // <-- must assign here
+          isSignInLoading: false,
+          signInError: "Error: user is null",
+        );
+        return;
+      }
+
+      // Save user details locally
+      await SharedPreferencesHelper.instance.saveUserId(user.uid);
+      await SharedPreferencesHelper.instance.saveUserName(user.displayName);
+      await SharedPreferencesHelper.instance.saveUserEmail(user.email);
+
+      // Update state with success
       state = state.copyWith(
         isSignInLoading: false,
         user: user,
-        navigateToRole: user?.role,
+        signInError: null,
+        navigateToRole: user.role,
       );
 
       if (onSuccess != null) onSuccess();
     } catch (e) {
       state = state.copyWith(
         isSignInLoading: false,
-        signInError: e.toString(),
+        signInError: e.toString(), // <-- new error shown correctly
       );
     }
   }
+
 
   Future<void> forgotPassword(String email, {Function? onSuccess}) async {
     state = state.copyWith(isForgotPasswordLoading: true, forgotPasswordError: null);
@@ -136,6 +153,15 @@ class AuthViewModel extends StateNotifier<AuthState> {
         signOutError: e.toString(),
       );
     }
+  }
+
+  void clearErrors() {
+    state = state.copyWith(
+      signInError: null,
+      signUpError: null,
+      forgotPasswordError: null,
+      googleError: null
+    );
   }
 
   //  Navigation

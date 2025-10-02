@@ -21,15 +21,14 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
   late AnimationController _profileImageController;
   late Animation<double> _profileImagePulse;
   String username = "Guest";
-
-
-
+  String userImageUrl = "";
 
   Future<void> _loadUsername() async {
     final name = await SharedPreferencesHelper.instance.getUserName();
+    final image = await SharedPreferencesHelper.instance.getUserImgUrl();
     setState(() {
       username = name ?? "Guest";
-      print(" user Name: $username");
+      userImageUrl = image ?? "";
     });
   }
 
@@ -49,7 +48,6 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
 
     _profileImageController.repeat(reverse: true); // smooth loop
     _loadUsername();
-
   }
 
   @override
@@ -89,13 +87,26 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                                 child: SizedBox(
                                   height: 15.h,
                                   width: 15.h,
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.person,
-                                      color: Colors.blueAccent,
-                                      size: 20.w,
-                                    ),
-                                  ),
+                                  child: userImageUrl.isNotEmpty
+                                      ? Image.network(
+                                          userImageUrl,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                                return const Icon(
+                                                  Icons.person,
+                                                  size: 50,
+                                                  color: Colors.grey,
+                                                );
+                                              },
+                                        )
+                                      : Center(
+                                          child: Icon(
+                                            Icons.person,
+                                            color: Colors.blueAccent,
+                                            size: 20.w,
+                                          ),
+                                        ),
                                 ),
                               ),
                             ),
@@ -171,7 +182,10 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                       color: Colors.purpleAccent.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.arrow_forward_ios, color: Colors.purpleAccent),
+                    child: Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.purpleAccent,
+                    ),
                   ),
                 ),
                 SizedBox(height: 2.h),
@@ -187,69 +201,77 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                       color: Colors.orangeAccent.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(Icons.arrow_forward_ios, color: Colors.orangeAccent),
+                    child: Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.orangeAccent,
+                    ),
                   ),
                 ),
-                SizedBox(height: 2.h,),
-            Consumer(
-              builder: (context, ref, child) {
-                final authVM = ref.read(authViewModelProvider.notifier);
+                SizedBox(height: 2.h),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final authVM = ref.read(authViewModelProvider.notifier);
 
-                return SettingsTile(
-                  title: "Logout",
-                  subtitle: "Sign out of your account",
-                  circleColor: Colors.redAccent,
-                  leadingIcon: Icons.exit_to_app,
-                  trailing: Container(
-                    height: 5.h,
-                    width: 10.w,
-                    decoration: BoxDecoration(
-                      color: Colors.orangeAccent.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(Icons.arrow_forward_ios, color: Colors.orangeAccent),
-                  ),
-                  onPressed: () async {
-                    // Step 1: Ask for confirmation
-                    final confirmed = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text("Confirm Logout"),
-                        content: const Text("Do you really want to log out?"),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text("Cancel"),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text("Logout"),
-                          ),
-                        ],
-                      ),
-                    );
-
-                    // Step 2: If confirmed, call ViewModel
-                    if (confirmed == true) {
-                      await authVM.signOut();
-
-                      // Step 3: Show feedback to user
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("User successfully logged out"),
-                          backgroundColor: Colors.green,
-                          behavior: SnackBarBehavior.floating,
+                    return SettingsTile(
+                      title: "Logout",
+                      subtitle: "Sign out of your account",
+                      circleColor: Colors.redAccent,
+                      leadingIcon: Icons.exit_to_app,
+                      trailing: Container(
+                        height: 5.h,
+                        width: 10.w,
+                        decoration: BoxDecoration(
+                          color: Colors.orangeAccent.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                      );
+                        child: Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.orangeAccent,
+                        ),
+                      ),
+                      onPressed: () async {
+                        // Step 1: Ask for confirmation
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text("Confirm Logout"),
+                            content: const Text(
+                              "Do you really want to log out?",
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text("Cancel"),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text("Logout"),
+                              ),
+                            ],
+                          ),
+                        );
 
-                      // Step 4: Navigate to login page
-                       context.goNamed('login');
-                    }
+                        // Step 2: If confirmed, call ViewModel
+                        if (confirmed == true) {
+                          await authVM.signOut();
+
+                          // Step 3: Show feedback to user
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("User successfully logged out"),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+
+                          // Step 4: Navigate to login page
+                          context.goNamed('login');
+                        }
+                      },
+                    );
                   },
-                );
-              },
-            ),
-            SizedBox(height: 10.h,)
+                ),
+                SizedBox(height: 10.h),
               ],
             ),
           ),

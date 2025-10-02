@@ -1,4 +1,6 @@
+import 'package:eco_venture/viewmodels/child_view_model/profile/user_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
@@ -7,18 +9,19 @@ import '../../../../services/shared_preferences_helper.dart';
 import '../../widgets/profile_info_tile.dart';
 import '../../widgets/settings_tile.dart';
 
-class ChildProfile extends StatefulWidget {
+class ChildProfile extends ConsumerStatefulWidget {
   const ChildProfile({super.key});
 
   @override
-  State<ChildProfile> createState() => _ChildProfileState();
+  ConsumerState<ChildProfile> createState() => _ChildProfileState();
 }
 
-class _ChildProfileState extends State<ChildProfile> {
+class _ChildProfileState extends ConsumerState<ChildProfile> {
   String username = "Guest";
   String userEmail= "";
   String userDOB="unknown";
   String userPhone="";
+  String userImageUrl="";
 
  @override
   void initState() {
@@ -26,18 +29,80 @@ class _ChildProfileState extends State<ChildProfile> {
    _loadSharedPreferences();
     super.initState();
   }
+  Future<void> _handleDeleteAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Account"),
+        content: const Text(
+          "Are you sure you want to permanently delete your account?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              "Delete",
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      final uid = await SharedPreferencesHelper.instance.getUserId();
+
+      if (uid != null) {
+        try {
+          await ref.read(userProfileProvider.notifier).deleteUserProfile(uid);
+
+          //  Success banner
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Account deleted successfully"),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.green,
+              ),
+            );
+
+            // Redirect to landing page
+            context.goNamed('landing');
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Failed to delete account: $e"),
+                behavior: SnackBarBehavior.floating,
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+        }
+      }
+    }
+  }
+
+
 
   Future<void> _loadSharedPreferences() async {
     final name = await SharedPreferencesHelper.instance.getUserName();
     final email= await SharedPreferencesHelper.instance.getUserEmail();
     final dob=await SharedPreferencesHelper.instance.getUserDOB();
     final phone=await SharedPreferencesHelper.instance.getUserPhoneNumber();
+    final image=await SharedPreferencesHelper.instance.getUserImgUrl();
 
     setState(() {
       username = name ?? "Guest";
       userEmail= email ?? "";
       userDOB=dob ?? "unknown";
       userPhone=phone ?? "";
+      userImageUrl=image?? "";
 
     });
   }
@@ -103,24 +168,27 @@ class _ChildProfileState extends State<ChildProfile> {
                             ],
                           ),
                         ),
-                          Material(
-                            elevation: 10,
+                        Material(
+                          elevation: 10,
+                          borderRadius: BorderRadius.circular(10.h),
+                          child: ClipRRect(
                             borderRadius: BorderRadius.circular(10.h),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10.h),
-                              child: SizedBox(
-                                height: 15.h,
-                                width: 15.h,
-                                child: Center(
-                                  child: Icon(
-                                    Icons.person,
-                                    color: Colors.blueAccent,
-                                    size: 20.w,
-                                  ),
-                                ),
-                              ),
+                            child: SizedBox(
+                              height: 15.h,
+                              width: 15.h,
+                              child: userImageUrl.isNotEmpty
+                                  ? Image.network(
+                                userImageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(Icons.person, size: 50, color: Colors.grey);
+                                },
+                              )
+                                  : const Icon(Icons.person, size: 50, color: Colors.grey),
                             ),
                           ),
+                        ),
+
                         SizedBox(height: 0.5.h),
                         Text(
                           username,
@@ -174,6 +242,7 @@ class _ChildProfileState extends State<ChildProfile> {
                 ),
                 SizedBox(height: 2.h),
                 SettingsTile(
+                  onPressed:() => _handleDeleteAccount(context) ,
                   title: "Delete Account",
                   titleColor: Colors.redAccent,
                   subtitle: "Permanently remove your \naccount",
@@ -192,6 +261,7 @@ class _ChildProfileState extends State<ChildProfile> {
                     ),
                   ),
                 ),
+
                 SizedBox(height: 5.h),
               ],
             ),

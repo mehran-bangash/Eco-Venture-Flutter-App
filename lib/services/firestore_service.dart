@@ -10,25 +10,36 @@ class FirestoreService {
 
  Future<void> updateUserProfile({
   required String uid,
-  required String name,
-  required String dob,
-  required String phone,
-  required String imgUrl,
+  String? name,
+  String? dob,
+  String? phone,
+  String? imgUrl,
  }) async {
-  await _db.collection("users").doc(uid).update({
-   "displayName": name,
-   "dob": dob,
-   "phone": phone,
-   "imgUrl": imgUrl,
-  });
+  final updateData = <String, dynamic>{};
+
+  if (name != null) updateData["displayName"] = name;
+  if (dob != null) updateData["dob"] = dob;
+  if (phone != null) updateData["phone"] = phone;
+  if (imgUrl != null) updateData["imgUrl"] = imgUrl;
+
+  if (updateData.isNotEmpty) {
+   await _db.collection("users").doc(uid).update(updateData);
+  }
  }
+
 
  Future<Map<String, dynamic>?> getUserProfile(String uid) async {
   final doc = await _db.collection("users").doc(uid).get();
   return doc.data();
  }
 
-
+ Future<void> deleteUserProfile(String uid) async {
+  try {
+   await _db.collection("users").doc(uid).delete();
+  } catch (e) {
+   throw Exception("Failed to delete user profile: $e");
+  }
+ }
 }
 
 

@@ -3,13 +3,12 @@ import 'package:eco_venture/services/firestore_service.dart';
 class FirestoreRepo {
   FirestoreRepo._();
   static final FirestoreRepo instance = FirestoreRepo._();
-
   Future<void> updateUserProfile({
     required String uid,
-    required String name,
-    required String dob,
-    required String phone,
-    required String imgUrl,
+    String? name,
+    String? dob,
+    String? phone,
+    String? imgUrl,
   }) async {
     try {
       await FirestoreService.instance.updateUserProfile(
@@ -31,6 +30,14 @@ class FirestoreRepo {
     } catch (e) {
       print("Error fetching user profile: $e");
       rethrow;
+    }
+  }
+
+  Future<void> deleteUserProfile(String uid) async {
+    try {
+      await FirestoreService.instance.deleteUserProfile(uid);
+    } catch (e) {
+      throw Exception("Failed to delete user profile: $e");
     }
   }
 }

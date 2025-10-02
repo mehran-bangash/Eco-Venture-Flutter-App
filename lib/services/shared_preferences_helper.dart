@@ -13,12 +13,16 @@ class SharedPreferencesHelper {
   static String userImgUrlKey = 'USERIMGURLKEY';
   static String userDOBKey = 'USERDOBKEY';
   static String userTokenKey = 'USERTOKENKEY';
+  static String userImageUrlKey='USERIMAGEURLKEY';
 
   Future<bool> saveUserId(String userId) async {
     final pref = await SharedPreferences.getInstance();
     return pref.setString(userIdKey, userId);
   }
-
+  Future<bool> saveUserImgUrl(String imgUrl)async{
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(userImgUrlKey, imgUrl);
+  }
   Future<bool> saveUserName(String userName) async {
     final pref = await SharedPreferences.getInstance();
     return pref.setString(userNameKey, userName);
@@ -73,6 +77,10 @@ class SharedPreferencesHelper {
     final pref = await SharedPreferences.getInstance();
     return pref.getString(userRoleKey);
   }
+  Future<String?> getImageUrl() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(userImgUrlKey);
+  }
   Future<String?> getUserDOB() async {
     final pref = await SharedPreferences.getInstance();
     return pref.getString(userDOBKey);
@@ -93,6 +101,7 @@ class SharedPreferencesHelper {
     await pref.remove(userImgUrlKey);
     await pref.remove(userDOBKey);
     await pref.remove(userTokenKey);
+    await pref.remove(userImgUrlKey);
   }
 
 }

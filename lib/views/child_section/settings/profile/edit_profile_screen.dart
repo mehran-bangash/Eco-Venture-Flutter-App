@@ -1,24 +1,27 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/app_gradients.dart';
-import '../../../../repositories/firestore_repo.dart';
-import '../../../../services/shared_preferences_helper.dart';
+import '../../../../viewmodels/child_view_model/profile/user_provider.dart';
 import '../../widgets/edit_profile_text_field.dart';
+import '../../../../services/shared_preferences_helper.dart';
 
-// your helper imports
-
-
-class EditProfileScreen extends StatefulWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
+  File? _image;
+  final picker = ImagePicker();
+
   String username = "Guest";
   String userEmail = "";
   String userPhone = "";
@@ -36,6 +39,85 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.initState();
     _loadSharedPreferences();
   }
+  Future<void> pickImageFromGallery(ImageSource source) async {
+    final pickedFile = await picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+
+      // Upload immediately via ViewModel
+      final uid = await SharedPreferencesHelper.instance.getUserId();
+      if (uid != null && _image != null) {
+        await ref
+            .read(userProfileProvider.notifier)
+            .uploadAndSaveProfileImage(uid: uid, imageFile: _image!);
+      }
+    } else {
+      print("No image selected");
+    }
+  }
+
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          height: 160,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Choose Option",
+                  style: GoogleFonts.poppins(
+                      fontSize: 16, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      pickImageFromGallery(ImageSource.gallery);
+                    },
+                    child: Container(
+                      height: 80,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.photo, size: 40, color: Colors.blue),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      // _pickImage(ImageSource.camera);
+                    },
+                    child: Container(
+                      height: 80,
+                      width: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.camera_alt,
+                          size: 40, color: Colors.green),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _loadSharedPreferences() async {
     final name = await SharedPreferencesHelper.instance.getUserName();
@@ -51,41 +133,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       userDob = dob ?? "";
       profileImg = img ?? "";
 
-      // Split name
       final parts = username.split(" ");
       _firstnameController.text = parts.isNotEmpty ? parts.first : "";
-      _lastnameController.text =
-      parts.length > 1 ? parts.sublist(1).join(" ") : "";
-
+      _lastnameController.text = parts.length > 1 ? parts.sublist(1).join(" ") : "";
       _emailController.text = userEmail;
       _phoneController.text = userPhone;
       _dobController.text = userDob;
     });
   }
+
   Future<void> _refreshProfile() async {
     final uid = await SharedPreferencesHelper.instance.getUserId();
     if (uid != null) {
-      final profileData = await FirestoreRepo.instance.getUserProfile(uid);
-      if (profileData != null) {
+      await ref.read(userProfileProvider.notifier).fetchUserProfile(uid);
+      final state = ref.read(userProfileProvider);
+      if (state.userProfile != null) {
         setState(() {
-          username = profileData["displayName"] ?? "Guest";
-          userEmail = profileData["email"] ?? "";
-          userPhone = profileData["phone"] ?? "";
-          userDob = profileData["dob"] ?? "";
-          profileImg = profileData["imgUrl"] ?? "";
+          username = state.userProfile?["displayName"] ?? "Guest";
+          userEmail = state.userProfile?["email"] ?? "";
+          userPhone = state.userProfile?["phone"] ?? "";
+          userDob = state.userProfile?["dob"] ?? "";
+          profileImg = state.userProfile?["imgUrl"] ?? "";
 
-          //  Correct splitting for name fields
           final parts = username.split(" ");
           _firstnameController.text = parts.isNotEmpty ? parts.first : "";
-          _lastnameController.text =
-          parts.length > 1 ? parts.sublist(1).join(" ") : "";
-
+          _lastnameController.text = parts.length > 1 ? parts.sublist(1).join(" ") : "";
           _emailController.text = userEmail;
           _phoneController.text = userPhone;
           _dobController.text = userDob;
         });
 
-        // 🎉 Show banner
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text("Profile data refreshed successfully"),
@@ -96,7 +173,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     }
   }
-
 
   Future<void> _testSharedPreferences() async {
     final name = await SharedPreferencesHelper.instance.getUserName();
@@ -120,7 +196,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-
   Future<void> _saveProfile() async {
     final firstName = _firstnameController.text.trim();
     final lastName = _lastnameController.text.trim();
@@ -128,16 +203,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final phone = _phoneController.text.trim();
     final dob = _dobController.text.trim();
 
-    // Save to SharedPreferences
-    await SharedPreferencesHelper.instance.saveUserName(fullName);
-    await SharedPreferencesHelper.instance.saveUserPhoneNumber(phone);
-    await SharedPreferencesHelper.instance.saveUserDOB(dob);
-
-    // Update Firestore
     final uid = await SharedPreferencesHelper.instance.getUserId();
-    if (uid != null) {
-      await FirestoreRepo.instance.updateUserProfile(uid: uid, name: fullName, dob: dob, phone: phone, imgUrl: "");
+    if (uid == null) return;
+
+    // Upload new image if selected
+    if (_image != null) {
+      await ref.read(userProfileProvider.notifier)
+          .uploadAndSaveProfileImage(uid: uid, imageFile: _image!);
     }
+
+    // Update other fields
+    await ref.read(userProfileProvider.notifier).updateUserProfile(
+      uid: uid,
+      name: fullName,
+      dob: dob,
+      phone: phone,
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Profile updated successfully")),
@@ -146,6 +227,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(userProfileProvider);
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -160,14 +243,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    // top row
-                    SizedBox(height: 2.h,),
+                    SizedBox(height: 2.h),
                     Padding(
-                      padding: EdgeInsets.only(
-                        left: 4.w,
-                        top: 3.h,
-                        right: 4.w,
-                      ),
+                      padding: EdgeInsets.only(left: 4.w, top: 3.h, right: 4.w),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -190,7 +268,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                             ),
                           ),
-                          //refresh icon
                           GestureDetector(
                             onTap: _refreshProfile,
                             child: Container(
@@ -208,21 +285,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                             ),
                           ),
-
                         ],
                       ),
                     ),
                     SizedBox(height: 2.h),
-                    // Profile Picture
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundImage: profileImg.isNotEmpty
-                          ? NetworkImage(profileImg)
-                          : null,
-                      child: profileImg.isEmpty
-                          ? const Icon(Icons.person,
-                          size: 50, color: Colors.white)
-                          : null,
+                    GestureDetector(
+                      onTap: _showImagePickerOptions,
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundImage: _image != null
+                            ? FileImage(_image!)
+                            : (profileImg.isNotEmpty ? NetworkImage(profileImg) : null)
+                        as ImageProvider?,
+                        child: (profileImg.isEmpty && _image == null)
+                            ? const Icon(Icons.person, size: 50, color: Colors.white)
+                            : null,
+                      ),
                     ),
                     SizedBox(height: 1.h),
                     Text(
@@ -245,8 +323,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 2.h),
-
-                // First Name
                 _buildLabel("First Name"),
                 EditProfileTextField(
                   controller: _firstnameController,
@@ -256,8 +332,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   iconColor: Colors.blue,
                   fillColor: Colors.white,
                 ),
-
-                // Last Name
                 _buildLabel("Last Name"),
                 EditProfileTextField(
                   controller: _lastnameController,
@@ -267,8 +341,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   iconColor: Colors.blue,
                   fillColor: Colors.white,
                 ),
-
-                // Email (Read-only)
                 _buildLabel("Email (not Editable)"),
                 EditProfileTextField(
                   controller: _emailController,
@@ -279,8 +351,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   fillColor: Colors.blueGrey.withValues(alpha: 0.2),
                   readOnly: true,
                 ),
-
-                // Phone
                 _buildLabel("Phone Number"),
                 EditProfileTextField(
                   controller: _phoneController,
@@ -290,15 +360,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   iconColor: Colors.blue,
                   fillColor: Colors.white,
                 ),
-
-                // DOB
                 _buildLabel("Date of Birth"),
                 EditProfileTextField(
                   controller: _dobController,
                   icon: Icons.calendar_today,
                   hintText: "Select Date of Birth",
-                  trailing:
-                  const Icon(Icons.calendar_month, color: Colors.blue),
+                  trailing: const Icon(
+                    Icons.calendar_month,
+                    color: Colors.blue,
+                  ),
                   readOnly: true,
                   onTap: () async {
                     final pickedDate = await showDatePicker(
@@ -314,11 +384,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     }
                   },
                 ),
-                SizedBox(height: 1.h,),
-                 ElevatedButton(onPressed: _testSharedPreferences, child: Text("test")),
+                SizedBox(height: 1.h),
+                ElevatedButton(
+                  onPressed: _testSharedPreferences,
+                  child: Text("test"),
+                ),
                 SizedBox(height: 5.h),
-
-                // Save button
                 GestureDetector(
                   onTap: _saveProfile,
                   child: Container(
@@ -340,7 +411,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.save, color: Colors.white, size: 22),
+                          if (state.isLoading)
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          else
+                            const Icon(Icons.save, color: Colors.white, size: 22),
                           SizedBox(width: 2.w),
                           Text(
                             "Save Changes",
