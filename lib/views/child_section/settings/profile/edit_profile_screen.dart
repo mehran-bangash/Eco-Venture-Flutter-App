@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:delightful_toast/toast/utils/enums.dart';
+import 'package:eco_venture/core/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -39,6 +41,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.initState();
     _loadSharedPreferences();
   }
+
   Future<void> pickImageFromGallery(ImageSource source) async {
     final pickedFile = await picker.pickImage(source: source);
     if (pickedFile != null) {
@@ -54,10 +57,46 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             .uploadAndSaveProfileImage(uid: uid, imageFile: _image!);
       }
     } else {
-      print("No image selected");
+      Utils.showDelightToast(
+        context,
+        "No image selected",
+        icon: Icons.image_not_supported,
+        autoDismiss: true,
+        position: DelightSnackbarPosition.top,
+        bgColor: Colors.redAccent,
+        textColor: Colors.white,
+        duration: Duration(seconds: 4)
+      );
     }
   }
 
+  Future<void> pickImageFromCamera(ImageSource source) async {
+    final pickedFile = await picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _image = File(pickedFile.path);
+      });
+
+      // Upload immediately via ViewModel
+      final uid = await SharedPreferencesHelper.instance.getUserId();
+      if (uid != null && _image != null) {
+        await ref
+            .read(userProfileProvider.notifier)
+            .uploadAndSaveProfileImage(uid: uid, imageFile: _image!);
+      }
+    } else {
+      Utils.showDelightToast(
+          context,
+          "No image selected",
+          icon: Icons.image_not_supported,
+          autoDismiss: true,
+          position: DelightSnackbarPosition.top,
+          bgColor: Colors.redAccent,
+          textColor: Colors.white,
+          duration: Duration(seconds: 4)
+      );
+    }
+  }
 
   void _showImagePickerOptions() {
     showModalBottomSheet(
@@ -72,10 +111,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Choose Option",
-                  style: GoogleFonts.poppins(
-                      fontSize: 16, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 20),
+              Text(
+                "Choose Option",
+                style: GoogleFonts.poppins(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 2.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
@@ -85,29 +128,32 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       pickImageFromGallery(ImageSource.gallery);
                     },
                     child: Container(
-                      height: 80,
-                      width: 120,
+                      height: 8.h,
+                      width: 20.w,
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
+                        color: Colors.blue.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.photo, size: 40, color: Colors.blue),
+                      child: Icon(Icons.photo, size: 10.w, color: Colors.blue),
                     ),
                   ),
                   GestureDetector(
                     onTap: () {
                       Navigator.pop(context);
-                      // _pickImage(ImageSource.camera);
+                      pickImageFromCamera(ImageSource.camera);
                     },
                     child: Container(
-                      height: 80,
-                      width: 120,
+                      height: 8.h,
+                      width: 20.w,
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: Colors.green.shade100,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.camera_alt,
-                          size: 40, color: Colors.green),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 40,
+                        color: Colors.green,
+                      ),
                     ),
                   ),
                 ],
@@ -135,7 +181,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
       final parts = username.split(" ");
       _firstnameController.text = parts.isNotEmpty ? parts.first : "";
-      _lastnameController.text = parts.length > 1 ? parts.sublist(1).join(" ") : "";
+      _lastnameController.text = parts.length > 1
+          ? parts.sublist(1).join(" ")
+          : "";
       _emailController.text = userEmail;
       _phoneController.text = userPhone;
       _dobController.text = userDob;
@@ -157,19 +205,26 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
           final parts = username.split(" ");
           _firstnameController.text = parts.isNotEmpty ? parts.first : "";
-          _lastnameController.text = parts.length > 1 ? parts.sublist(1).join(" ") : "";
+          _lastnameController.text = parts.length > 1
+              ? parts.sublist(1).join(" ")
+              : "";
           _emailController.text = userEmail;
           _phoneController.text = userPhone;
           _dobController.text = userDob;
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Profile data refreshed successfully"),
-            duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
+        Utils.showDelightToast(
+            context,
+            "Profile data refreshed successfully",
+            icon: Icons.notifications,
+            iconColor: Colors.black,
+            autoDismiss: true,
+            position: DelightSnackbarPosition.bottom,
+            bgColor: Colors.green,
+            textColor: Colors.white,
+            duration: Duration(seconds: 4)
         );
+
       }
     }
   }
@@ -190,7 +245,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("✅ SharedPreferences checked. See console log."),
+        content: Text("SharedPreferences checked. See console log."),
         duration: Duration(seconds: 2),
       ),
     );
@@ -208,20 +263,25 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     // Upload new image if selected
     if (_image != null) {
-      await ref.read(userProfileProvider.notifier)
+      await ref
+          .read(userProfileProvider.notifier)
           .uploadAndSaveProfileImage(uid: uid, imageFile: _image!);
     }
 
     // Update other fields
-    await ref.read(userProfileProvider.notifier).updateUserProfile(
-      uid: uid,
-      name: fullName,
-      dob: dob,
-      phone: phone,
-    );
+    await ref
+        .read(userProfileProvider.notifier)
+        .updateUserProfile(uid: uid, name: fullName, dob: dob, phone: phone);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Profile updated successfully")),
+    Utils.showDelightToast(
+        context,
+        "Profile updated successfully",
+        icon: Icons.check,
+        autoDismiss: true,
+        position: DelightSnackbarPosition.top,
+        bgColor: Colors.redAccent,
+        textColor: Colors.white,
+        duration: Duration(seconds: 3)
     );
   }
 
@@ -295,10 +355,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         radius: 40,
                         backgroundImage: _image != null
                             ? FileImage(_image!)
-                            : (profileImg.isNotEmpty ? NetworkImage(profileImg) : null)
-                        as ImageProvider?,
+                            : (profileImg.isNotEmpty
+                                      ? NetworkImage(profileImg)
+                                      : null)
+                                  as ImageProvider?,
                         child: (profileImg.isEmpty && _image == null)
-                            ? const Icon(Icons.person, size: 50, color: Colors.white)
+                            ? const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Colors.white,
+                              )
                             : null,
                       ),
                     ),
@@ -421,7 +487,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               ),
                             )
                           else
-                            const Icon(Icons.save, color: Colors.white, size: 22),
+                            const Icon(
+                              Icons.save,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                           SizedBox(width: 2.w),
                           Text(
                             "Save Changes",

@@ -55,7 +55,7 @@ class AuthService {
   Future<void> logout() async {
     try {
       await _auth.signOut();
-    } catch (e, stack) {
+    } catch (e) {
       throw Exception("Logout failed: $e");
     }
   }

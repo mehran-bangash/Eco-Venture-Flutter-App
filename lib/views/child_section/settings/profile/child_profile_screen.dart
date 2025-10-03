@@ -1,3 +1,4 @@
+import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:eco_venture/viewmodels/child_view_model/profile/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../core/constants/app_gradients.dart';
+import '../../../../core/utils/utils.dart';
 import '../../../../services/shared_preferences_helper.dart';
 import '../../widgets/profile_info_tile.dart';
 import '../../widgets/settings_tile.dart';
@@ -62,12 +64,15 @@ class _ChildProfileState extends ConsumerState<ChildProfile> {
 
           //  Success banner
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Account deleted successfully"),
-                behavior: SnackBarBehavior.floating,
-                backgroundColor: Colors.green,
-              ),
+            Utils.showDelightToast(
+              context,
+              "Account Deleted Successfully",
+              duration: Duration(seconds: 3),
+              textColor: Colors.white,
+              bgColor: Colors.green,
+              position: DelightSnackbarPosition.bottom,
+              icon: Icons.check,
+              iconColor: Colors.white,
             );
 
             // Redirect to landing page

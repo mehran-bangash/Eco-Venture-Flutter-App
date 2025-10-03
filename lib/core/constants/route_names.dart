@@ -28,5 +28,9 @@ class RouteNames {
   static const storyScreen='/child/multimedia-content/story-screen';
   static const storyPlayScreen='/child/multimedia-content/story-screen/story-play-screen';
 
+  //nested inside child Section Photo journal
+   static const addEntryScreen='/child/nature-photo-journal/add-entry-screen';
+   static const naturePhotoChatbotScreen='/child/nature-photo-journal/add-entry-screen/nature-photo-chatbot-screen';
+   static const  natureDescriptionScreen='/child/nature-photo-journal/nature-description-screen';
 
 }

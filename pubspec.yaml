@@ -51,8 +51,12 @@ dependencies:
   shared_preferences: ^2.5.3
   cloud_firestore: ^6.0.2
   image_picker: ^1.2.0
+  delightful_toast: ^1.1.0
 
 
+  http_parser: any
+  mime: any
+  state_notifier: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

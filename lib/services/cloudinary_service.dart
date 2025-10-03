@@ -39,7 +39,7 @@ class CloudinaryService {
         print(" Cloudinary upload failed: ${response.statusCode} | $error");
         return null;
       }
-    } catch (e, stack) {
+    } catch (e) {
       print("⚠ Cloudinary upload error: $e");
       return null;
     }

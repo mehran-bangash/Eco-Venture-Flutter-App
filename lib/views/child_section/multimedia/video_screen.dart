@@ -1,4 +1,3 @@
-import 'package:eco_venture/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -65,7 +64,14 @@ class _VideoScreenState extends State<VideoScreen> {
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color:  AppColors.whiteBackGroundCard,
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFFF83600), // Start color (red-orange)
+                        Color(0xFFF9D423), // End color (yellow)
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(

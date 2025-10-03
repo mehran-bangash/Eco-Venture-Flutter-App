@@ -1,4 +1,3 @@
-import 'package:eco_venture/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -60,11 +59,19 @@ class _StoryScreenState extends State<StoryScreen> {
             itemBuilder: (context, index) {
               final video = videos[index];
               return Material(
-                elevation: 5,
+                elevation: 10,
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: AppColors.whiteBackGroundCard,
+                    gradient: LinearGradient(
+                      colors: [
+                        Color(0xFF7742B2), // Purple
+                        Color(0xFFF180FF), // Pinkish Purple
+                        Color(0xFFFD8BD9), // Soft Pink
+                      ],
+                      begin: Alignment.topLeft,   // approximates -225deg
+                      end: Alignment.bottomRight, // opposite corner
+                    ),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(

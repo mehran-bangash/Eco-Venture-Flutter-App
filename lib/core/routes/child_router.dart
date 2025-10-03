@@ -1,6 +1,8 @@
-
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dart';
+import 'package:eco_venture/views/child_section/naturePhotoJournal/add_entry_screen.dart';
+import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_description_screen.dart';
+import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_photo_chatbot_screen.dart';
 import 'package:eco_venture/views/child_section/settings/child_settings.dart';
 import 'package:eco_venture/views/child_section/settings/profile/child_profile_screen.dart';
 import 'package:eco_venture/views/child_section/settings/profile/edit_profile_screen.dart';
@@ -15,11 +17,13 @@ import '../../views/child_section/naturePhotoJournal/nature_photo_journal_screen
 import '../../views/child_section/stemChallenges/stem_challenges_screen.dart';
 import '../../views/child_section/treasureHunt/treasure_hunt_screen.dart';
 import '../constants/route_names.dart';
+
 class ChildRouter {
   static final routes = GoRoute(
     path: RouteNames.bottomNavChild, // "/child"
     name: 'bottomNavChild',
-    builder: (context, state) => const BottomNavChild(), // wrap with your nav container
+    builder: (context, state) =>
+        const BottomNavChild(), // wrap with your nav container
     routes: [
       GoRoute(
         path: 'child-profile',
@@ -27,16 +31,16 @@ class ChildRouter {
         builder: (context, state) => const ChildProfile(),
         routes: [
           GoRoute(
-              path: 'edit-profile',
-              name: 'editProfile',
-              builder: (context, state) => const EditProfileScreen(),
-          )
-        ]
+            path: 'edit-profile',
+            name: 'editProfile',
+            builder: (context, state) => const EditProfileScreen(),
+          ),
+        ],
       ),
       GoRoute(
-          path: 'child-settings',
-          name: 'childSettings',
-         builder: (context, state) =>const ChildSettings(),
+        path: 'child-settings',
+        name: 'childSettings',
+        builder: (context, state) => const ChildSettings(),
       ),
       GoRoute(
         path: 'home', //  relative path, not /child/home
@@ -62,9 +66,8 @@ class ChildRouter {
                     path: 'video-play-screen',
                     name: 'videoPlayScreen',
                     builder: (context, state) => const VideoPlayerScreen(),
-
-                  )
-                ]
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'story-screen',
@@ -72,11 +75,11 @@ class ChildRouter {
                 builder: (context, state) => const StoryScreen(),
                 routes: [
                   GoRoute(
-                      path: 'story-play-screen',
-                      name: 'storyPlayScreen',
+                    path: 'story-play-screen',
+                    name: 'storyPlayScreen',
                     builder: (context, state) => const StoryPlayScreen(),
-                  )
-                ]
+                  ),
+                ],
               ),
             ],
           ),
@@ -89,6 +92,26 @@ class ChildRouter {
             path: 'nature-photo-journal',
             name: 'naturePhotoJournal',
             builder: (context, state) => const NaturePhotoJournalScreen(),
+            routes: [
+              GoRoute(
+                path: 'nature-description-screen',
+                name: "natureDescriptionScreen",
+                builder: (context, state) => const NatureDescriptionScreen(),
+
+              ),
+              GoRoute(
+                path: 'add-entry-screen',
+                name: "addEntryScreen",
+                builder: (context, state) => const AddEntryScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'nature-photo-chatbot-screen',
+                    name: 'naturePhotoChatbotScreen',
+                    builder: (context, state) => NaturePhotoChatbotScreen(),
+                  )
+                ]
+              ),
+            ],
           ),
 
           GoRoute(
