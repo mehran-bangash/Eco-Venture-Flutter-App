@@ -1,8 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-
 
 class VideoScreen extends StatefulWidget {
   const VideoScreen({super.key});
@@ -11,8 +11,8 @@ class VideoScreen extends StatefulWidget {
   State<VideoScreen> createState() => _VideoScreenState();
 }
 
-class _VideoScreenState extends State<VideoScreen> {
-  // For now, hardcoded data. Later, this can be fetched from API.
+class _VideoScreenState extends State<VideoScreen>
+    with SingleTickerProviderStateMixin {
   final List<Map<String, dynamic>> videos = [
     {
       "title": "The Rabbit and Tortoise",
@@ -40,129 +40,229 @@ class _VideoScreenState extends State<VideoScreen> {
     },
   ];
 
+  late final AnimationController _controller;
+
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: GestureDetector(
-        onTap: () {
-          context.goNamed('videoPlayScreen');
-        },
-        child: Padding(
-          padding: EdgeInsets.all(2.h),
-          child: GridView.builder(
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // 2 per row
-              crossAxisSpacing: 2.h,
-              mainAxisSpacing: 2.h,
-              childAspectRatio: 0.8, // Controls card height
-            ),
-            itemCount: videos.length,
-            itemBuilder: (context, index) {
-              final video = videos[index];
-              return Material(
-                elevation: 5,
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Color(0xFFF83600), // Start color (red-orange)
-                        Color(0xFFF9D423), // End color (yellow)
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 5,
-                        offset: Offset(2, 4),
-                      ),
+  void initState() {
+    super.initState();
+    _controller =
+    AnimationController(vsync: this, duration: const Duration(seconds: 1))
+      ..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+
+  Widget _buildVideoCard(Map<String, dynamic> video, int index) {
+    final fade = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(0.1 * index, 1.0, curve: Curves.easeOutCubic),
+    );
+
+    return FadeTransition(
+      opacity: fade,
+      child: GestureDetector(
+        onTap: () => context.goNamed('videoPlayScreen'),
+        child: AnimatedScale(
+          scale: 1.0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withValues(alpha: 0.2),
+                      Colors.white.withValues(alpha: 0.05),
                     ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Image
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.asset(
-                            video["image"],
-                            height: 13.h,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 13.h,
-                                width: 100.w,
-                                color: Colors.grey[300],
-                                child: Icon(Icons.broken_image,
-                                    size: 40, color: Colors.red),
-                              );
-                            },
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                      child: Image.asset(
+                        video["image"],
+                        height: 12.h,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 12.h,
+                          color: Colors.grey[300],
+                          child:  Center(
+                            child: Icon(Icons.broken_image,
+                                color: Colors.redAccent, size: 10.w),
                           ),
                         ),
                       ),
+                    ),
 
-                      // Title
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 2.w),
-                        child: Text(
-                          video["title"],
-                          style: GoogleFonts.poppins(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.start,
-                        ),
-                      ),
-
-                      SizedBox(height: 0.5.h),
-
-                      // Duration + Rating
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8.0, vertical: 6),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    /// Content (title + info + play)
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Duration
+                            /// Title
                             Text(
-                              video["duration"],
+                              video["title"],
                               style: GoogleFonts.poppins(
+                                fontSize: 14.sp,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF0A2540).withValues(alpha: 0.9),
-                                fontSize: 12.sp,
+                                color: Colors.white.withValues(alpha: 0.95),
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
 
-                            // Rating Star
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              padding: EdgeInsets.all(4),
-                              child: Icon(
-                                Icons.star,
-                                size: 14,
-                                color: Colors.orangeAccent,
+                            const Spacer(),
+
+                            /// Duration + Rating
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  video["duration"],
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12.sp,
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Row(
+                                  children: [
+                                    Icon(Icons.star_rounded,
+                                        color: Colors.amberAccent, size: 16.sp),
+                                    SizedBox(width: 0.5.w),
+                                    Text(
+                                      video["rating"].toString(),
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 12.sp,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+
+                            SizedBox(height: 0.8.h),
+
+                            /// Play Button
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.4), width: 1),
+                                ),
+                                padding: const EdgeInsets.all(6),
+                                child: const Icon(Icons.play_arrow_rounded,
+                                    color: Colors.white, size: 20),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  // Gradient Background
+  Widget _animatedBackground({required Widget child}) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (_, __) {
+        return Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF283593), Color(0xFF6A1B9A)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: child,
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _animatedBackground(
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                /// Header
+                Padding(
+                  padding: EdgeInsets.only(left: 2.w, bottom: 2.h),
+                  child: Text(
+                    "Explore Nature Videos ",
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              );
-            },
+
+
+                Expanded(
+                  child: GridView.builder(
+                    physics: const BouncingScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 3.w,
+                      mainAxisSpacing: 2.h,
+                      childAspectRatio: 0.78,
+                    ),
+                    itemCount: videos.length,
+                    itemBuilder: (context, index) {
+                      final video = videos[index];
+                      return _buildVideoCard(video, index);
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

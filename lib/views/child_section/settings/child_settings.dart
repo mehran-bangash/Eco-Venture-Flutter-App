@@ -156,7 +156,7 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                       height: 5.h,
                       width: 10.w,
                       decoration: BoxDecoration(
-                        color: Colors.blueGrey.withOpacity(0.2),
+                        color: Colors.blueGrey.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(Icons.arrow_forward_ios, color: Colors.blue),
@@ -223,7 +223,7 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                         height: 5.h,
                         width: 10.w,
                         decoration: BoxDecoration(
-                          color: Colors.orangeAccent.withOpacity(0.2),
+                          color: Colors.orangeAccent.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(

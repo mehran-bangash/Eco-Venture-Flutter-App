@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:delightful_toast/toast/utils/enums.dart';
 import 'package:eco_venture/core/utils/utils.dart';
 import 'package:flutter/material.dart';
@@ -19,25 +20,16 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen> {
       "title": "A Butterfly on a Flower",
       "date": "20 Aug",
       "image": "assets/images/rabbit.jpeg",
-      "gradient": [Color(0xFFFF5858), Color(0xFFF09819)],
-    },
-    {
-      "title": "A Butterfly on a Flower",
-      "date": "20 Aug",
-      "image": "assets/images/rabbit.jpeg",
-      "gradient": [Color(0xFFFF5858), Color(0xFFF09819)],
     },
     {
       "title": "Sunset in the Valley",
       "date": "21 Aug",
       "image": "assets/images/rabbit.jpeg",
-      "gradient": [Color(0xFFC471F5), Color(0xFFFA71CD)],
     },
     {
       "title": "Morning Dew on Leaves",
       "date": "22 Aug",
       "image": "assets/images/rabbit.jpeg",
-      "gradient": [Color(0xFF64B3F4), Color(0xFFC2E59C)],
     },
   ];
 
@@ -45,108 +37,107 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen> {
     setState(() {
       _journalEntries.removeAt(index);
     });
-     Utils.showDelightToast(context,
-       "Card deleted Successfully!",
-       duration: Duration(seconds: 3),
-       iconColor: Colors.white,
-       bgColor: Colors.green,
-       icon: Icons.delete,
-       position: DelightSnackbarPosition.bottom,
-       textColor: Colors.white,
-       autoDismiss: true,
-     );
+
+    Utils.showDelightToast(
+      context,
+      "Entry deleted successfully!",
+      duration: const Duration(seconds: 2),
+      iconColor: Colors.white,
+      bgColor: Colors.redAccent,
+      icon: Icons.delete_outline,
+      position: DelightSnackbarPosition.bottom,
+      textColor: Colors.white,
+      autoDismiss: true,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      //  Glassy dark-teal theme background (matches VideoScreen)
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF50589C),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         centerTitle: true,
         title: Text(
           "Nature Photo Journal",
           style: GoogleFonts.poppins(
-            fontSize: 17.sp,
+            fontSize: 18.sp,
             fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),
         leading: GestureDetector(
-          onTap: () {
-            context.goNamed('bottomNavChild');
-          },
+          onTap: () => context.goNamed('bottomNavChild'),
           child: Padding(
-            padding: EdgeInsets.only(left: 1.w),
+            padding: EdgeInsets.only(left: 2.w),
             child: const Icon(Icons.arrow_back_ios, color: Colors.white),
           ),
         ),
       ),
+
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
             colors: [
-              Color(0xFF0C3483),
-              Color(0xFFA2B6DF),
-              Color(0xFF6B8CCE),
-              Color(0xFFA2B6DF),
+              Color(0xFF0D324D),
+              Color(0xFF2F5755),
+              Color(0xFF1E3C40),
             ],
-            stops: [0.0, 1.0, 1.0, 1.0],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
         ),
-        child: ListView.builder(
-          padding: EdgeInsets.only(top: 5.h, bottom: 15.h),
-          itemCount: _journalEntries.length + 1, // +1 for button
-          itemBuilder: (context, index) {
-            if (index == _journalEntries.length) {
-              // Add New Entry button (navigates instead of adding locally)
-              return Center(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 3.h),
-                  child: GestureDetector(
-                    onTap: () {
-                      // Navigate to new entry screen
-                      context.goNamed("addEntryScreen");
-                    },
-                    child: Container(
-                      height: 7.h,
-                      width: 60.w,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(15),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black26,
-                            blurRadius: 5,
-                            offset: Offset(2, 2),
-                          )
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          "➕ Add New Entry",
-                          style: GoogleFonts.poppins(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+        child: SafeArea(
+          child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.symmetric(vertical: 3.h, horizontal: 2.h),
+            itemCount: _journalEntries.length + 1, // +1 for Add button
+            itemBuilder: (context, index) {
+              if (index == _journalEntries.length) {
+                return Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4.h),
+                  child: Center(
+                    child: GestureDetector(
+                      onTap: () => context.goNamed("addEntryScreen"),
+                      child: Container(
+                        height: 7.h,
+                        width: 60.w,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4CAF50), Color(0xFF2F8F83)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            "➕ Add New Entry",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              );
-            }
+                );
+              }
 
-            final entry = _journalEntries[index];
+              final entry = _journalEntries[index];
 
-            // Each card wrapped in Dismissible
-            return GestureDetector(
-                onTap: () {
-                  context.goNamed('natureDescriptionScreen');
-                },
-              child: Dismissible(
+              return Dismissible(
                 key: UniqueKey(),
                 direction: DismissDirection.endToStart,
                 background: Container(
@@ -156,84 +147,121 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen> {
                     color: Colors.redAccent,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: const Icon(Icons.delete, color: Colors.white, size: 30),
+                  child:
+                  const Icon(Icons.delete, color: Colors.white, size: 30),
                 ),
-                onDismissed: (direction) {
-                  _deleteEntry(index);
-                },
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
+                onDismissed: (_) => _deleteEntry(index),
+                child: GestureDetector(
+                  onTap: () => context.goNamed('natureDescriptionScreen'),
                   child: Container(
-                    height: 20.h,
-                    width: 100.w,
+                    margin: EdgeInsets.only(bottom: 2.h),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: entry["gradient"],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: const BorderRadius.all(Radius.circular(20)),
-                    ),
-                    child: Row(
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.all(2.w),
-                          child: SizedBox(
-                            height: 23.h,
-                            width: 50.w,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: Image.asset(
-                                entry["image"],
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
                         ),
-                        Flexible(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.white.withValues(alpha: 0.15),
+                                Colors.white.withValues(alpha: 0.05),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
                             children: [
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    left: 2.w, right: 2.w, top: 2.h),
-                                child: Text(
-                                  entry["title"],
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.black,
-                                    fontSize: 16.sp,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                              //  Image Section
+                              ClipRRect(
+                                borderRadius: const BorderRadius.horizontal(
+                                  left: Radius.circular(20),
+                                ),
+                                child: Image.asset(
+                                  entry["image"],
+                                  height: 22.h,
+                                  width: 35.w,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    left: 2.w, right: 2.w, top: 0.5.h),
-                                child: Text(
-                                  entry["date"],
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.black,
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w500,
+
+                              //  Text Section
+                              Expanded(
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 3.w,
+                                    vertical: 1.5.h,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                    mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                    children: [
+                                      Text(
+                                        entry["title"],
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 15.sp,
+                                          fontWeight: FontWeight.w600,
+                                          height: 1.3,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        entry["date"],
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white70,
+                                          fontSize: 13.sp,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      Row(
+                                        children: const [
+                                          Icon(Icons.star_rounded,
+                                              color: Colors.amberAccent,
+                                              size: 20),
+                                          Icon(Icons.star_rounded,
+                                              color: Colors.amberAccent,
+                                              size: 20),
+                                          Icon(Icons.star_rounded,
+                                              color: Colors.amberAccent,
+                                              size: 20),
+                                          Icon(Icons.star_half_rounded,
+                                              color: Colors.amberAccent,
+                                              size: 20),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-                              Padding(
-                                padding: EdgeInsets.only(
-                                    left: 2.w, right: 2.w, top: 0.5.h),
-                                child: const Icon(Icons.star,
-                                    color: Colors.black38),
                               ),
                             ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

@@ -69,9 +69,9 @@ class AuthRepo {
     final googleUser = await AuthService.authInstance.continueWithGoogle();
 
     final requestBody = {
-      'idToken': googleUser.idToken ?? "",
-      'email': googleUser.email ?? "",
-      'name': googleUser.displayName ?? "Unknown User",
+      'idToken': googleUser.idToken ,
+      'email': googleUser.email ,
+      'name': googleUser.displayName,
       'role': role.isNotEmpty ? role : "user",  // safer check
     };
 

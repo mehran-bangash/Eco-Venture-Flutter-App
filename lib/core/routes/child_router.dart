@@ -6,6 +6,18 @@ import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_photo_
 import 'package:eco_venture/views/child_section/settings/child_settings.dart';
 import 'package:eco_venture/views/child_section/settings/profile/child_profile_screen.dart';
 import 'package:eco_venture/views/child_section/settings/profile/edit_profile_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/engineering_instruction_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/engineering_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/engineering_submit_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/math_instruction_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/math_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/math_submit_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/science_instruction_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/science_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/science_submit_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/technology_instruction_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/technology_screen.dart';
+import 'package:eco_venture/views/child_section/stemChallenges/technology_submit_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
@@ -87,6 +99,80 @@ class ChildRouter {
             path: 'stem-challenges',
             name: 'stemChallenges',
             builder: (context, state) => const StemChallengesScreen(),
+            routes: [
+              GoRoute(
+                  path: 'science-screen',
+                  name: 'scienceScreen',
+                  builder: (context, state) => const ScienceScreen(),
+                  routes: [
+                    GoRoute(
+                      path: 'science-instruction-screen',
+                      name: 'scienceInstructionScreen',
+                      builder: (context, state) => const ScienceInstructionScreen(),
+
+                    ),
+                    GoRoute(
+                    path: 'science-submit-screen',
+                    name: 'scienceSubmitScreen',
+                    builder: (context, state) => const ScienceSubmitScreen(),
+                    )
+                  ]
+              ),
+              GoRoute(
+                path: 'math-screen',
+                name: 'mathScreen',
+                builder: (context, state) => const MathScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'math-instruction-screen',
+                    name: 'mathInstructionScreen',
+                    builder: (context, state) => const MathInstructionScreen(),
+
+                  ),
+                  GoRoute(
+                    path: 'math-submit-screen',
+                    name: 'mathSubmitScreen',
+                    builder: (context, state) => const MathSubmitScreen(),
+                  )
+                ]
+              ),
+              GoRoute(
+                path: 'engineering-screen',
+                name: 'engineeringScreen',
+                builder: (context, state) => const EngineeringScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'engineering-instruction-screen',
+                    name: 'engineeringInstructionScreen',
+                    builder: (context, state) => const EngineeringInstructionScreen(),
+
+                  ),
+                  GoRoute(
+                    path: 'engineering-submit-screen',
+                    name: 'engineeringSubmitScreen',
+                    builder: (context, state) => const EngineeringSubmitScreen(),
+                  )
+                ]
+              ),
+              GoRoute(
+                path: 'technology-screen',
+                name: 'technologyScreen',
+                builder: (context, state) => const TechnologyScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'technology-instruction-screen',
+                    name: 'technologyInstructionScreen',
+                    builder: (context, state) => const TechnologyInstructionScreen(),
+
+                  ),
+                  GoRoute(
+                    path: 'technology-submit-screen',
+                    name: 'technologySubmitScreen',
+                    builder: (context, state) => const TechnologySubmitScreen(),
+                  )
+                ]
+              )
+            ]
           ),
           GoRoute(
             path: 'nature-photo-journal',
