@@ -18,6 +18,8 @@ import 'package:eco_venture/views/child_section/stemChallenges/science_submit_sc
 import 'package:eco_venture/views/child_section/stemChallenges/technology_instruction_screen.dart';
 import 'package:eco_venture/views/child_section/stemChallenges/technology_screen.dart';
 import 'package:eco_venture/views/child_section/stemChallenges/technology_submit_screen.dart';
+import 'package:eco_venture/views/child_section/treasureHunt/clue_locked_screen.dart';
+import 'package:eco_venture/views/child_section/treasureHunt/qR_scanner_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
@@ -27,6 +29,7 @@ import '../../views/child_section/multimedia/story_screen.dart';
 import '../../views/child_section/multimedia/video_screen.dart';
 import '../../views/child_section/naturePhotoJournal/nature_photo_journal_screen.dart';
 import '../../views/child_section/stemChallenges/stem_challenges_screen.dart';
+import '../../views/child_section/treasureHunt/qr_success_screen.dart';
 import '../../views/child_section/treasureHunt/treasure_hunt_screen.dart';
 import '../constants/route_names.dart';
 
@@ -63,6 +66,32 @@ class ChildRouter {
             path: 'treasure-hunt',
             name: 'treasureHunt',
             builder: (context, state) => const TreasureHuntScreen(),
+            routes: [
+              GoRoute(
+                path: 'clue-locked-screen',
+                name: 'clueLockedScreen',
+                builder: (context, state) => const ClueLockedScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'qr-scanner-screen',
+                    name: 'qrScannerScreen',
+                    builder: (context, state) => const QRScannerScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'qr-success-screen',
+                        name: 'qrSuccessScreen',
+
+                        builder: (context, state) {
+                          final rewardCoins = state.extra as int? ?? 0;
+                          return QRSuccessScreen(rewardCoins: rewardCoins);
+                        },
+                      )
+                    ]
+                  ),
+
+                ]
+              )
+            ]
           ),
           GoRoute(
             path: 'multimedia-content',

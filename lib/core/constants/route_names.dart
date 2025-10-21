@@ -13,7 +13,6 @@ class RouteNames {
   static const parentHome = '/parent/home';
 
   //  nested inside child
-  static const treasureHunt = '/child/treasure-hunt';
   static const interactiveQuiz = '/child/interactive-quiz';
   static const childProfile = '/child/child-profile';
   static const editProfile = '/child/child-profile/edit-profile';
@@ -58,4 +57,20 @@ class RouteNames {
       '/child/stem-challenges/technology-screen/technology-instruction-screen';
   static const technologySubmitScreen =
       '/child/stem-challenges/technology-screen/technology-submit-screen';
+
+
+  static const treasureHunt = '/child/treasure-hunt';
+  static const  clueLockedScreen='/child/treasure-hunt/clue-locked-screen';
+  static const qrScannerScreen='/child/treasure-hunt/clue-locked-screen/qr-scanner-screen';
+  static const qrSuccessScreen='/child/treasure-hunt/clue-locked-screen/qr-success-scree/qr-scanner-screen';
+
+
+
+
+
+
+
+
+
+
 }
