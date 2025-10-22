@@ -10,13 +10,7 @@ class QRSuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const LinearGradient(
-        colors: [Color(0xFF00D2A8), Color(0xFF00B2A8)],
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-      ).createShader(Rect.zero) == null // just to force gradient below
-          ? Colors.transparent
-          : null,
+      backgroundColor: null,
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(

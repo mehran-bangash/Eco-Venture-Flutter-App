@@ -1,3 +1,6 @@
+
+import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_completion_screen.dart';
+import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_question_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/add_entry_screen.dart';
@@ -20,6 +23,7 @@ import 'package:eco_venture/views/child_section/stemChallenges/technology_screen
 import 'package:eco_venture/views/child_section/stemChallenges/technology_submit_screen.dart';
 import 'package:eco_venture/views/child_section/treasureHunt/clue_locked_screen.dart';
 import 'package:eco_venture/views/child_section/treasureHunt/qR_scanner_screen.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
@@ -85,13 +89,12 @@ class ChildRouter {
                           final rewardCoins = state.extra as int? ?? 0;
                           return QRSuccessScreen(rewardCoins: rewardCoins);
                         },
-                      )
-                    ]
+                      ),
+                    ],
                   ),
-
-                ]
-              )
-            ]
+                ],
+              ),
+            ],
           ),
           GoRoute(
             path: 'multimedia-content',
@@ -130,22 +133,22 @@ class ChildRouter {
             builder: (context, state) => const StemChallengesScreen(),
             routes: [
               GoRoute(
-                  path: 'science-screen',
-                  name: 'scienceScreen',
-                  builder: (context, state) => const ScienceScreen(),
-                  routes: [
-                    GoRoute(
-                      path: 'science-instruction-screen',
-                      name: 'scienceInstructionScreen',
-                      builder: (context, state) => const ScienceInstructionScreen(),
-
-                    ),
-                    GoRoute(
+                path: 'science-screen',
+                name: 'scienceScreen',
+                builder: (context, state) => const ScienceScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'science-instruction-screen',
+                    name: 'scienceInstructionScreen',
+                    builder: (context, state) =>
+                        const ScienceInstructionScreen(),
+                  ),
+                  GoRoute(
                     path: 'science-submit-screen',
                     name: 'scienceSubmitScreen',
                     builder: (context, state) => const ScienceSubmitScreen(),
-                    )
-                  ]
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'math-screen',
@@ -156,14 +159,13 @@ class ChildRouter {
                     path: 'math-instruction-screen',
                     name: 'mathInstructionScreen',
                     builder: (context, state) => const MathInstructionScreen(),
-
                   ),
                   GoRoute(
                     path: 'math-submit-screen',
                     name: 'mathSubmitScreen',
                     builder: (context, state) => const MathSubmitScreen(),
-                  )
-                ]
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'engineering-screen',
@@ -173,15 +175,16 @@ class ChildRouter {
                   GoRoute(
                     path: 'engineering-instruction-screen',
                     name: 'engineeringInstructionScreen',
-                    builder: (context, state) => const EngineeringInstructionScreen(),
-
+                    builder: (context, state) =>
+                        const EngineeringInstructionScreen(),
                   ),
                   GoRoute(
                     path: 'engineering-submit-screen',
                     name: 'engineeringSubmitScreen',
-                    builder: (context, state) => const EngineeringSubmitScreen(),
-                  )
-                ]
+                    builder: (context, state) =>
+                        const EngineeringSubmitScreen(),
+                  ),
+                ],
               ),
               GoRoute(
                 path: 'technology-screen',
@@ -191,17 +194,17 @@ class ChildRouter {
                   GoRoute(
                     path: 'technology-instruction-screen',
                     name: 'technologyInstructionScreen',
-                    builder: (context, state) => const TechnologyInstructionScreen(),
-
+                    builder: (context, state) =>
+                        const TechnologyInstructionScreen(),
                   ),
                   GoRoute(
                     path: 'technology-submit-screen',
                     name: 'technologySubmitScreen',
                     builder: (context, state) => const TechnologySubmitScreen(),
-                  )
-                ]
-              )
-            ]
+                  ),
+                ],
+              ),
+            ],
           ),
           GoRoute(
             path: 'nature-photo-journal',
@@ -212,7 +215,6 @@ class ChildRouter {
                 path: 'nature-description-screen',
                 name: "natureDescriptionScreen",
                 builder: (context, state) => const NatureDescriptionScreen(),
-
               ),
               GoRoute(
                 path: 'add-entry-screen',
@@ -223,8 +225,8 @@ class ChildRouter {
                     path: 'nature-photo-chatbot-screen',
                     name: 'naturePhotoChatbotScreen',
                     builder: (context, state) => NaturePhotoChatbotScreen(),
-                  )
-                ]
+                  ),
+                ],
               ),
             ],
           ),
@@ -233,7 +235,43 @@ class ChildRouter {
             path: 'interactive-quiz',
             name: 'interactiveQuiz',
             builder: (context, state) => const InteractiveQuizScreen(),
+            routes: [
+              GoRoute(
+                path: 'quiz-question-screen',
+                name: 'quizQuestionScreen',
+                builder: (context, state) => const QuizQuestionScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'quiz-completion-screen/:correct/:total', // ✅ MUST have placeholders
+                    name: 'quizCompletionScreen',
+                    pageBuilder: (context, state) {
+                      final correct = int.parse(state.pathParameters['correct']!);
+                      final total = int.parse(state.pathParameters['total']!);
+                      return CustomTransitionPage(
+                        transitionDuration: const Duration(milliseconds: 500),
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          const begin = Offset(0, 1);
+                          const end = Offset.zero;
+                          var curve = Curves.easeOutCubic;
+                          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+                          return SlideTransition(
+                            position: animation.drive(tween),
+                            child: FadeTransition(opacity: animation, child: child),
+                          );
+                        },
+                        child: QuizCompletionScreen(
+                          correctAnswers: correct,
+                          totalQuestions: total,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
+
         ],
       ),
     ],

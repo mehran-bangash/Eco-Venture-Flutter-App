@@ -130,11 +130,9 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
   Widget _buildTopBar() {
     return Row(
       children: [
-        GestureDetector(
-          onTap: () {
-            context.goNamed('bottomNavChild');
-          },
-            child: _glassButton(icon: Icons.arrow_back_ios, onTap: () {})),
+        _glassButton(icon: Icons.arrow_back_ios, onTap: () {
+          context.goNamed('bottomNavChild');
+        }),
         SizedBox(width: 3.w),
         Expanded(
           child: Row(
