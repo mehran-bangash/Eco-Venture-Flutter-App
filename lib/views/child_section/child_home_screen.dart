@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../services/shared_preferences_helper.dart';
@@ -264,7 +265,9 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () {},
+              onTap: () {
+                context.goNamed("progressDashboardScreen");
+              },
               child: _frostedCard(
                 child: _floatingWrapper(
                   child: ClickableInfoCard(

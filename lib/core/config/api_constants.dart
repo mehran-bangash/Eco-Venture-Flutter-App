@@ -6,4 +6,5 @@ class ApiConstants {
   static const String signUpEndpoint =   "${baseUrl}signup";
   static const String googleEndpoint =   "${baseUrl}google";
   static const String getUserEndpoint = "${baseUrl}user";
+  static const String chatEndpoint= "${baseUrl}chat";
 }

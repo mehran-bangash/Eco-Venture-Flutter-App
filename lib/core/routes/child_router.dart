@@ -1,11 +1,15 @@
 
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_completion_screen.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_question_screen.dart';
+import 'package:eco_venture/views/child_section/ai_chat_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/add_entry_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_description_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_photo_chatbot_screen.dart';
+import 'package:eco_venture/views/child_section/progress_dashboard_screen.dart';
+import 'package:eco_venture/views/child_section/report_issue_screen.dart';
+import 'package:eco_venture/views/child_section/report_safety_screen.dart';
 import 'package:eco_venture/views/child_section/settings/child_settings.dart';
 import 'package:eco_venture/views/child_section/settings/profile/child_profile_screen.dart';
 import 'package:eco_venture/views/child_section/settings/profile/edit_profile_screen.dart';
@@ -56,6 +60,25 @@ class ChildRouter {
           ),
         ],
       ),
+       GoRoute(
+           path: 'progress-dashboard-screen',
+           name: 'progressDashboardScreen',
+           builder: (context, state) => const ProgressDashboardScreen(),
+
+       ),
+       GoRoute(
+           path: 'report-safety-screen',
+           name: "reportSafetyScreen",
+          builder: (context, state) => const ReportSafetyScreen(),
+         routes: [
+           GoRoute(
+               path: 'report-issue-screen',
+               name: "reportIssueScreen",
+               builder: (context, state) => const ReportIssueScreen(),
+           )
+         ]
+
+       ),
       GoRoute(
         path: 'child-settings',
         name: 'childSettings',
@@ -242,7 +265,7 @@ class ChildRouter {
                 builder: (context, state) => const QuizQuestionScreen(),
                 routes: [
                   GoRoute(
-                    path: 'quiz-completion-screen/:correct/:total', // ✅ MUST have placeholders
+                    path: 'quiz-completion-screen/:correct/:total', //  MUST have placeholders
                     name: 'quizCompletionScreen',
                     pageBuilder: (context, state) {
                       final correct = int.parse(state.pathParameters['correct']!);

@@ -16,6 +16,10 @@ class RouteNames {
   static const childProfile = '/child/child-profile';
   static const editProfile = '/child/child-profile/edit-profile';
   static const childSettings = '/child/child-settings';
+  static const aiChatScreen= '/child/ai-chat-screen';
+  static const reportSafetyScreen='/child/report-safety-screen';
+  static const reportIssueScreen='/child/report-safety-screen/report-issue-screen';
+  static const progressDashboardScreen='/child/progress-dashboard-screen';
 
   // nested inside child Section multiMediaContent
   static const multiMediaContent = '/child/multimedia-content';
