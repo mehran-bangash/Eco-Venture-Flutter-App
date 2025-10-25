@@ -40,6 +40,7 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen>
   void dispose() {
     _bgController.dispose();
     _particleController.dispose();
+    _cardController.dispose();
     super.dispose();
   }
 
@@ -51,11 +52,11 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen>
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: false,
         leading: GestureDetector(
-          onTap:() {
+          onTap: () {
             context.goNamed("bottomNavChild");
           },
           child: Padding(
-            padding:  EdgeInsets.all(1.5.w),
+            padding: EdgeInsets.all(1.5.w),
             child: Container(
               height: 3.h,
               width: 5.w,
@@ -343,52 +344,82 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen>
                 ),
               ],
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
-                color: Colors.black.withValues(alpha: 0.15),
-              ),
-              padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 2.h),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(emoji, style: TextStyle(fontSize: 24.sp)),
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 17.sp,
-                      shadows: [
-                        Shadow(
-                          blurRadius: 10,
-                          color: Colors.black.withValues(alpha: 0.3),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    color: Colors.black.withValues(alpha: 0.15),
+                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 2.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        flex: 2,
+                        child: FittedBox(
+                          alignment: Alignment.centerLeft,
+                          fit: BoxFit.scaleDown,
+                          child: Text(emoji, style: TextStyle(fontSize: 24.sp)),
                         ),
-                      ],
-                    ),
-                  ),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 1.2.h,
-                      backgroundColor: Colors.white24,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFFFFF176),
                       ),
-                    ),
+                      SizedBox(height: 0.8.h),
+                      Flexible(
+                        flex: 2,
+                        child: FittedBox(
+                          alignment: Alignment.centerLeft,
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            title,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 17.sp,
+                              shadows: [
+                                Shadow(
+                                  blurRadius: 10,
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 0.8.h),
+                      Flexible(
+                        flex: 1,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: LinearProgressIndicator(
+                            value: progress,
+                            minHeight: 1.2.h,
+                            backgroundColor: Colors.white24,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFFFFF176),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 0.6.h),
+                      Flexible(
+                        flex: 3,
+                        child: FittedBox(
+                          alignment: Alignment.centerLeft,
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            "${(progress * 100).toInt()}% Complete\n$level\n$quizzes",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 13.sp,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Text(
-                    "${(progress * 100).toInt()}% Complete\n$level\n$quizzes",
-                    style: GoogleFonts.poppins(
-                      color: Colors.white.withValues(alpha: 0.9),
-                      fontSize: 13.sp,
-                      height: 1.3,
-                    ),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         );

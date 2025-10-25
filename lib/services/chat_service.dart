@@ -5,6 +5,9 @@ import 'package:http/http.dart' as http;
 class ChatService {
   final String _apiUrl = ApiConstants.chatEndpoint;
 
+  //  Global system prompt (for consistent AI behavior)
+  final String _prompt = "You are a friendly and helpful AI assistant for a mobile app.";
+
   Future<String> sendMessage(String userMessage, String userId) async {
     try {
       final response = await http.post(

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../models/chat_message.dart';
@@ -82,102 +83,111 @@ class _AiChatScreenV2State extends ConsumerState<AiChatScreen>
     final chatState = ref.watch(chatProvider);
     final chatVM = ref.read(chatProvider.notifier);
 
-    return Scaffold(
-      extendBody: true,
-      // Remove default backgroundColor; we paint custom background below
-      body: Stack(
-        children: [
-          // 1) Layered animated gradient background with subtle parallax movement
-          AnimatedBuilder(
-            animation: _bgShiftController,
-            builder: (context, _) {
-              final t = _bgShiftController.value;
-              return CustomPaint(
-                painter: _ParallaxGradientPainter(t),
-                size: Size.infinite,
-              );
-            },
-          ),
+    return PopScope(
+    canPop: false, // prevents auto pop
+    onPopInvokedWithResult: (didPop, result) {
+      if (!didPop) {
+        // This runs when system back button is pressed
+        context.goNamed('bottomNavChild');
+      }
+    },
+      child: Scaffold(
+        extendBody: true,
+        // Remove default backgroundColor; we paint custom background below
+        body: Stack(
+          children: [
+            // 1) Layered animated gradient background with subtle parallax movement
+            AnimatedBuilder(
+              animation: _bgShiftController,
+              builder: (context, _) {
+                final t = _bgShiftController.value;
+                return CustomPaint(
+                  painter: _ParallaxGradientPainter(t),
+                  size: Size.infinite,
+                );
+              },
+            ),
 
-          // 2) Subtle noise / vignette for cinematic depth
-          Positioned.fill(
-            child: IgnorePointer(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(0.2, -0.6),
-                    radius: 1.2,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.12),
-                    ],
-                    stops: const [0.6, 1.0],
+            // 2) Subtle noise / vignette for cinematic depth
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: const Alignment(0.2, -0.6),
+                      radius: 1.2,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.12),
+                      ],
+                      stops: const [0.6, 1.0],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
 
-          // 3) Particle layer (soft floating lights)
-          AnimatedBuilder(
-            animation: _particleController,
-            builder: (context, _) {
-              return CustomPaint(
-                painter: _ParticlePainter(_particleController.value),
-                size: Size.infinite,
-              );
-            },
-          ),
+            // 3) Particle layer (soft floating lights)
+            AnimatedBuilder(
+              animation: _particleController,
+              builder: (context, _) {
+                return CustomPaint(
+                  painter: _ParticlePainter(_particleController.value),
+                  size: Size.infinite,
+                );
+              },
+            ),
 
-          // 4) Main UI content
-          SafeArea(
-            child: Column(
-              children: [
-                _TopHeader(),
+            // 4) Main UI content
+            SafeArea(
+              child: Column(
+                children: [
+                  _TopHeader(),
 
-                // Chat messages
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 4.w),
-                    child: ListView.builder(
-                      controller: _scrollController,
-                      physics: const BouncingScrollPhysics(),
-                      itemCount: chatState.messages.length + (chatState.isLoading ? 1 : 0),
-                      itemBuilder: (context, i) {
-                        // if loading, show typing indicator at the end
-                        if (i == chatState.messages.length && chatState.isLoading) {
+                  // Chat messages
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 4.w),
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: chatState.messages.length + (chatState.isLoading ? 1 : 0),
+                        itemBuilder: (context, i) {
+                          // if loading, show typing indicator at the end
+                          if (i == chatState.messages.length && chatState.isLoading) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 1.2.h),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: _TypingIndicator(),
+                              ),
+                            );
+                          }
+                          final msg = chatState.messages[i];
                           return Padding(
-                            padding: EdgeInsets.symmetric(vertical: 1.2.h),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: _TypingIndicator(),
-                            ),
+                            padding: EdgeInsets.symmetric(vertical: 0.8.h),
+                            child: _ChatBubble(message: msg),
                           );
-                        }
-                        final msg = chatState.messages[i];
-                        return Padding(
-                          padding: EdgeInsets.symmetric(vertical: 0.8.h),
-                          child: _ChatBubble(message: msg),
-                        );
-                      },
+                        },
+                      ),
                     ),
                   ),
-                ),
 
-                // Floating input bar - placed intentionally above bottom nav.
-                // Note: bottom padding set to 8.h so it sits above BottomNavBar.
-                Padding(
-                  padding: EdgeInsets.fromLTRB(3.w, 1.h, 3.w, 8.h),
-                  child: _InputBar(
-                    controller: _controller,
-                    onSend: () => _onSend(chatVM),
-                    sendPulse: _sendPulseController,
+                  // Floating input bar - placed intentionally above bottom nav.
+                  // Note: bottom padding set to 8.h so it sits above BottomNavBar.
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(3.w, 1.h, 3.w, 8.h),
+                    child: _InputBar(
+                      controller: _controller,
+                      onSend: () => _onSend(chatVM),
+                      sendPulse: _sendPulseController,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

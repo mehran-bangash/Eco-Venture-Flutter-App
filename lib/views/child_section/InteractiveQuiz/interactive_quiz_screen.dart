@@ -126,184 +126,193 @@ class _InteractiveQuizPremiumScreenState extends State<InteractiveQuizScreen>
   @override
   Widget build(BuildContext context) {
     final safeTop = MediaQuery.of(context).padding.top;
-    return Scaffold(
-      backgroundColor: const Color(0xFFEEF6FB),
-      body: Stack(
-        children: [
-          // 1) animated layered gradient background
-          AnimatedBuilder(
-            animation: _bgAnim,
-            builder: (context, child) {
-              final t = _bgAnim.value;
-              return Container(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: _movingAlignment(t, 0.0),
-                    radius: 1.2,
-                    colors: const [
-                      Color(0xFFB2F5EA),
-                      Color(0xFF9EE7FF),
-                      Color(0xFFD6C6FF),
-                    ],
-                    stops: const [0.0, 0.55, 1.0],
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // 2) subtle floating translucent bubbles (built with pure widgets)
-          ...List.generate(6, (i) {
-            // each bubble moves differently
-            return AnimatedBuilder(
+    return PopScope(
+    canPop: false, // prevents auto pop
+    onPopInvokedWithResult: (didPop, result) {
+      if (!didPop) {
+        // This runs when system back button is pressed
+        context.goNamed('bottomNavChild');
+      }
+    },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFEEF6FB),
+        body: Stack(
+          children: [
+            // 1) animated layered gradient background
+            AnimatedBuilder(
               animation: _bgAnim,
-              builder: (context, _) {
+              builder: (context, child) {
                 final t = _bgAnim.value;
-                final speed = 0.9 + (i * 0.12);
-                final x =
-                    (50.0 +
-                        (i * 120) +
-                        math.sin((t * speed + i) * 2 * math.pi) * 40) %
-                    (100.w);
-                final y =
-                    (10.h +
-                        (i * 8).h +
-                        math.cos((t * speed + i) * 2 * math.pi) * 8.h) %
-                    100.h;
-                return Positioned(
-                  left: x,
-                  top: y,
-                  child: Container(
-                    width: (6 + i * 1.5).w,
-                    height: (6 + i * 1.5).w,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.06 + i * 0.02),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.02 + i * 0.02),
-                          blurRadius: 14,
-                          spreadRadius: 2,
-                        ),
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: _movingAlignment(t, 0.0),
+                      radius: 1.2,
+                      colors: const [
+                        Color(0xFFB2F5EA),
+                        Color(0xFF9EE7FF),
+                        Color(0xFFD6C6FF),
                       ],
+                      stops: const [0.0, 0.55, 1.0],
                     ),
                   ),
                 );
               },
-            );
-          }),
+            ),
 
-          // safe content
-          SafeArea(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // header row - badge, title, avatar
-                  Row(
-                    children: [
-                      // rounded badge
-                      Container(
-                        width: 12.w,
-                        height: 12.w,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.08),
-                              blurRadius: 8,
-                              offset: const Offset(0, 6),
+            // 2) subtle floating translucent bubbles (built with pure widgets)
+            ...List.generate(6, (i) {
+              // each bubble moves differently
+              return AnimatedBuilder(
+                animation: _bgAnim,
+                builder: (context, _) {
+                  final t = _bgAnim.value;
+                  final speed = 0.9 + (i * 0.12);
+                  final x =
+                      (50.0 +
+                          (i * 120) +
+                          math.sin((t * speed + i) * 2 * math.pi) * 40) %
+                      (100.w);
+                  final y =
+                      (10.h +
+                          (i * 8).h +
+                          math.cos((t * speed + i) * 2 * math.pi) * 8.h) %
+                      100.h;
+                  return Positioned(
+                    left: x,
+                    top: y,
+                    child: Container(
+                      width: (6 + i * 1.5).w,
+                      height: (6 + i * 1.5).w,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.06 + i * 0.02),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.02 + i * 0.02),
+                            blurRadius: 14,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+
+            // safe content
+            SafeArea(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // header row - badge, title, avatar
+                    Row(
+                      children: [
+                        // rounded badge
+                        Container(
+                          width: 12.w,
+                          height: 12.w,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 8,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: GestureDetector(
+                            onTap: () {
+                              context.goNamed('bottomNavChild');
+                            },
+                            child: Center(
+                              child: Icon(Icons.arrow_back_ios,color: Colors.blue,)
                             ),
-                          ],
-                        ),
-                        child: GestureDetector(
-                          onTap: () {
-                            context.goNamed('bottomNavChild');
-                          },
-                          child: Center(
-                            child: Icon(Icons.arrow_back_ios,color: Colors.blue,)
                           ),
                         ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        'Interactive Quizzes',
-                        style: GoogleFonts.poppins(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18.sp,
-                        ),
-                      ),
-                      const Spacer(),
-                      // avatar placeholder
-                      Container(
-                        width: 10.w,
-                        height: 10.w,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.person, color: Colors.grey.shade700),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 2.h),
-
-                  // Title
-                  Text(
-                    'Choose Your Challenge',
-                    style: GoogleFonts.poppins(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  SizedBox(height: 0.8.h),
-                  Text(
-                    'Select a category to start the quiz',
-                    style: GoogleFonts.poppins(
-                      fontSize: 13.sp,
-                      color: Colors.black54,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-
-                  // Grid — two columns responsive
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final itemWidth =
-                            (constraints.maxWidth - 6.w) /
-                            2; // spacing accommodation
-                        return SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          child: Wrap(
-                            spacing: 4.w,
-                            runSpacing: 3.h,
-                            children: List.generate(categories.length, (i) {
-                              final cat = categories[i];
-                              // Alternate two styles for variety
-                              final isTall = i % 3 == 0; // some variation
-                              return SizedBox(
-                                width: itemWidth,
-                                child: _buildAnimatedCard(i, cat, isTall),
-                              );
-                            }),
+                        const Spacer(),
+                        Text(
+                          'Interactive Quizzes',
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18.sp,
                           ),
-                        );
-                      },
+                        ),
+                        const Spacer(),
+                        // avatar placeholder
+                        Container(
+                          width: 10.w,
+                          height: 10.w,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.person, color: Colors.grey.shade700),
+                        ),
+                      ],
                     ),
-                  ),
 
-                  SizedBox(height: 2.h),
-                ],
+                    SizedBox(height: 2.h),
+
+                    // Title
+                    Text(
+                      'Choose Your Challenge',
+                      style: GoogleFonts.poppins(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 0.8.h),
+                    Text(
+                      'Select a category to start the quiz',
+                      style: GoogleFonts.poppins(
+                        fontSize: 13.sp,
+                        color: Colors.black54,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+
+                    // Grid — two columns responsive
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final itemWidth =
+                              (constraints.maxWidth - 6.w) /
+                              2; // spacing accommodation
+                          return SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Wrap(
+                              spacing: 4.w,
+                              runSpacing: 3.h,
+                              children: List.generate(categories.length, (i) {
+                                final cat = categories[i];
+                                // Alternate two styles for variety
+                                final isTall = i % 3 == 0; // some variation
+                                return SizedBox(
+                                  width: itemWidth,
+                                  child: _buildAnimatedCard(i, cat, isTall),
+                                );
+                              }),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    SizedBox(height: 2.h),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

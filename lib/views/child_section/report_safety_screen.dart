@@ -52,142 +52,152 @@ class _ReportSafetyScreenState extends State<ReportSafetyScreen>
 
   @override
   Widget build(BuildContext context) {
-        return Scaffold(
-          extendBodyBehindAppBar: true,
-          appBar: AppBar(
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            centerTitle: true,
-            title: Text(
-              "Safety Center",
-              style: GoogleFonts.poppins(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+
+        return PopScope(
+        canPop: false, // prevents auto pop
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) {
+            // This runs when system back button is pressed
+            context.goNamed('bottomNavChild');
+          }
+        },
+          child: Scaffold(
+            extendBodyBehindAppBar: true,
+            appBar: AppBar(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              centerTitle: true,
+              title: Text(
+                "Safety Center",
+                style: GoogleFonts.poppins(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
             ),
-          ),
-          body: AnimatedBuilder(
-            animation: _shift,
-            builder: (context, child) {
-              final t = _shift.value;
-              return Stack(
-                children: [
-                  // animated gradient background
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 700),
-                    decoration: _bgDecoration(t),
-                  ),
+            body: AnimatedBuilder(
+              animation: _shift,
+              builder: (context, child) {
+                final t = _shift.value;
+                return Stack(
+                  children: [
+                    // animated gradient background
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 700),
+                      decoration: _bgDecoration(t),
+                    ),
 
-                  // big soft glows (parallax)
-                  Positioned(
-                    top: -12.h + (6.h * sin(2 * pi * t)),
-                    left: -18.w,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.cyanAccent.withValues(alpha: 0.18),
-                            Colors.transparent,
-                          ],
-                          radius: 0.9,
+                    // big soft glows (parallax)
+                    Positioned(
+                      top: -12.h + (6.h * sin(2 * pi * t)),
+                      left: -18.w,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              Colors.cyanAccent.withValues(alpha: 0.18),
+                              Colors.transparent,
+                            ],
+                            radius: 0.9,
+                          ),
                         ),
+                        child: SizedBox(width: 42.w, height: 42.w),
                       ),
-                      child: SizedBox(width: 42.w, height: 42.w),
                     ),
-                  ),
-                  Positioned(
-                    bottom: -10.h + (5.h * cos(2 * pi * t)),
-                    right: -16.w,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            Colors.pinkAccent.withValues(alpha: 0.15),
-                            Colors.transparent,
-                          ],
-                          radius: 0.9,
+                    Positioned(
+                      bottom: -10.h + (5.h * cos(2 * pi * t)),
+                      right: -16.w,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: RadialGradient(
+                            colors: [
+                              Colors.pinkAccent.withValues(alpha: 0.15),
+                              Colors.transparent,
+                            ],
+                            radius: 0.9,
+                          ),
                         ),
+                        child: SizedBox(width: 36.w, height: 36.w),
                       ),
-                      child: SizedBox(width: 36.w, height: 36.w),
                     ),
-                  ),
 
-                  // smaller twinkling dots
-                  ...List.generate(10, (i) => _tinyDot(i, t)),
+                    // smaller twinkling dots
+                    ...List.generate(10, (i) => _tinyDot(i, t)),
 
-                  // content
-                  SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(4.w, 14.h, 4.w, 10.h),
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _animatedGlassCard(
-                          icon: Icons.shield,
-                          title: "Your safety is our priority",
-                          subtitle: "We’re here to help you stay safe and have fun.",
-                          color: const Color(0xFF00F0FF),
-                          // subtle accent gradient on left
-                        ),
-                        SizedBox(height: 3.h),
+                    // content
+                    SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(4.w, 14.h, 4.w, 10.h),
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _animatedGlassCard(
+                            icon: Icons.shield,
+                            title: "Your safety is our priority",
+                            subtitle: "We’re here to help you stay safe and have fun.",
+                            color: const Color(0xFF00F0FF),
+                            // subtle accent gradient on left
+                          ),
+                          SizedBox(height: 3.h),
 
-                        _sectionWithShimmer("Quick Actions"),
+                          _sectionWithShimmer("Quick Actions"),
 
-                        _shimmerActionCard(
-                          color: Colors.redAccent,
-                          icon: Icons.report_problem_rounded,
-                          title: "Report an Issue",
-                          description: "Report inappropriate behavior or content.",
-                          buttonText: "Report",
-                          onPressed: () {
-                            context.goNamed("reportIssueScreen");
-                          },
-                        ),
-                        SizedBox(height: 2.h),
-                        _shimmerActionCard(
-                          color: Colors.deepOrangeAccent,
-                          icon: Icons.call,
-                          title: "Get Parent Help",
-                          description: "Contact your parent or guardian quickly.",
-                          buttonText: "Call ...",
-                          onPressed: () {},
-                        ),
+                          _shimmerActionCard(
+                            color: Colors.redAccent,
+                            icon: Icons.report_problem_rounded,
+                            title: "Report an Issue",
+                            description: "Report inappropriate behavior or content.",
+                            buttonText: "Report",
+                            onPressed: () {
+                              context.goNamed("reportIssueScreen");
+                            },
+                          ),
+                          SizedBox(height: 2.h),
+                          _shimmerActionCard(
+                            color: Colors.deepOrangeAccent,
+                            icon: Icons.call,
+                            title: "Get Parent Help",
+                            description: "Contact your parent or guardian quickly.",
+                            buttonText: "Call ...",
+                            onPressed: () {},
+                          ),
 
-                        SizedBox(height: 3.h),
-                        _sectionWithShimmer("Safety Resources"),
+                          SizedBox(height: 3.h),
+                          _sectionWithShimmer("Safety Resources"),
 
-                        _shimmerActionCard(
-                          color: Colors.lightBlueAccent,
-                          icon: Icons.lightbulb,
-                          title: "Safety Tips",
-                          description: "Learn how to stay safe online.",
-                          buttonText: "Learn",
-                          onPressed: () {},
-                        ),
-                        SizedBox(height: 2.h),
-                        _shimmerActionCard(
-                          color: Colors.purpleAccent,
-                          icon: Icons.rule,
-                          title: "Online Rules",
-                          description: "Guidelines for a positive community.",
-                          buttonText: "Read",
-                          onPressed: () {},
-                        ),
+                          _shimmerActionCard(
+                            color: Colors.lightBlueAccent,
+                            icon: Icons.lightbulb,
+                            title: "Safety Tips",
+                            description: "Learn how to stay safe online.",
+                            buttonText: "Learn",
+                            onPressed: () {},
+                          ),
+                          SizedBox(height: 2.h),
+                          _shimmerActionCard(
+                            color: Colors.purpleAccent,
+                            icon: Icons.rule,
+                            title: "Online Rules",
+                            description: "Guidelines for a positive community.",
+                            buttonText: "Read",
+                            onPressed: () {},
+                          ),
 
-                        SizedBox(height: 3.h),
-                        _sectionWithShimmer("Emergency Contacts"),
-                        _contactCard(),
+                          SizedBox(height: 3.h),
+                          _sectionWithShimmer("Emergency Contacts"),
+                          _contactCard(),
 
-                        SizedBox(height: 10.h),
-                      ],
+                          SizedBox(height: 10.h),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              );
-            },
+                  ],
+                );
+              },
+            ),
           ),
         );
 

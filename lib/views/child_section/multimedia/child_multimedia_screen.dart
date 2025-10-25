@@ -34,59 +34,52 @@ class _ChildMultimediaScreenState extends State<ChildMultimediaScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.appBar,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: Text(
-          "Multimedia Content",
-          style: GoogleFonts.poppins(fontSize: 18.sp, color: Colors.white),
-        ),
-        centerTitle: true,
-        leading: GestureDetector(
-          onTap: () {
-            context.goNamed('bottomNavChild');
-          },
-          child: Padding(
-            padding: EdgeInsetsGeometry.only(left: 1.w),
-            child: SizedBox(
-              height: 50,
-              width: 50,
-              child: Icon(Icons.arrow_back_ios),
+    return PopScope(
+      canPop: false, // prevents auto pop
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          // This runs when system back button is pressed
+          context.goNamed('bottomNavChild');
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: AppColors.appBar,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          title: Text(
+            "Multimedia Content",
+            style: GoogleFonts.poppins(fontSize: 18.sp, color: Colors.white),
+          ),
+          centerTitle: true,
+          leading: GestureDetector(
+            onTap: () {
+              // Handle in-app back arrow
+              context.goNamed('bottomNavChild');
+            },
+            child: Padding(
+              padding: EdgeInsets.only(left: 1.w),
+              child: const Icon(Icons.arrow_back_ios),
             ),
           ),
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.deepOrange,
+            labelColor: Colors.deepOrange,
+            unselectedLabelColor: Colors.white,
+            tabs: const [
+              Tab(icon: Icon(Icons.movie), text: "Video"),
+              Tab(icon: Icon(Icons.menu_book), text: "Story"),
+            ],
+          ),
         ),
-        bottom: TabBar(
+        body: TabBarView(
           controller: _tabController,
-          splashFactory: InkRipple.splashFactory, // ripple effect style
-          overlayColor: WidgetStateProperty.all(
-            Colors.red.withValues(alpha: 0.1),
-          ), // pressed overlay
-          indicatorColor: Colors.deepOrange,
-          labelStyle: GoogleFonts.poppins(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-          ),
-          unselectedLabelStyle: GoogleFonts.poppins(
-            fontSize: 14.sp,
-            color: Colors.grey,
-          ),
-          labelColor: Colors.deepOrange, // Active tab text + icon color
-          unselectedLabelColor:Colors.white, // Inactive tab text + icon color
-          tabs: [
-            Tab(
-              icon: Icon(Icons.movie, size: 6.w),
-              text: "Video",
-            ),
-            Tab(icon: Icon(Icons.menu_book), text: "Story"),
-          ],
+          children: const [VideoScreen(), StoryScreen()],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [VideoScreen(), StoryScreen()],
       ),
     );
   }
+
+
 }

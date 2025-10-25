@@ -73,55 +73,63 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
       {"title": "The Sunken Statue", "time": "3 days ago"},
       {"title": "The Golden Griffin", "time": "5 days ago"},
     ];
-
-    return Scaffold(
-      body: AnimatedBuilder(
-        animation: _masterController,
-        builder: (context, _) {
-          final t = _masterController.value;
-          return Container(
-            width: 100.w,
-            height: 100.h,
-            // moving layered gradient for playful depth
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: _bgAlignment(t),
-                radius: 1.1,
-                colors: const [
-                  Color(0xFF66F6B7),
-                  Color(0xFF4ADEDE),
-                  Color(0xFF6C63FF),
-                ],
-                stops: const [0.0, 0.45, 1.0],
+    return PopScope(
+    canPop: false, // prevents auto pop
+    onPopInvokedWithResult: (didPop, result) {
+      if (!didPop) {
+        // This runs when system back button is pressed
+        context.goNamed('bottomNavChild');
+      }
+    },
+      child: Scaffold(
+        body: AnimatedBuilder(
+          animation: _masterController,
+          builder: (context, _) {
+            final t = _masterController.value;
+            return Container(
+              width: 100.w,
+              height: 100.h,
+              // moving layered gradient for playful depth
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: _bgAlignment(t),
+                  radius: 1.1,
+                  colors: const [
+                    Color(0xFF66F6B7),
+                    Color(0xFF4ADEDE),
+                    Color(0xFF6C63FF),
+                  ],
+                  stops: const [0.0, 0.45, 1.0],
+                ),
               ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding:
-                EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.6.h),
-                child: SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTopBar(),
-                      SizedBox(height: 2.h),
-                      _buildStatsRow(t),
-                      SizedBox(height: 2.h),
-                      _buildProgress(t),
-                      SizedBox(height: 2.h),
-                      _buildCluesGrid(clues),
-                      SizedBox(height: 2.h),
-                      _buildCurrentQuestCard(),
-                      SizedBox(height: 2.h),
-                      SizedBox(height: 6.h),
-                    ],
+              child: SafeArea(
+                child: Padding(
+                  padding:
+                  EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.6.h),
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTopBar(),
+                        SizedBox(height: 2.h),
+                        _buildStatsRow(t),
+                        SizedBox(height: 2.h),
+                        _buildProgress(t),
+                        SizedBox(height: 2.h),
+                        _buildCluesGrid(clues),
+                        SizedBox(height: 2.h),
+                        _buildCurrentQuestCard(),
+                        SizedBox(height: 2.h),
+                        SizedBox(height: 6.h),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
