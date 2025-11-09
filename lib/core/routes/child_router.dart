@@ -1,7 +1,6 @@
 
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_completion_screen.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_question_screen.dart';
-import 'package:eco_venture/views/child_section/ai_chat_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/add_entry_screen.dart';
@@ -36,6 +35,7 @@ import '../../views/child_section/multimedia/child_multimedia_screen.dart';
 import '../../views/child_section/multimedia/story_screen.dart';
 import '../../views/child_section/multimedia/video_screen.dart';
 import '../../views/child_section/naturePhotoJournal/nature_photo_journal_screen.dart';
+import '../../views/child_section/rewards_screen.dart';
 import '../../views/child_section/stemChallenges/stem_challenges_screen.dart';
 import '../../views/child_section/treasureHunt/qr_success_screen.dart';
 import '../../views/child_section/treasureHunt/treasure_hunt_screen.dart';
@@ -64,6 +64,12 @@ class ChildRouter {
            path: 'progress-dashboard-screen',
            name: 'progressDashboardScreen',
            builder: (context, state) => const ProgressDashboardScreen(),
+
+       ),
+       GoRoute(
+         path: 'rewards-screen',
+         name: 'RewardsScreen',
+         builder: (context, state) => RewardsScreen(),
 
        ),
        GoRoute(

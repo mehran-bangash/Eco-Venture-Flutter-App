@@ -20,6 +20,7 @@ class RouteNames {
   static const reportSafetyScreen='/child/report-safety-screen';
   static const reportIssueScreen='/child/report-safety-screen/report-issue-screen';
   static const progressDashboardScreen='/child/progress-dashboard-screen';
+  static const rewardScreen= '/child/reward-screen';
 
   // nested inside child Section multiMediaContent
   static const multiMediaContent = '/child/multimedia-content';

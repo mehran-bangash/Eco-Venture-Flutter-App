@@ -1,10 +1,12 @@
+import 'dart:math' as math;
 import 'dart:ui';
-import 'package:delightful_toast/toast/utils/enums.dart';
-import 'package:eco_venture/core/utils/utils.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:sensors_plus/sensors_plus.dart';
+
 
 class NaturePhotoJournalScreen extends StatefulWidget {
   const NaturePhotoJournalScreen({super.key});
@@ -14,265 +16,389 @@ class NaturePhotoJournalScreen extends StatefulWidget {
       _NaturePhotoJournalScreenState();
 }
 
-class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen> {
+class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _fabController;
+  late final AnimationController _headerController;
+  late final AnimationController _particleController;
+  final List<AnimationController> _cardControllers = [];
+
+  double _gyroX = 0.0;
+  double _gyroY = 0.0;
+  int _pressedIndex = -1;
+
   final List<Map<String, dynamic>> _journalEntries = [
     {
-      "title": "A Butterfly on a Flower",
-      "date": "20 Aug",
-      "image": "assets/images/rabbit.jpeg",
+      "title": "Met a new friend in the woods!",
+      "date": "Aug 20",
+      "image":
+      "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=800&q=80",
+      "stars": 4,
     },
     {
-      "title": "Sunset in the Valley",
-      "date": "21 Aug",
-      "image": "assets/images/rabbit.jpeg",
+      "title": "The most beautiful sunset ever.",
+      "date": "Aug 21",
+      "image":
+      "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?auto=format&fit=crop&w=800&q=80",
+      "stars": 5,
     },
     {
-      "title": "Morning Dew on Leaves",
-      "date": "22 Aug",
-      "image": "assets/images/rabbit.jpeg",
+      "title": "A butterfly on a flower",
+      "date": "Aug 24",
+      "image":
+      "https://images.unsplash.com/photo-1502759683299-cdcd6974244f?auto=format&fit=crop&w=800&q=80",
+      "stars": 4,
+    },
+    {
+      "title": "Look at these tiny frogs!",
+      "date": "Aug 25",
+      "image":
+      "https://images.unsplash.com/photo-1496568816309-51d7c20e3b21?auto=format&fit=crop&w=800&q=80",
+      "stars": 5,
     },
   ];
 
-  void _deleteEntry(int index) {
-    setState(() {
-      _journalEntries.removeAt(index);
+  @override
+  void initState() {
+    super.initState();
+
+    gyroscopeEventStream().listen((GyroscopeEvent event) {
+      if (!mounted) return;
+      setState(() {
+        _gyroX = (_gyroX + (event.y * 0.02)).clamp(-0.1, 0.1);
+        _gyroY = (_gyroY + (event.x * 0.02)).clamp(-0.1, 0.1);
+      });
     });
 
-    Utils.showDelightToast(
-      context,
-      "Entry deleted successfully!",
-      duration: const Duration(seconds: 2),
-      iconColor: Colors.white,
-      bgColor: Colors.redAccent,
-      icon: Icons.delete_outline,
-      position: DelightSnackbarPosition.bottom,
-      textColor: Colors.white,
-      autoDismiss: true,
+    _fabController =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+    _headerController =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 500));
+
+    _particleController =
+    AnimationController(vsync: this, duration: const Duration(seconds: 15))
+      ..repeat();
+
+    for (var i = 0; i < _journalEntries.length; i++) {
+      final ctrl = AnimationController(
+          vsync: this, duration: const Duration(milliseconds: 600));
+      _cardControllers.add(ctrl);
+      Future.delayed(Duration(milliseconds: 300 + (i * 100)), () {
+        if (mounted) ctrl.forward();
+      });
+    }
+
+    _headerController.forward();
+    _fabController.forward();
+  }
+
+  @override
+  void dispose() {
+    _fabController.dispose();
+    _headerController.dispose();
+    _particleController.dispose();
+    for (var c in _cardControllers) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  Widget _buildEnchantedBackground() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1E56A0), Color(0xFF163A6C)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+        ),
+        AnimatedBuilder(
+          animation: _particleController,
+          builder: (context, child) {
+            return CustomPaint(
+              painter: FireflyPainter(
+                time: _particleController.value,
+                gyroX: _gyroX,
+                gyroY: _gyroY,
+              ),
+              child: Container(),
+            );
+          },
+        ),
+        Container(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: Alignment.center,
+              radius: 1.0,
+              colors: [
+                Colors.transparent,
+                Colors.black.withOpacity(0.4),
+              ],
+              stops: const [0.5, 1.0],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return PopScope(
-       canPop: false,
-       onPopInvokedWithResult: (didPop, result) {
-         if(!didPop){
-           context.goNamed('bottomNavChild');
-         }
-       },
-
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) context.goNamed('bottomNavChild');
+      },
       child: Scaffold(
-        //  Glassy dark-teal theme background (matches VideoScreen)
         extendBodyBehindAppBar: true,
+        floatingActionButton: ScaleTransition(
+          scale: CurvedAnimation(
+            parent: _fabController,
+            curve: Curves.elasticOut,
+          ),
+          child: _buildCrystalButton(
+            onTap: () => context.goNamed("addEntryScreen"),
+            icon: Icons.add_a_photo_rounded,
+            size: 16.w,
+            iconSize: 8.w,
+          ),
+        ),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
-          title: Text(
-            "Nature Photo Journal",
-            style: GoogleFonts.poppins(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+          title: SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero)
+                .animate(CurvedAnimation(parent: _headerController, curve: Curves.easeOut)),
+            child: FadeTransition(
+              opacity: _headerController,
+              child: Text(
+                "Nature Forest Journal",
+                style: GoogleFonts.poppins(
+                  fontSize: 20.sp,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  shadows: const [Shadow(color: Colors.black38, blurRadius: 10)],
+                ),
+              ),
             ),
           ),
-          leading: GestureDetector(
-            onTap: () => context.goNamed('bottomNavChild'),
-            child: Padding(
-              padding: EdgeInsets.only(left: 2.w),
-              child: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          leading: SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero)
+                .animate(CurvedAnimation(parent: _headerController, curve: Curves.easeOut)),
+            child: FadeTransition(
+              opacity: _headerController,
+              child: _buildCrystalButton(
+                onTap: () => context.goNamed('bottomNavChild'),
+                icon: Icons.arrow_back_rounded,
+                size: 13.w,
+                iconSize: 5.w,
+              ),
             ),
           ),
         ),
+        body: Stack(
+          children: [
+            _buildEnchantedBackground(),
+            SafeArea(
+              bottom: false,
+              child: MasonryGridView.count(
+                crossAxisCount: 2,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: 4.w)
+                    .copyWith(bottom: 15.h, top: 12.h),
+                itemCount: _journalEntries.length,
+                itemBuilder: (context, index) {
+                  final entry = _journalEntries[index];
+                  final ctrl = _cardControllers[index];
+                  final depth = (index % 3 + 1) * 5.0;
 
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF0D324D),
-                Color(0xFF2F5755),
-                Color(0xFF1E3C40),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: SafeArea(
-            child: ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.symmetric(vertical: 3.h, horizontal: 2.h),
-              itemCount: _journalEntries.length + 1, // +1 for Add button
-              itemBuilder: (context, index) {
-                if (index == _journalEntries.length) {
-                  return Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4.h),
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: () => context.goNamed("addEntryScreen"),
-                        child: Container(
-                          height: 7.h,
-                          width: 60.w,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF4CAF50), Color(0xFF2F8F83)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Text(
-                              "➕ Add New Entry",
-                              style: GoogleFonts.poppins(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  return _buildAnimatedFloatingCard(
+                    index: index,
+                    controller: ctrl,
+                    entry: entry,
+                    depth: depth,
                   );
-                }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildCrystalButton({
+    required VoidCallback onTap,
+    required IconData icon,
+    double? size,
+    double? iconSize,
+  }) {
+    final buttonSize = size ?? 13.w;      // Use .w at runtime
+    final iconButtonSize = iconSize ?? 5.w;
 
-                final entry = _journalEntries[index];
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            width: buttonSize,
+            height: buttonSize,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
+            ),
+            child: Icon(icon, color: Colors.white, size: iconButtonSize),
+          ),
+        ),
+      ),
+    );
+  }
 
-                return Dismissible(
-                  key: UniqueKey(),
-                  direction: DismissDirection.endToStart,
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: EdgeInsets.symmetric(horizontal: 5.w),
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent,
-                      borderRadius: BorderRadius.circular(20),
+  Widget _buildAnimatedFloatingCard({
+    required int index,
+    required AnimationController controller,
+    required Map<String, dynamic> entry,
+    required double depth,
+  }) {
+    final animation = CurvedAnimation(parent: controller, curve: Curves.elasticOut);
+    final isPressed = _pressedIndex == index;
+    final tiltX = _gyroX * depth;
+    final tiltY = _gyroY * depth;
+
+    return ScaleTransition(
+      scale: animation,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 100),
+        transform: Matrix4.identity()
+          ..setEntry(3, 2, 0.001)
+          ..rotateX(tiltY)
+          ..rotateY(tiltX)
+          ..scale(isPressed ? 0.92 : 1.0),
+        alignment: Alignment.center,
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _pressedIndex = index),
+          onTapUp: (_) {
+            setState(() => _pressedIndex = -1);
+            context.goNamed('natureDescriptionScreen');
+          },
+          onTapCancel: () => setState(() => _pressedIndex = -1),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Image.network(
+                      entry["image"],
+                      fit: BoxFit.cover,
+                      height: 15.h + (entry['title'].length % 3) * 2.h,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 15.h + (entry['title'].length % 3) * 2.h,
+                          color: Colors.white.withOpacity(0.1),
+                        );
+                      },
                     ),
-                    child:
-                    const Icon(Icons.delete, color: Colors.white, size: 30),
-                  ),
-                  onDismissed: (_) => _deleteEntry(index),
-                  child: GestureDetector(
-                    onTap: () => context.goNamed('natureDescriptionScreen'),
-                    child: Container(
-                      margin: EdgeInsets.only(bottom: 2.h),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            blurRadius: 12,
-                            offset: const Offset(0, 6),
+                    Padding(
+                      padding: EdgeInsets.all(3.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry["title"],
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 1.h),
+                          Row(
+                            children: List.generate(5, (i) {
+                              return Icon(
+                                i < entry['stars']
+                                    ? Icons.star_rounded
+                                    : Icons.star_border_rounded,
+                                color: Colors.amber.shade400,
+                                size: 16.sp,
+                              );
+                            }),
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.white.withValues(alpha: 0.15),
-                                  Colors.white.withValues(alpha: 0.05),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                width: 1,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              children: [
-                                //  Image Section
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.horizontal(
-                                    left: Radius.circular(20),
-                                  ),
-                                  child: Image.asset(
-                                    entry["image"],
-                                    height: 22.h,
-                                    width: 35.w,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-
-                                //  Text Section
-                                Expanded(
-                                  child: Padding(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 3.w,
-                                      vertical: 1.5.h,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                      mainAxisAlignment:
-                                      MainAxisAlignment.spaceEvenly,
-                                      children: [
-                                        Text(
-                                          entry["title"],
-                                          style: GoogleFonts.poppins(
-                                            color: Colors.white,
-                                            fontSize: 15.sp,
-                                            fontWeight: FontWeight.w600,
-                                            height: 1.3,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Text(
-                                          entry["date"],
-                                          style: GoogleFonts.poppins(
-                                            color: Colors.white70,
-                                            fontSize: 13.sp,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        Row(
-                                          children: const [
-                                            Icon(Icons.star_rounded,
-                                                color: Colors.amberAccent,
-                                                size: 20),
-                                            Icon(Icons.star_rounded,
-                                                color: Colors.amberAccent,
-                                                size: 20),
-                                            Icon(Icons.star_rounded,
-                                                color: Colors.amberAccent,
-                                                size: 20),
-                                            Icon(Icons.star_half_rounded,
-                                                color: Colors.amberAccent,
-                                                size: 20),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
                     ),
-                  ),
-                );
-              },
+                  ],
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class FireflyPainter extends CustomPainter {
+  final double time;
+  final double gyroX;
+  final double gyroY;
+  final int particleCount = 40;
+  final List<Color> colors = [
+    const Color(0xFFF0E68C),
+    const Color(0xFFB0E0E6),
+    const Color(0xFF98FB98),
+  ];
+
+  FireflyPainter({required this.time, required this.gyroX, required this.gyroY});
+
+  @override
+  void paint(Canvas canvas, Size canvasSize) {
+    final random = math.Random(10);
+
+    for (int i = 0; i < particleCount; i++) {
+      final speed = random.nextDouble() * 0.2 + 0.1;
+      final seedX = random.nextDouble() * 2 * math.pi;
+      final seedY = random.nextDouble() * 2 * math.pi;
+      final seedT = random.nextDouble();
+      final t = (time + seedT) * speed;
+      final x = (math.sin(t + seedX) + 1) / 2 * canvasSize.width;
+      final y = (1.0 - (t * 1.5 + seedY) % 1.0) * canvasSize.height;
+      final depth = (i % 5 + 1) * 10.0;
+      final parallaxX = x + (gyroX * depth);
+      final parallaxY = y + (gyroY * depth);
+
+      final particleSize = random.nextDouble() * 2.0 + 1.0;
+      final color = colors[i % colors.length];
+
+      final glowPaint = Paint()
+        ..color = color.withOpacity(0.2)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, particleSize * 2);
+      canvas.drawCircle(Offset(parallaxX, parallaxY), particleSize * 4, glowPaint);
+
+      final corePaint = Paint()..color = color;
+      canvas.drawCircle(Offset(parallaxX, parallaxY), particleSize, corePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant FireflyPainter oldDelegate) => true;
 }

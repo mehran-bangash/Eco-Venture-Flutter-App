@@ -46,140 +46,148 @@ class _ProgressDashboardScreenState extends State<ProgressDashboardScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        automaticallyImplyLeading: false,
-        leading: GestureDetector(
-          onTap: () {
-            context.goNamed("bottomNavChild");
-          },
-          child: Padding(
-            padding: EdgeInsets.all(1.5.w),
-            child: Container(
-              height: 3.h,
-              width: 5.w,
-              decoration: BoxDecoration(
-                color: Colors.blueGrey.shade200,
-                borderRadius: BorderRadius.all(Radius.circular(10)),
+    return PopScope(
+      canPop: false,
+       onPopInvokedWithResult: (didPop, result) {
+         if(!didPop){
+           context.goNamed('bottomNavChild');
+         }
+       },
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          automaticallyImplyLeading: false,
+          leading: GestureDetector(
+            onTap: () {
+              context.goNamed("bottomNavChild");
+            },
+            child: Padding(
+              padding: EdgeInsets.all(1.5.w),
+              child: Container(
+                height: 3.h,
+                width: 5.w,
+                decoration: BoxDecoration(
+                  color: Colors.blueGrey.shade200,
+                  borderRadius: BorderRadius.all(Radius.circular(10)),
+                ),
+                child: Icon(Icons.arrow_back_ios),
               ),
-              child: Icon(Icons.arrow_back_ios),
             ),
           ),
-        ),
-        elevation: 0,
-        title: Text(
-          "🌟 Progress Dashboard",
-          style: GoogleFonts.poppins(
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-            fontSize: 18.sp,
+          elevation: 0,
+          title: Text(
+            "🌟 Progress Dashboard",
+            style: GoogleFonts.poppins(
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+              fontSize: 18.sp,
+            ),
           ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: Stack(
-        children: [
-          /// 🌈 Animated Wavy Gradient Background
-          AnimatedBuilder(
-            animation: _bgController,
-            builder: (context, _) {
-              final t = _bgController.value;
-              return Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment(
-                      math.sin(t * 2 * math.pi) * 0.8,
-                      math.cos(t * 2 * math.pi) * 0.8,
-                    ),
-                    end: Alignment(
-                      -math.sin(t * 2 * math.pi) * 0.8,
-                      -math.cos(t * 2 * math.pi) * 0.8,
-                    ),
-                    colors: [
-                      Color.lerp(
-                        const Color(0xFFFFC371),
-                        const Color(0xFFFF5F6D),
-                        t,
-                      )!,
-                      Color.lerp(
-                        const Color(0xFF6A11CB),
-                        const Color(0xFF2575FC),
-                        1 - t,
-                      )!,
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-
-          /// 🌟 Floating Glow Particles
-          AnimatedBuilder(
-            animation: _particleController,
-            builder: (context, _) {
-              final size = MediaQuery.of(context).size;
-              final particles = List.generate(25, (i) {
-                final progress = (_particleController.value + i * 0.04) % 1.0;
-                final dx =
-                    (math.sin(progress * 6 * math.pi + i) * size.width * 0.4) +
-                    size.width / 2;
-                final dy = progress * size.height;
-
-                return Positioned(
-                  left: dx,
-                  top: dy,
-                  child: Container(
-                    width: (3 + math.sin(progress * 2 * math.pi) * 2),
-                    height: (3 + math.sin(progress * 2 * math.pi) * 2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.3),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.white.withValues(alpha: 0.4),
-                          blurRadius: 6,
-                          spreadRadius: 1,
-                        ),
+        body: Stack(
+          children: [
+            /// 🌈 Animated Wavy Gradient Background
+            AnimatedBuilder(
+              animation: _bgController,
+              builder: (context, _) {
+                final t = _bgController.value;
+                return Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment(
+                        math.sin(t * 2 * math.pi) * 0.8,
+                        math.cos(t * 2 * math.pi) * 0.8,
+                      ),
+                      end: Alignment(
+                        -math.sin(t * 2 * math.pi) * 0.8,
+                        -math.cos(t * 2 * math.pi) * 0.8,
+                      ),
+                      colors: [
+                        Color.lerp(
+                          const Color(0xFFFFC371),
+                          const Color(0xFFFF5F6D),
+                          t,
+                        )!,
+                        Color.lerp(
+                          const Color(0xFF6A11CB),
+                          const Color(0xFF2575FC),
+                          1 - t,
+                        )!,
                       ],
                     ),
                   ),
                 );
-              });
+              },
+            ),
 
-              return Stack(children: particles);
-            },
-          ),
+            /// 🌟 Floating Glow Particles
+            AnimatedBuilder(
+              animation: _particleController,
+              builder: (context, _) {
+                final size = MediaQuery.of(context).size;
+                final particles = List.generate(25, (i) {
+                  final progress = (_particleController.value + i * 0.04) % 1.0;
+                  final dx =
+                      (math.sin(progress * 6 * math.pi + i) * size.width * 0.4) +
+                      size.width / 2;
+                  final dy = progress * size.height;
 
-          /// 🌈 Main UI (with animated cards)
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(4.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _welcomeCard(),
-                  SizedBox(height: 3.h),
-                  _progressCard(),
-                  SizedBox(height: 3.h),
-                  Text(
-                    "📚 Subject Progress",
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18.sp,
+                  return Positioned(
+                    left: dx,
+                    top: dy,
+                    child: Container(
+                      width: (3 + math.sin(progress * 2 * math.pi) * 2),
+                      height: (3 + math.sin(progress * 2 * math.pi) * 2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withValues(alpha: 0.3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2.h),
-                  _subjectGrid(), // will animate
-                  SizedBox(height: 3.h),
-                  _performanceBarGraph(),
-                ],
+                  );
+                });
+
+                return Stack(children: particles);
+              },
+            ),
+
+            /// 🌈 Main UI (with animated cards)
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(4.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _welcomeCard(),
+                    SizedBox(height: 3.h),
+                    _progressCard(),
+                    SizedBox(height: 3.h),
+                    Text(
+                      "📚 Subject Progress",
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18.sp,
+                      ),
+                    ),
+                    SizedBox(height: 2.h),
+                    _subjectGrid(), // will animate
+                    SizedBox(height: 3.h),
+                    _performanceBarGraph(),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
