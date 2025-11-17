@@ -67,6 +67,9 @@ dependencies:
   flutter_animate: ^4.5.2
   flutter_staggered_grid_view: ^0.7.0
   sensors_plus: ^7.0.0
+  path: any
+  path_provider: any
+  firebase_database: ^12.0.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

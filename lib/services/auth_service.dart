@@ -43,7 +43,7 @@ class AuthService {
       // v7.x method for interactive sign-in
       final GoogleSignInAccount account = await signIn.authenticate();
 
-      final GoogleSignInAuthentication googleAuth = await account.authentication;
+      final GoogleSignInAuthentication googleAuth = account.authentication;
       final idToken = googleAuth.idToken;
 
       if (idToken == null) {

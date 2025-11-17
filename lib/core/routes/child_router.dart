@@ -28,6 +28,7 @@ import 'package:eco_venture/views/child_section/treasureHunt/clue_locked_screen.
 import 'package:eco_venture/views/child_section/treasureHunt/qR_scanner_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/video_model.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
 import '../../views/child_section/child_home_screen.dart';
@@ -138,8 +139,19 @@ class ChildRouter {
                   GoRoute(
                     path: 'video-play-screen',
                     name: 'videoPlayScreen',
-                    builder: (context, state) => const VideoPlayerScreen(),
+                    builder: (context, state) {
+                      final video = state.extra as VideoModel;
+
+                      return VideoPlayerScreen(
+                        videoId: video.id,         // required now
+                        videoUrl: video.videoUrl,
+                        title: video.title,
+                        duration: video.duration,
+                        views: video.views,
+                      );
+                    },
                   ),
+
                 ],
               ),
               GoRoute(

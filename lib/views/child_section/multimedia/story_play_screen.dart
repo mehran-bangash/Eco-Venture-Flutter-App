@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../core/helper/speak_story.dart';
-import '../../../viewmodels/child_view_model/multimedia_content/story_provider.dart';
+
 
 
 class StoryPlayScreen extends ConsumerStatefulWidget {
@@ -54,7 +54,7 @@ class _StoryScreenState extends ConsumerState<StoryPlayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final storyPages = ref.watch(storyProvider);
+    //final storyPages = ref.watch(storyProvider);
 
     return Scaffold(
       backgroundColor: AppColors.whiteBackGroundCard,
@@ -79,12 +79,12 @@ class _StoryScreenState extends ConsumerState<StoryPlayScreen> {
           Expanded(
             child: PageView.builder(
               controller: _pageController,
-              itemCount: storyPages.length,
+              itemCount: 9,
               onPageChanged: (index) {
                 setState(() => _currentPage = index);
               },
               itemBuilder: (context, index) {
-                final page = storyPages[index];
+               // final page = storyPages[index];
                 return SingleChildScrollView(
                   child: Column(
                     children: [
@@ -102,7 +102,7 @@ class _StoryScreenState extends ConsumerState<StoryPlayScreen> {
                             )
                           ],
                           image: DecorationImage(
-                            image: NetworkImage(page.imageUrl),
+                            image: NetworkImage(""),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -110,7 +110,7 @@ class _StoryScreenState extends ConsumerState<StoryPlayScreen> {
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 5.w),
                         child: Text(
-                          page.text,
+                          "",
                           style: TextStyle(
                             fontSize: 17.sp,
                             height: 1.5,
@@ -130,7 +130,7 @@ class _StoryScreenState extends ConsumerState<StoryPlayScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
-              storyPages.length,
+              9,
                   (index) => Container(
                 margin: EdgeInsets.symmetric(horizontal: 1.w),
                 width: _currentPage == index ? 3.w : 2.w,
@@ -150,8 +150,8 @@ class _StoryScreenState extends ConsumerState<StoryPlayScreen> {
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
         onPressed: () {
-          final storyText = storyPages[_currentPage].text;
-          _togglePlay(storyText);
+          //final storyText = storyPages[_currentPage].text;
+         // _togglePlay(storyText);
         },
         child: Icon(
           _isPlaying ? Icons.stop : Icons.play_arrow,

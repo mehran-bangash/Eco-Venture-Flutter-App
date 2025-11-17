@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,7 +14,7 @@ class RewardsScreen extends StatefulWidget {
 class _RewardsScreenState extends State<RewardsScreen>
     with TickerProviderStateMixin{
   late final AnimationController _masterController;
-  late final Animation<double> _floatAnimation;
+  // late final Animation<double> _floatAnimation;
   late final Animation<Color?> _gradientAnimation;
   late final Animation<double> _shineAnimation;
 
@@ -30,12 +29,12 @@ class _RewardsScreenState extends State<RewardsScreen>
       duration: const Duration(seconds: 8),
     )..repeat();
 
-    _floatAnimation = Tween<double>(begin: -0.03, end: 0.03).animate(
-      CurvedAnimation(
-        parent: _masterController,
-        curve: Curves.easeInOutSine,
-      ),
-    );
+    // _floatAnimation = Tween<double>(begin: -0.03, end: 0.03).animate(
+    //   CurvedAnimation(
+    //     parent: _masterController,
+    //     curve: Curves.easeInOutSine,
+    //   ),
+    // );
 
     _shineAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -99,7 +98,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                       radius: 2.0,
                       colors: [
                         _gradientAnimation.value!,
-                        _gradientAnimation.value!.withOpacity(0.7),
+                        _gradientAnimation.value!.withValues(alpha:0.7),
                         const Color(0xFF0f172a),
                       ],
                       stops: const [0.0, 0.6, 1.0],
@@ -156,17 +155,17 @@ class _RewardsScreenState extends State<RewardsScreen>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.white.withOpacity(0.2),
-                Colors.white.withOpacity(0.1),
+                Colors.white.withValues(alpha: 0.2),
+                Colors.white.withValues(alpha: 0.1),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.3)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -186,14 +185,14 @@ class _RewardsScreenState extends State<RewardsScreen>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.purpleAccent.withOpacity(0.3),
-                Colors.blueAccent.withOpacity(0.2),
+                Colors.purpleAccent.withValues(alpha: 0.3),
+                Colors.blueAccent.withValues(alpha: 0.2),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
           ),
           child: Row(
             children: [
@@ -227,12 +226,12 @@ class _RewardsScreenState extends State<RewardsScreen>
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.withOpacity(0.4),
+                color: Colors.blue.withValues(alpha: 0.4),
                 blurRadius: 15,
                 offset: const Offset(0, 6),
               ),
             ],
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
           ),
           child: ClipOval(
             child: Image.asset(
@@ -264,7 +263,7 @@ class _RewardsScreenState extends State<RewardsScreen>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.6),
+                  color: Colors.orange.withValues(alpha: 0.6),
                   blurRadius: 30,
                   spreadRadius: 8,
                 ),
@@ -286,7 +285,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                           shape: BoxShape.circle,
                           gradient: RadialGradient(
                             colors: [
-                              Colors.white.withOpacity(0.4),
+                              Colors.white.withValues(alpha: 0.4),
                               Colors.transparent,
                             ],
                             stops: const [0.0, 0.7],
@@ -324,9 +323,9 @@ class _RewardsScreenState extends State<RewardsScreen>
           Container(
             padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: Text(
               "Keep exploring to unlock more amazing rewards!",
@@ -351,17 +350,17 @@ class _RewardsScreenState extends State<RewardsScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.15),
-            Colors.white.withOpacity(0.05),
+            Colors.white.withValues(alpha: 0.15),
+            Colors.white.withValues(alpha: 0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 25,
             offset: const Offset(0, 12),
           ),
@@ -435,15 +434,15 @@ class _RewardsScreenState extends State<RewardsScreen>
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [
-                  color.withOpacity(0.8),
-                  color.withOpacity(0.4),
+                  color.withValues(alpha: 0.8),
+                  color.withValues(alpha: 0.4),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: color.withOpacity(0.4),
+                  color: color.withValues(alpha: 0.4),
                   blurRadius: 15,
                   offset: const Offset(0, 6),
                 ),
@@ -484,17 +483,17 @@ class _RewardsScreenState extends State<RewardsScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.purpleAccent.withOpacity(0.3),
-            Colors.blueAccent.withOpacity(0.2),
+            Colors.purpleAccent.withValues(alpha: 0.3),
+            Colors.blueAccent.withValues(alpha: 0.2),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.3),
+            color: Colors.purple.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -544,7 +543,7 @@ class _RewardsScreenState extends State<RewardsScreen>
               Container(
                 height: 2.5.h,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(15),
                 ),
               ),
@@ -566,7 +565,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.cyan.withOpacity(0.6 * glow),
+                      color: Colors.cyan.withValues(alpha: 0.6 * glow),
                       blurRadius: 12,
                       spreadRadius: 3,
                     ),
@@ -580,7 +579,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                 child: Container(
                   width: 4,
                   height: 2.5.h,
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                 ),
               ),
               Positioned(
@@ -588,7 +587,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                 child: Container(
                   width: 4,
                   height: 2.5.h,
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                 ),
               ),
               Positioned(
@@ -596,7 +595,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                 child: Container(
                   width: 4,
                   height: 2.5.h,
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                 ),
               ),
             ],
@@ -675,12 +674,12 @@ class _RewardsScreenState extends State<RewardsScreen>
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: colors[index % colors.length][0].withOpacity(0.5),
+                              color: colors[index % colors.length][0].withValues(alpha: 0.5),
                               blurRadius: 15,
                               offset: const Offset(0, 6),
                             ),
                           ],
-                          border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
                         ),
                         child: Icon(
                           Icons.workspace_premium_rounded,
@@ -769,8 +768,8 @@ class _RewardsScreenState extends State<RewardsScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      color.withOpacity(0.8),
-                      color.withOpacity(0.4),
+                      color.withValues(alpha: 0.8),
+                      color.withValues(alpha: 0.4),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -778,7 +777,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: color.withOpacity(0.4),
+                      color: color.withValues(alpha: 0.4),
                       blurRadius: 20,
                       offset: const Offset(0, 8),
                     ),
@@ -795,7 +794,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                         height: 60.w,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
                       ),
                     ),
@@ -810,7 +809,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                             width: 14.w,
                             height: 14.w,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -839,7 +838,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                           Container(
                             height: 0.8.h,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Stack(
@@ -851,7 +850,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                                     gradient: LinearGradient(
                                       colors: [
                                         Colors.white,
-                                        Colors.white.withOpacity(0.8),
+                                        Colors.white.withValues(alpha: 0.8),
                                       ],
                                       begin: Alignment.centerLeft,
                                       end: Alignment.centerRight,
@@ -901,7 +900,7 @@ class GeometricPatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.08)
+      ..color = Colors.white.withValues(alpha: 0.08)
       ..style = PaintingStyle.fill;
 
     final random = math.Random(42);

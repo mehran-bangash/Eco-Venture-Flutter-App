@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,8 +14,8 @@ class TreasureHuntScreen extends StatefulWidget {
 class _TreasureHuntScreenState extends State<TreasureHuntScreen>
     with TickerProviderStateMixin {
   late final AnimationController _masterController;
-  late final Animation<double> _pulseAnimation;
-  late final Animation<double> _floatAnimation;
+  // late final Animation<double> _pulseAnimation;
+  // late final Animation<double> _floatAnimation;
   late final Animation<Color?> _gradientAnimation;
 
   final int _clueCount = 4;
@@ -32,19 +31,19 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
       duration: const Duration(seconds: 6),
     )..repeat();
 
-    _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
-      CurvedAnimation(
-        parent: _masterController,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeInOut),
-      ),
-    );
-
-    _floatAnimation = Tween<double>(begin: -0.02, end: 0.02).animate(
-      CurvedAnimation(
-        parent: _masterController,
-        curve: Curves.easeInOutSine,
-      ),
-    );
+    // _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
+    //   CurvedAnimation(
+    //     parent: _masterController,
+    //     curve: const Interval(0.0, 0.5, curve: Curves.easeInOut),
+    //   ),
+    // );
+    //
+    // _floatAnimation = Tween<double>(begin: -0.02, end: 0.02).animate(
+    //   CurvedAnimation(
+    //     parent: _masterController,
+    //     curve: Curves.easeInOutSine,
+    //   ),
+    // );
 
     _gradientAnimation = ColorTween(
       begin: const Color(0xFF4361EE), // More vibrant blue
@@ -117,7 +116,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                       radius: 1.8,
                       colors: [
                         _gradientAnimation.value!,
-                        _gradientAnimation.value!.withOpacity(0.8), // Less opacity for better contrast
+                        _gradientAnimation.value!.withValues(alpha: 0.8), // Less opacity for better contrast
                         const Color(0xFF1a1f35), // Darker background for contrast
                       ],
                       stops: const [0.1, 0.5, 1.0],
@@ -178,14 +177,14 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.white.withOpacity(0.25), // More opaque
-                Colors.white.withOpacity(0.15),
+                Colors.white.withValues(alpha: 0.25), // More opaque
+                Colors.white.withValues(alpha: 0.15),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.3)), // Brighter border
+            border: Border.all(color: Colors.white.withValues(alpha: 0.3)), // Brighter border
           ),
           child: Row(
             children: [
@@ -216,12 +215,12 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
         width: 12.w,
         height: 12.w,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2), // More opaque
+          color: Colors.white.withValues(alpha: 0.2), // More opaque
           borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white.withOpacity(0.3)), // Brighter border
+          border: Border.all(color: Colors.white.withValues(alpha: 0.3)), // Brighter border
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -245,7 +244,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.purple.withOpacity(0.4), // Brighter shadow
+            color: Colors.purple.withValues(alpha: 0.4), // Brighter shadow
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -278,7 +277,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.6), // Brighter glow
+                  color: Colors.orange.withValues(alpha: 0.6), // Brighter glow
                   blurRadius: 20,
                   spreadRadius: 5,
                 ),
@@ -296,7 +295,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
               letterSpacing: 0.8,
               shadows: [
                 Shadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -312,7 +311,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
               fontWeight: FontWeight.w500,
               shadows: [
                 Shadow(
-                  color: Colors.black.withOpacity(0.2),
+                  color: Colors.black.withValues(alpha: 0.2),
                   blurRadius: 2,
                   offset: const Offset(0, 1),
                 ),
@@ -376,17 +375,17 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.white.withOpacity(0.25), // More opaque
-              Colors.white.withOpacity(0.15),
+              Colors.white.withValues(alpha: 0.25), // More opaque
+              Colors.white.withValues(alpha: 0.15),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.3)), // Brighter border
+          border: Border.all(color: Colors.white.withValues(alpha: 0.3)), // Brighter border
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3), // Darker shadow for contrast
+              color: Colors.black.withValues(alpha: 0.3), // Darker shadow for contrast
               blurRadius: 15,
               offset: const Offset(0, 8),
             ),
@@ -398,7 +397,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
               padding: EdgeInsets.all(2.w),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: color.withOpacity(0.3), // More opaque
+                color: color.withValues(alpha: 0.3), // More opaque
               ),
               child: Icon(icon, color: color, size: 18.sp),
             ),
@@ -411,7 +410,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                 fontWeight: FontWeight.w800,
                 shadows: [
                   Shadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 2,
                     offset: const Offset(0, 1),
                   ),
@@ -427,7 +426,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                 fontWeight: FontWeight.w600,
                 shadows: [
                   Shadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 2,
                     offset: const Offset(0, 1),
                   ),
@@ -451,17 +450,17 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.white.withOpacity(0.25), // More opaque
-            Colors.white.withOpacity(0.15),
+            Colors.white.withValues(alpha: 0.25), // More opaque
+            Colors.white.withValues(alpha: 0.15),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withOpacity(0.3)), // Brighter border
+        border: Border.all(color: Colors.white.withValues(alpha: 0.3)), // Brighter border
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3), // Darker shadow
+            color: Colors.black.withValues(alpha: 0.3), // Darker shadow
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -480,7 +479,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                   fontWeight: FontWeight.w700,
                   shadows: [
                     Shadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 2,
                       offset: const Offset(0, 1),
                     ),
@@ -515,7 +514,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
               Container(
                 height: 2.h,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.3), // More opaque
+                  color: Colors.white.withValues(alpha: 0.3), // More opaque
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
@@ -536,7 +535,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                   borderRadius: BorderRadius.circular(10),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.orange.withOpacity(0.8), // Brighter glow
+                      color: Colors.orange.withValues(alpha: 0.8), // Brighter glow
                       blurRadius: 10,
                       spreadRadius: 2,
                     ),
@@ -558,11 +557,11 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                   height: 10.w,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isFound ? Colors.orange.shade500 : Colors.white.withOpacity(0.3), // More opaque
+                    color: isFound ? Colors.orange.shade500 : Colors.white.withValues(alpha: 0.3), // More opaque
                     boxShadow: isFound
                         ? [
                       BoxShadow(
-                        color: Colors.orange.withOpacity(0.6), // Brighter glow
+                        color: Colors.orange.withValues(alpha: 0.6), // Brighter glow
                         blurRadius: 8,
                         spreadRadius: 2,
                       ),
@@ -633,12 +632,12 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
         gradient: LinearGradient(
           colors: isFound
               ? [
-            Colors.blue.shade500.withOpacity(0.9), // More vibrant and opaque
-            Colors.purple.shade500.withOpacity(0.9),
+            Colors.blue.shade500.withValues(alpha: 0.9), // More vibrant and opaque
+            Colors.purple.shade500.withValues(alpha:0.9),
           ]
               : [
-            Colors.grey.shade700.withOpacity(0.8),
-            Colors.grey.shade900.withOpacity(0.8),
+            Colors.grey.shade700.withValues(alpha:0.8),
+            Colors.grey.shade900.withValues(alpha:0.8),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -646,7 +645,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4), // Darker shadow
+            color: Colors.black.withValues(alpha: 0.4), // Darker shadow
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -663,7 +662,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
               height: 30.w,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.2), // More opaque
+                color: Colors.white.withValues(alpha: 0.2), // More opaque
               ),
             ),
           ),
@@ -677,7 +676,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                   width: 12.w,
                   height: 12.w,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3), // More opaque
+                    color: Colors.white.withValues(alpha: 0.3), // More opaque
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: Colors.white, size: 16.sp),
@@ -692,7 +691,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                     height: 1.2,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: 0.3),
                         blurRadius: 2,
                         offset: const Offset(0, 1),
                       ),
@@ -710,7 +709,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                     fontWeight: FontWeight.w500,
                     shadows: [
                       Shadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 1,
                         offset: const Offset(0, 1),
                       ),
@@ -723,7 +722,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.5.h),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade500.withOpacity(0.4), // More vibrant
+                        color: Colors.green.shade500.withValues(alpha: 0.4), // More vibrant
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.green.shade500),
                       ),
@@ -763,8 +762,8 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Colors.orange.shade500.withOpacity(0.95), // More vibrant
-              Colors.red.shade500.withOpacity(0.95),
+              Colors.orange.shade500.withValues(alpha: 0.95), // More vibrant
+              Colors.red.shade500.withValues(alpha: 0.95),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -772,12 +771,12 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
           borderRadius: BorderRadius.circular(25),
           boxShadow: [
             BoxShadow(
-              color: Colors.orange.withOpacity(0.6 * glowIntensity), // Brighter glow
+              color: Colors.orange.withValues(alpha: 0.6 * glowIntensity), // Brighter glow
               blurRadius: 30,
               spreadRadius: 5,
             ),
             BoxShadow(
-              color: Colors.black.withOpacity(0.4), // Darker shadow
+              color: Colors.black.withValues(alpha: 0.4), // Darker shadow
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -791,7 +790,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.8.h),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3), // More opaque
+                    color: Colors.white.withValues(alpha: 0.3), // More opaque
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Text(
@@ -818,7 +817,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                 height: 1.2,
                 shadows: [
                   Shadow(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     blurRadius: 3,
                     offset: const Offset(0, 2),
                   ),
@@ -834,7 +833,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                 fontWeight: FontWeight.w500,
                 shadows: [
                   Shadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 2,
                     offset: const Offset(0, 1),
                   ),
@@ -852,7 +851,7 @@ class _TreasureHuntScreenState extends State<TreasureHuntScreen>
                   borderRadius: BorderRadius.circular(15),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3), // Darker shadow
+                      color: Colors.black.withValues(alpha: 0.3), // Darker shadow
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     ),
@@ -890,7 +889,7 @@ class ParticlePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final random = math.Random(42);
-    final paint = Paint()..color = Colors.white.withOpacity(0.15); // Brighter particles
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.15); // Brighter particles
 
     for (int i = 0; i < 15; i++) {
       final x = (random.nextDouble() * size.width);

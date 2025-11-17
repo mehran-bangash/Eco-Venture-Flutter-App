@@ -1,12 +1,23 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:sensors_plus/sensors_plus.dart';
+import 'package:sensors_plus/sensors_plus.dart'; // Ensure this is imported
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart'; // Ensure this is imported
 
+// Dummy extension for .withValues since it's not standard Flutter
+extension ColorExtensions on Color {
+  Color withValues({double? alpha}) {
+    if (alpha != null) {
+      return this.withValues(alpha: alpha);
+    }
+    return this;
+  }
+}
+// Assume context.goNamed and .w/.h/.sp are defined elsewhere for simplicity
 
 class NaturePhotoJournalScreen extends StatefulWidget {
   const NaturePhotoJournalScreen({super.key});
@@ -21,6 +32,8 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
   late final AnimationController _fabController;
   late final AnimationController _headerController;
   late final AnimationController _particleController;
+  late final AnimationController _floatingController; // NEW: Controller for gentle float
+
   final List<AnimationController> _cardControllers = [];
 
   double _gyroX = 0.0;
@@ -62,6 +75,7 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
   void initState() {
     super.initState();
 
+    // KEEP: Gyroscope remains for background particle effect
     gyroscopeEventStream().listen((GyroscopeEvent event) {
       if (!mounted) return;
       setState(() {
@@ -78,6 +92,11 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
     _particleController =
     AnimationController(vsync: this, duration: const Duration(seconds: 15))
       ..repeat();
+
+    // NEW: Floating animation controller for the cards
+    _floatingController =
+    AnimationController(vsync: this, duration: const Duration(seconds: 4))
+      ..repeat(reverse: true); // Gentle back and forth repeat
 
     for (var i = 0; i < _journalEntries.length; i++) {
       final ctrl = AnimationController(
@@ -97,6 +116,7 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
     _fabController.dispose();
     _headerController.dispose();
     _particleController.dispose();
+    _floatingController.dispose(); // Dispose the new controller
     for (var c in _cardControllers) {
       c.dispose();
     }
@@ -136,7 +156,7 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
               radius: 1.0,
               colors: [
                 Colors.transparent,
-                Colors.black.withOpacity(0.4),
+                Colors.black.withValues(alpha: 0.4),
               ],
               stops: const [0.5, 1.0],
             ),
@@ -151,7 +171,10 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) context.goNamed('bottomNavChild');
+
+        if (!didPop) {
+          context.goNamed('bottomNavChild');
+        } //
       },
       child: Scaffold(
         extendBodyBehindAppBar: true,
@@ -161,7 +184,9 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
             curve: Curves.elasticOut,
           ),
           child: _buildCrystalButton(
-            onTap: () => context.goNamed("addEntryScreen"),
+            onTap: () => {
+              context.goNamed("addEntryScreen")
+            },
             icon: Icons.add_a_photo_rounded,
             size: 16.w,
             iconSize: 8.w,
@@ -193,7 +218,9 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
             child: FadeTransition(
               opacity: _headerController,
               child: _buildCrystalButton(
-                onTap: () => context.goNamed('bottomNavChild'),
+                onTap: () => {
+                  context.goNamed('bottomNavChild')
+                },
                 icon: Icons.arrow_back_rounded,
                 size: 13.w,
                 iconSize: 5.w,
@@ -252,9 +279,9 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
             width: buttonSize,
             height: buttonSize,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: Icon(icon, color: Colors.white, size: iconButtonSize),
           ),
@@ -271,88 +298,107 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
   }) {
     final animation = CurvedAnimation(parent: controller, curve: Curves.elasticOut);
     final isPressed = _pressedIndex == index;
-    final tiltX = _gyroX * depth;
-    final tiltY = _gyroY * depth;
+    // REMOVED TILT: final tiltX = _gyroX * depth;
+    // REMOVED TILT: final tiltY = _gyroY * depth;
 
-    return ScaleTransition(
-      scale: animation,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        transform: Matrix4.identity()
-          ..setEntry(3, 2, 0.001)
-          ..rotateX(tiltY)
-          ..rotateY(tiltX)
-          ..scale(isPressed ? 0.92 : 1.0),
-        alignment: Alignment.center,
-        child: GestureDetector(
-          onTapDown: (_) => setState(() => _pressedIndex = index),
-          onTapUp: (_) {
-            setState(() => _pressedIndex = -1);
-            context.goNamed('natureDescriptionScreen');
-          },
-          onTapCancel: () => setState(() => _pressedIndex = -1),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
+    // NEW: Create a gentle vertical translation animation
+    final floatAnimation = Tween<double>(begin: 0.0, end: 5.0) // Moves 5 pixels up/down
+        .animate(
+      CurvedAnimation(
+        parent: _floatingController,
+        curve: Interval(
+          (index * 0.15) % 1.0, // Staggered delay for each card
+          1.0,
+          curve: Curves.easeInOut,
+        ),
+      ),
+    );
+
+    return AnimatedBuilder( // NEW: Use AnimatedBuilder to listen to the float controller
+      animation: _floatingController,
+      builder: (context, child) {
+        return ScaleTransition(
+          scale: animation,
+          child: Transform.translate( // Apply the gentle vertical float
+            offset: Offset(0, floatAnimation.value * math.sin((index + 1) * 0.5)),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 100),
+              // REMOVED TILT TRANSFORM: Matrix4.identity()..setEntry(3, 2, 0.001)..rotateX(tiltY)..rotateY(tiltX)..scale(isPressed ? 0.92 : 1.0)
+              transform: Matrix4.identity() // Cards remain fixed, only scale on press
+                ..scale(isPressed ? 0.92 : 1.0),
+              alignment: Alignment.center,
+              child: GestureDetector(
+                onTapDown: (_) => setState(() => _pressedIndex = index),
+                onTapUp: (_) {
+                  setState(() => _pressedIndex = -1);
+                   context.goNamed('natureDescriptionScreen');
+                },
+                onTapCancel: () => setState(() => _pressedIndex = -1),
+                child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Image.network(
-                      entry["image"],
-                      fit: BoxFit.cover,
-                      height: 15.h + (entry['title'].length % 3) * 2.h,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          height: 15.h + (entry['title'].length % 3) * 2.h,
-                          color: Colors.white.withOpacity(0.1),
-                        );
-                      },
-                    ),
-                    Padding(
-                      padding: EdgeInsets.all(3.w),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            entry["title"],
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.w700,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          SizedBox(height: 1.h),
-                          Row(
-                            children: List.generate(5, (i) {
-                              return Icon(
-                                i < entry['stars']
-                                    ? Icons.star_rounded
-                                    : Icons.star_border_rounded,
-                                color: Colors.amber.shade400,
-                                size: 16.sp,
+                          Image.network(
+                            entry["image"],
+                            fit: BoxFit.cover,
+                            height: 15.h + (entry['title'].length % 3) * 2.h,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                height: 15.h + (entry['title'].length % 3) * 2.h,
+                                color: Colors.white.withValues(alpha: 0.1),
                               );
-                            }),
+                            },
+                          ),
+                          Padding(
+                            padding: EdgeInsets.all(3.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  entry["title"],
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 18.sp,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 1.h),
+                                Row(
+                                  children: List.generate(5, (i) {
+                                    return Icon(
+                                      i < entry['stars']
+                                          ? Icons.star_rounded
+                                          : Icons.star_border_rounded,
+                                      color: Colors.amber.shade400,
+                                      size: 16.sp,
+                                    );
+                                  }),
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -390,7 +436,7 @@ class FireflyPainter extends CustomPainter {
       final color = colors[i % colors.length];
 
       final glowPaint = Paint()
-        ..color = color.withOpacity(0.2)
+        ..color = color.withValues(alpha: 0.2)
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, particleSize * 2);
       canvas.drawCircle(Offset(parallaxX, parallaxY), particleSize * 4, glowPaint);
 

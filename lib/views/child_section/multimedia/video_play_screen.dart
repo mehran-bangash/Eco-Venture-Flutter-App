@@ -1,167 +1,182 @@
-import 'package:eco_venture/core/constants/app_colors.dart';
-import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
+import 'package:eco_venture/services/shared_preferences_helper.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:video_player/video_player.dart';
+import 'package:collection/collection.dart';
+import '../../../viewmodels/child_view_model/multimedia_content/video_story_provider.dart';
 
-class VideoPlayerScreen extends StatefulWidget {
-  const VideoPlayerScreen({super.key});
+
+class VideoPlayerScreen extends ConsumerStatefulWidget {
+  final String videoId;
+  final String videoUrl;
+  final String title;
+  final String duration;
+  final int views;
+
+  const VideoPlayerScreen({
+    super.key,
+    required this.videoId,
+    required this.videoUrl,
+    required this.title,
+    required this.duration,
+    required this.views,
+  });
 
   @override
-  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
+  ConsumerState<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
-class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
-  late VideoPlayerController _videoPlayerController;
+class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
+  late VideoPlayerController _videoController;
   ChewieController? _chewieController;
+  bool _viewAdded = false;
 
-  // Suggested videos dummy data
-  final List<Map<String, String>> suggestedVideos = [
-    {
-      "image": "https://via.placeholder.com/200x120.png?text=Park+Adventures",
-      "title": "Park Adventures",
-      "duration": "10 min",
-    },
-    {
-      "image": "https://via.placeholder.com/200x120.png?text=Playtime+Fun",
-      "title": "Playtime Fun",
-      "duration": "12 min",
-    },
-    {
-      "image": "https://via.placeholder.com/200x120.png?text=Outdoor+Games",
-      "title": "Outdoor Games",
-      "duration": "8 min",
-    },
-  ];
+  String localUserId = "";
 
   @override
   void initState() {
     super.initState();
+    _loadUserId(); // Load userId from SharedPreferences
+    ref.read(videoViewModelProvider.notifier).fetchVideos();
+    _initPlayer();
+  }
 
-    // Load local asset video
-    _videoPlayerController = VideoPlayerController.asset("assets/video/test.mp4")
-      ..initialize().then((_) {
-        setState(() {});
-      });
+  Future<void> _loadUserId() async {
+    localUserId = await SharedPreferencesHelper.instance.getUserId() ?? "";
+    setState(() {});
+  }
+
+  Future<void> _initPlayer() async {
+    _videoController = VideoPlayerController.network(widget.videoUrl);
+
+    await _videoController.initialize();
+
+    if (!_viewAdded) {
+      ref.read(videoViewModelProvider.notifier)
+          .incrementView(widget.videoId);
+      _viewAdded = true;
+    }
 
     _chewieController = ChewieController(
-      videoPlayerController: _videoPlayerController,
-      autoPlay: false,
+      videoPlayerController: _videoController,
+      autoPlay: true,
       looping: false,
-      allowPlaybackSpeedChanging: true,
       allowFullScreen: true,
       allowMuting: true,
+      aspectRatio: _videoController.value.aspectRatio,
     );
+
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    _videoPlayerController.dispose();
     _chewieController?.dispose();
+    _videoController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar:AppBar(
-         leading: GestureDetector(
-           onTap: () {
-             context.goNamed('multiMediaContent');
-           },
-             child: Icon(Icons.arrow_back_ios)),
-         centerTitle: true,
-        title: Text('Pass title here',style: GoogleFonts.poppins(fontWeight: FontWeight.w600,fontSize: 16.sp,color: Color(0xFF000080)),),
-      ) ,
-      backgroundColor: AppColors.whiteBackGroundCard,
-      body: SafeArea(
-        child: SingleChildScrollView(
+    final videoState = ref.watch(videoViewModelProvider);
+
+    final video = videoState.videos.firstWhereOrNull((v) => v.id == widget.videoId);
+
+    final likeColor = (video?.userLikes[localUserId] == true)
+        ? Colors.blue
+        : Colors.grey[700]!;
+
+    final dislikeColor = (video?.userLikes[localUserId] == false)
+        ? Colors.red
+        : Colors.grey[700]!;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if(!didPop){
+          context.goNamed('multiMediaContent');
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+             leading: GestureDetector(
+                   onTap: () {
+                     context.goNamed('multiMediaContent');
+                   },
+                 child: Icon(Icons.arrow_back_ios,)),
+            title: Text(widget.title)),
+        body: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // --- Video Player ---
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: _chewieController != null &&
-                    _chewieController!.videoPlayerController.value.isInitialized
+              SizedBox(
+                height: 220,
+                child: _videoController.value.isInitialized
                     ? Chewie(controller: _chewieController!)
                     : const Center(child: CircularProgressIndicator()),
               ),
 
-              // --- Video Details Section ---
-              Container(
-                margin: const EdgeInsets.all(16),
+              Padding(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(16),
-                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Fun Day at the Park",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF111217),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
+                    Text(widget.title,
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+
                     Row(
-                      children: const [
-                        Text("15 min", style: TextStyle(color: Colors.grey)),
-                        SizedBox(width: 8),
-                        Icon(Icons.star, size: 16, color: Colors.yellow),
-                        SizedBox(width: 4),
-                        Text("4.8", style: TextStyle(color: Colors.grey)),
+                      children: [
+                        Text(widget.duration, style: const TextStyle(color: Colors.grey)),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.remove_red_eye, size: 16, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text("${video?.views ?? widget.views}",
+                            style: const TextStyle(color: Colors.grey)),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
 
-                    // Like / Dislike / Share / Save
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _buildAction(Icons.thumb_up, "1.2K"),
-                        _buildAction(Icons.thumb_down, "23"),
-                        _buildAction(Icons.share, "Share"),
-                        _buildAction(Icons.bookmark_add, "Save"),
+                        _action(Icons.thumb_up, "${video?.likes ?? 0}", () {
+
+
+                          if (localUserId.isEmpty) {
+
+                            return;
+                          }
+
+                          ref.read(videoViewModelProvider.notifier)
+                              .toggleVideoLikeDislike(
+                            videoId: widget.videoId,
+                            userId: localUserId,
+                            isLiking: true,
+                          );
+                        }, iconColor: likeColor),
+
+                        _action(Icons.thumb_down, "${video?.dislikes ?? 0}", () {
+
+                          if (localUserId.isEmpty) {
+                            return;
+                          }
+
+                          ref.read(videoViewModelProvider.notifier)
+                              .toggleVideoLikeDislike(
+                            videoId: widget.videoId,
+                            userId: localUserId,
+                            isLiking: false,
+                          );
+                        }, iconColor: dislikeColor),
+
+                        _action(Icons.share, "Share", () {}),
+                        _action(Icons.bookmark_add, "Save", () {}),
                       ],
-                    ),
+                    )
                   ],
-                ),
-              ),
-
-              // --- Suggested Section ---
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                child: Text(
-                  "Suggested",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF111217),
-                  ),
-                ),
-              ),
-
-              SizedBox(
-                height: 200,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: suggestedVideos.length,
-                  itemBuilder: (context, index) {
-                    final video = suggestedVideos[index];
-                    return SuggestedCard(
-                      imageUrl: video["image"]!,
-                      title: video["title"]!,
-                      duration: video["duration"]!,
-                    );
-                  },
                 ),
               ),
             ],
@@ -171,84 +186,15 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     );
   }
 
-  // Helper for actions
-  static Widget _buildAction(IconData icon, String label) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.grey[700]),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-}
-class SuggestedCard extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-  final String duration;
-
-  const SuggestedCard({
-    super.key,
-    required this.imageUrl,
-    required this.title,
-    required this.duration,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 160,
-      margin: const EdgeInsets.only(right: 12),
+  Widget _action(IconData icon, String label, VoidCallback onTap,
+      {Color? iconColor}) {
+    return GestureDetector(
+      onTap: onTap,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(
-                        Icons.broken_image,
-                        color: Colors.red,
-                        size: 40,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF111217),
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(
-            duration,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
-          ),
+          Icon(icon, color: iconColor ?? Colors.grey),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
         ],
       ),
     );

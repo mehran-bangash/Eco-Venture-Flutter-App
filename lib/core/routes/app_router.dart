@@ -14,7 +14,7 @@ import '../../views/auth/login_screen.dart';
 
 class AppRouter {
   static GoRouter router = GoRouter(
-    initialLocation: RouteNames.bottomNavChild,
+    initialLocation: RouteNames.landing,
     routes: [
       // // Splash
       // GoRoute(

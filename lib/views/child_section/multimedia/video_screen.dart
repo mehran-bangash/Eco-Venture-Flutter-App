@@ -1,44 +1,24 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-class VideoScreen extends StatefulWidget {
+import '../../../models/video_model.dart';
+import '../../../viewmodels/child_view_model/multimedia_content/video_story_provider.dart';
+
+
+class VideoScreen extends ConsumerStatefulWidget {
   const VideoScreen({super.key});
 
   @override
-  State<VideoScreen> createState() => _VideoScreenState();
+  ConsumerState<VideoScreen> createState() => _VideoScreenState();
 }
 
-class _VideoScreenState extends State<VideoScreen>
+class _VideoScreenState extends ConsumerState<VideoScreen>
     with SingleTickerProviderStateMixin {
-  final List<Map<String, dynamic>> videos = [
-    {
-      "title": "The Rabbit and Tortoise",
-      "duration": "4 min",
-      "image": "assets/images/rabbit.jpeg",
-      "rating": 4.5,
-    },
-    {
-      "title": "Life of a Butterfly",
-      "duration": "3 min",
-      "image": "assets/images/butterfly.jpg",
-      "rating": 4.2,
-    },
-    {
-      "title": "Jungle Sounds",
-      "duration": "5 min",
-      "image": "assets/images/jungle.jpg",
-      "rating": 4.7,
-    },
-    {
-      "title": "Plant Life",
-      "duration": "5 min",
-      "image": "assets/images/plant.jpg",
-      "rating": 4.8,
-    },
-  ];
+
 
   late final AnimationController _controller;
 
@@ -48,6 +28,11 @@ class _VideoScreenState extends State<VideoScreen>
     _controller =
     AnimationController(vsync: this, duration: const Duration(seconds: 1))
       ..forward();
+
+    // ADDED: Fetch data once on start
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(videoViewModelProvider.notifier).fetchVideos();
+    });
   }
 
   @override
@@ -57,16 +42,21 @@ class _VideoScreenState extends State<VideoScreen>
   }
 
 
-  Widget _buildVideoCard(Map<String, dynamic> video, int index) {
+  Widget _buildVideoCard(VideoModel video, int index) {
     final fade = CurvedAnimation(
       parent: _controller,
-      curve: Interval(0.1 * index, 1.0, curve: Curves.easeOutCubic),
+      curve: Interval(
+          (0.1 * index).clamp(0.0, 1.0), // Safety clamp
+          1.0,
+          curve: Curves.easeOutCubic
+      ),
     );
 
     return FadeTransition(
       opacity: fade,
       child: GestureDetector(
-        onTap: () => context.goNamed('videoPlayScreen'),
+        // CHANGED: Pass the video object to the next screen
+        onTap: () => context.goNamed('videoPlayScreen', extra: video),
         child: AnimatedScale(
           scale: 1.0,
           duration: const Duration(milliseconds: 250),
@@ -103,19 +93,26 @@ class _VideoScreenState extends State<VideoScreen>
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(20),
                       ),
-                      child: Image.asset(
-                        video["image"],
+                      // CHANGED: Image.network for Cloudinary URL
+                      child: Image.network(
+                        video.thumbnailUrl,
                         height: 12.h,
                         width: double.infinity,
                         fit: BoxFit.cover,
+                        // Added simple error builder to match your style
                         errorBuilder: (_, __, ___) => Container(
                           height: 12.h,
                           color: Colors.grey[300],
-                          child:  Center(
+                          child: Center(
                             child: Icon(Icons.broken_image,
                                 color: Colors.redAccent, size: 10.w),
                           ),
                         ),
+                        // Optional: Keep layout while loading
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(height: 12.h, color: Colors.black12);
+                        },
                       ),
                     ),
 
@@ -128,7 +125,7 @@ class _VideoScreenState extends State<VideoScreen>
                           children: [
                             /// Title
                             Text(
-                              video["title"],
+                              video.title, // CHANGED: from map key to model property
                               style: GoogleFonts.poppins(
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w600,
@@ -145,27 +142,12 @@ class _VideoScreenState extends State<VideoScreen>
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  video["duration"],
+                                  video.duration, // CHANGED: from map key to model property
                                   style: GoogleFonts.poppins(
                                     fontSize: 12.sp,
                                     color: Colors.white70,
                                     fontWeight: FontWeight.w500,
                                   ),
-                                ),
-                                Row(
-                                  children: [
-                                    Icon(Icons.star_rounded,
-                                        color: Colors.amberAccent, size: 16.sp),
-                                    SizedBox(width: 0.5.w),
-                                    Text(
-                                      video["rating"].toString(),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12.sp,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
                                 ),
                               ],
                             ),
@@ -202,7 +184,7 @@ class _VideoScreenState extends State<VideoScreen>
   }
 
 
-  // Gradient Background
+  // Gradient Background (KEPT EXACTLY SAME)
   Widget _animatedBackground({required Widget child}) {
     return AnimatedBuilder(
       animation: _controller,
@@ -223,6 +205,9 @@ class _VideoScreenState extends State<VideoScreen>
 
   @override
   Widget build(BuildContext context) {
+    // ADDED: Watch the state
+    final videoState = ref.watch(videoViewModelProvider);
+
     return Scaffold(
       body: _animatedBackground(
         child: SafeArea(
@@ -246,7 +231,10 @@ class _VideoScreenState extends State<VideoScreen>
 
 
                 Expanded(
-                  child: GridView.builder(
+                  // CHANGED: Logic to handle Loading vs Data
+                  child: videoState.isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Colors.white))
+                      : GridView.builder(
                     physics: const BouncingScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
@@ -254,10 +242,11 @@ class _VideoScreenState extends State<VideoScreen>
                       mainAxisSpacing: 2.h,
                       childAspectRatio: 0.78,
                     ),
-                    itemCount: videos.length,
+                    // CHANGED: Use real data length
+                    itemCount: videoState.videos?.length,
                     itemBuilder: (context, index) {
-                      final video = videos[index];
-                      return _buildVideoCard(video, index);
+                      final video = videoState.videos?[index];
+                      return _buildVideoCard(video!, index);
                     },
                   ),
                 ),

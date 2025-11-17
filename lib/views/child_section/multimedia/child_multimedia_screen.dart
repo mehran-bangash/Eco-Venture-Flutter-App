@@ -38,7 +38,6 @@ class _ChildMultimediaScreenState extends State<ChildMultimediaScreen>
       canPop: false, // prevents auto pop
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
-          // This runs when system back button is pressed
           context.goNamed('bottomNavChild');
         }
       },

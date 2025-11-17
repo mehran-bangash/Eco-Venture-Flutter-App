@@ -166,9 +166,9 @@ class _InteractiveQuizScreenState extends State<InteractiveQuizScreen>
             width: 12.w,
             height: 12.w,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: Center(
               child: Icon(icon, color: Colors.white, size: 6.w),
@@ -213,7 +213,7 @@ class _InteractiveQuizScreenState extends State<InteractiveQuizScreen>
                 'Select a category to start the quiz',
                 style: GoogleFonts.poppins(
                   fontSize: 14.sp,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -270,7 +270,7 @@ class _InteractiveQuizScreenState extends State<InteractiveQuizScreen>
                           _buildFrostedButton(
                             icon: Icons.person_outline_rounded,
                             onTap: () {
-                              // TODO: Handle profile tap
+
                             },
                           ),
                         ],
@@ -360,7 +360,7 @@ class _InteractiveQuizScreenState extends State<InteractiveQuizScreen>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: cat.color.withOpacity(0.4), // Shadow matches color
+                  color: cat.color.withValues(alpha: 0.4), // Shadow matches color
                   blurRadius: 20,
                   spreadRadius: -5,
                   offset: const Offset(0, 10),
@@ -377,7 +377,7 @@ class _InteractiveQuizScreenState extends State<InteractiveQuizScreen>
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -394,7 +394,7 @@ class _InteractiveQuizScreenState extends State<InteractiveQuizScreen>
                         width: 12.w,
                         height: 12.w,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child:
@@ -417,7 +417,7 @@ class _InteractiveQuizScreenState extends State<InteractiveQuizScreen>
                             cat.subtitle,
                             style: GoogleFonts.poppins(
                               fontSize: 12.sp,
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
                           SizedBox(height: 2.h),
@@ -426,7 +426,7 @@ class _InteractiveQuizScreenState extends State<InteractiveQuizScreen>
                             padding: EdgeInsets.symmetric(
                                 horizontal: 4.w, vertical: 1.h),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
