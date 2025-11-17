@@ -28,6 +28,7 @@ import 'package:eco_venture/views/child_section/treasureHunt/clue_locked_screen.
 import 'package:eco_venture/views/child_section/treasureHunt/qR_scanner_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/story_model.dart';
 import '../../models/video_model.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
@@ -162,7 +163,13 @@ class ChildRouter {
                   GoRoute(
                     path: 'story-play-screen',
                     name: 'storyPlayScreen',
-                    builder: (context, state) => const StoryPlayScreen(),
+                    builder: (context, state) {
+                      // Extract the StoryModel from the 'extra' parameter
+                      final story = state.extra as StoryModel;
+
+                      // Pass the story to the screen
+                      return StoryPlayScreen(story: story);
+                    },
                   ),
                 ],
               ),

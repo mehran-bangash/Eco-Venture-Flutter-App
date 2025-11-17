@@ -13,11 +13,6 @@ class VideoStoryRepo {
     return _databaseService.fetchPublicVideos();
   }
 
-  /// Fetch public stories
-  Future<List<StoryModel>> getPublicStories() {
-    return _databaseService.fetchPublicStories();
-  }
-
   /// Increment video views
   Future<void> incrementVideoView(String videoId) {
     return _databaseService.incrementVideoView(videoId);
@@ -35,4 +30,26 @@ class VideoStoryRepo {
       isLiking: isLiking,
     );
   }
+
+  /// Fetch public stories
+  Future<List<StoryModel>> getPublicStories() {
+    return _databaseService.fetchPublicStories();
+  }
+
+  /// Increment story views
+  Future<void> incrementStoryView(String storyId) {
+    return _databaseService.incrementStoryView(storyId);
+  }
+
+  /// Toggle story like/dislike
+  Future<void> toggleStoryLikeDislike({
+    required String storyId,
+    required bool isLiking,
+  }) {
+    return _databaseService.toggleStoryLikeDislike(
+      storyId: storyId,
+      isLiking: isLiking,
+    );
+  }
+
 }

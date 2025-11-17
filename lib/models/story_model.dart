@@ -7,14 +7,15 @@ class StoryPage {
   factory StoryPage.fromMap(Map<String, dynamic> map) {
     return StoryPage(
       text: map['text'] ?? '',
-      imageUrl: map['imageUrl'] ?? '',
+      imageUrl: map['image'] ?? '',
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {'text': text, 'imageUrl': imageUrl};
+    return {'text': text, 'image': imageUrl};
   }
 }
+// --- UPDATED STORY MODEL ---
 
 class StoryModel {
   final String id;
@@ -44,15 +45,19 @@ class StoryModel {
         ?.map((e) => StoryPage.fromMap(Map<String, dynamic>.from(e)))
         .toList() ??
         [];
+
     return StoryModel(
       id: map['id'] ?? '',
       adminId: map['adminId'] ?? '',
       title: map['title'] ?? '',
       thumbnailUrl: map['thumbnailUrl'] ?? '',
       pages: pagesList,
-      likes: map['likes'] ?? 0,
-      dislikes: map['dislikes'] ?? 0,
-      views: map['views'] ?? 0,
+
+      // --- FIX 1: Added Type-Safe Parsing for Counters ---
+      likes: (map['likes'] as num? ?? 0).toInt(),
+      dislikes: (map['dislikes'] as num? ?? 0).toInt(),
+      views: (map['views'] as num? ?? 0).toInt(),
+
       userLikes: Map<String, bool>.from(map['userLikes'] ?? {}),
     );
   }
@@ -69,5 +74,31 @@ class StoryModel {
       'views': views,
       'userLikes': userLikes,
     };
+  }
+
+  // --- FIX 2: Added the 'copyWith' Method ---
+  // This is required for the ViewModel's optimistic UI updates.
+  StoryModel copyWith({
+    String? id,
+    String? adminId,
+    String? title,
+    String? thumbnailUrl,
+    List<StoryPage>? pages,
+    int? likes,
+    int? dislikes,
+    int? views,
+    Map<String, bool>? userLikes,
+  }) {
+    return StoryModel(
+      id: id ?? this.id,
+      adminId: adminId ?? this.adminId,
+      title: title ?? this.title,
+      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
+      pages: pages ?? this.pages,
+      likes: likes ?? this.likes,
+      dislikes: dislikes ?? this.dislikes,
+      views: views ?? this.views,
+      userLikes: userLikes ?? this.userLikes,
+    );
   }
 }
