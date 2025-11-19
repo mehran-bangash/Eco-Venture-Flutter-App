@@ -1,4 +1,4 @@
-import 'package:eco_venture/core/constants/app_colors.dart';
+
 import 'package:eco_venture/views/child_section/multimedia/story_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_screen.dart';
 import 'package:flutter/material.dart';
@@ -92,7 +92,7 @@ class _ChildMultimediaScreenState extends State<ChildMultimediaScreen>
             child: Container(
               padding: EdgeInsets.all(2.w),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -127,7 +127,7 @@ class _ChildMultimediaScreenState extends State<ChildMultimediaScreen>
       child: Container(
         height: 50,
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.25), // Background of the tab bar
+          color: Colors.black.withValues(alpha: 0.25), // Background of the tab bar
           borderRadius: BorderRadius.circular(25.0),
         ),
         child: TabBar(
@@ -144,7 +144,7 @@ class _ChildMultimediaScreenState extends State<ChildMultimediaScreen>
           // --- END FIX ---
 
           labelColor: Colors.white, // Selected text color
-          unselectedLabelColor: Colors.white.withOpacity(0.7), // Unselected text
+          unselectedLabelColor: Colors.white.withValues(alpha: 0.7), // Unselected text
           labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
           unselectedLabelStyle: GoogleFonts.poppins(),
           tabs: const [

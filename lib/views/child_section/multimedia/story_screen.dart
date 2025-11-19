@@ -64,17 +64,17 @@ class _StoryScreenState extends ConsumerState<StoryScreen> // Changed
                 gradient: LinearGradient(
                   colors: [
                     // Fixed .withValues to .withOpacity
-                    const Color(0xFF2F5755).withOpacity(0.95),
-                    const Color(0xFF0D324D).withOpacity(0.95),
+                    const Color(0xFF2F5755).withValues(alpha: 0.95),
+                    const Color(0xFF0D324D).withValues(alpha: 0.95),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.15)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -152,10 +152,10 @@ class _StoryScreenState extends ConsumerState<StoryScreen> // Changed
                             alignment: Alignment.bottomRight,
                             child: Container(
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
+                                color: Colors.white.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                               ),

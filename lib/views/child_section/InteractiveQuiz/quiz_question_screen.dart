@@ -1,43 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // REQUIRED
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import '../../../models/child_progress_model.dart';
+import '../../../models/quiz_model.dart';
+import '../../../viewmodels/child_view_model/interactive_quiz/child_quiz_provider.dart';
 
-class QuizQuestionScreen extends StatefulWidget {
-  const QuizQuestionScreen({super.key});
+
+class QuizQuestionScreen extends ConsumerStatefulWidget {
+  final QuizModel quiz; // Now accepts the Real Quiz Object
+
+  const QuizQuestionScreen({super.key, required this.quiz});
 
   @override
-  State<QuizQuestionScreen> createState() => _QuizQuestionScreenState();
+  ConsumerState<QuizQuestionScreen> createState() => _QuizQuestionScreenState();
 }
 
-class _QuizQuestionScreenState extends State<QuizQuestionScreen>
+class _QuizQuestionScreenState extends ConsumerState<QuizQuestionScreen>
     with SingleTickerProviderStateMixin {
-
-  // Hardcoded quiz data for now
-  final List<Map<String, dynamic>> questions = [
-    {
-      "question": "Which animal is known as the King of the Jungle?",
-      "options": ["Elephant", "Lion", "Tiger", "Cheetah"],
-      "answer": "Lion",
-      "image": "https://cdn-icons-png.flaticon.com/512/616/616408.png"
-    },
-    {
-      "question": "Which planet is known as the Red Planet?",
-      "options": ["Earth", "Venus", "Mars", "Jupiter"],
-      "answer": "Mars",
-      "image": "https://cdn-icons-png.flaticon.com/512/616/616408.png"
-    },
-    {
-      "question": "What do plants need to make food?",
-      "options": ["Oxygen", "Water", "Sunlight", "Wind"],
-      "answer": "Sunlight",
-      "image": "https://cdn-icons-png.flaticon.com/512/2909/2909761.png"
-    },
-  ];
 
   int currentIndex = 0;
   String? selectedOption;
-  int correctAnswers = 0;
+
+  // --- Tracking Variables ---
+  int correctAnswersCount = 0;
+  int wrongAnswersCount = 0;
+  List<Map<String, dynamic>> attemptDetails = []; // To save detailed report
 
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -45,11 +34,8 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
   @override
   void initState() {
     super.initState();
-    currentIndex = 0;
-    selectedOption = null;
-    correctAnswers = 0;
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 400));
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
   }
@@ -60,37 +46,86 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
     super.dispose();
   }
 
-  void nextQuestion() {
+  void nextQuestion() async {
     if (selectedOption == null) return;
 
-    if (selectedOption == questions[currentIndex]["answer"]) {
-      correctAnswers++;
+    final currentQuestion = widget.quiz.questions[currentIndex];
+    final bool isCorrect = selectedOption == currentQuestion.answer;
+
+    // 1. Update Counters
+    if (isCorrect) {
+      correctAnswersCount++;
+    } else {
+      wrongAnswersCount++;
     }
 
-    if (currentIndex < questions.length - 1) {
+    // 2. Record Detail for Report
+    attemptDetails.add({
+      'question': currentQuestion.question,
+      'selected': selectedOption,
+      'correct': currentQuestion.answer,
+      'is_correct': isCorrect,
+    });
+
+    // 3. Check if Quiz Ended
+    if (currentIndex < widget.quiz.questions.length - 1) {
       setState(() {
         currentIndex++;
         selectedOption = null;
       });
       _controller.forward(from: 0);
     } else {
-      // Navigate to completion screen
-      context.goNamed(
-        'quizCompletionScreen',
-        pathParameters: {
-          'correct': correctAnswers.toString(),
-          'total': questions.length.toString(),
-        },
-      );
-
-
-
+      // --- FINISH QUIZ LOGIC ---
+      await _finishQuiz();
     }
   }
 
+  Future<void> _finishQuiz() async {
+    final totalQuestions = widget.quiz.questions.length;
+    final double percentage = (correctAnswersCount / totalQuestions) * 100;
+    final bool isPassed = percentage >= widget.quiz.passingPercentage;
+
+    // 1. Create Progress Model
+    final progress = ChildQuizProgressModel(
+      quizId: widget.quiz.id!,
+      category: widget.quiz.category,
+      order: widget.quiz.order,
+      correctAnswers: correctAnswersCount,
+      wrongAnswers: wrongAnswersCount,
+      attemptPercentage: percentage,
+      attemptDate: DateTime.now(),
+      questionDetails: attemptDetails,
+      isPassed: isPassed,
+      attempts: 1,
+    );
+
+    // 2. Save to Firebase
+    await ref
+        .read(childQuizViewModelProvider.notifier)
+        .saveQuizResult(progress);
+
+    // 3. Navigate to Completion Screen
+    if (!mounted) return;
+
+    context.goNamed(
+      'quizCompletionScreen',
+      pathParameters: {
+        'correct': correctAnswersCount.toString(),
+        'total': totalQuestions.toString(),
+      },
+      extra: progress, // ✔ passing progress object correctly
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    final currentQuestion = questions[currentIndex];
+    // Safety check for empty quiz
+    if (widget.quiz.questions.isEmpty) {
+      return Scaffold(body: Center(child: Text("No questions in this quiz.")));
+    }
+
+    final currentQuestion = widget.quiz.questions[currentIndex];
 
     return Scaffold(
       backgroundColor: const Color(0xFFF6F6FF),
@@ -99,12 +134,16 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
         elevation: 0,
         backgroundColor: Colors.deepPurpleAccent,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => context.pop(), // Allow exit
+        ),
         title: Text(
-          "Quiz Time 🧠",
+          widget.quiz.title, // Real Title
           style: GoogleFonts.poppins(
             color: Colors.white,
             fontWeight: FontWeight.w600,
-            fontSize: 18.sp,
+            fontSize: 16.sp,
           ),
         ),
       ),
@@ -117,15 +156,16 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
             children: [
               // Progress Indicator
               LinearProgressIndicator(
-                value: (currentIndex + 1) / questions.length,
+                value: (currentIndex + 1) / widget.quiz.questions.length,
                 backgroundColor: Colors.grey[300],
                 valueColor: const AlwaysStoppedAnimation<Color>(
                     Colors.deepPurpleAccent),
               ),
               SizedBox(height: 2.h),
+
               Center(
                 child: Text(
-                  "Question ${currentIndex + 1} of ${questions.length}",
+                  "Question ${currentIndex + 1} of ${widget.quiz.questions.length}",
                   style: GoogleFonts.poppins(
                     fontWeight: FontWeight.w600,
                     fontSize: 17.sp,
@@ -152,13 +192,26 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
                 ),
                 child: Column(
                   children: [
-                    Image.network(
-                      currentQuestion["image"],
-                      height: 20.w,
-                    ),
-                    SizedBox(height: 2.h),
+                    // OPTIONAL IMAGE LOGIC
+                    if (currentQuestion.imageUrl != null && currentQuestion.imageUrl!.isNotEmpty) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          currentQuestion.imageUrl!,
+                          height: 25.h,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const SizedBox.shrink(); // Hide if image fails to load
+                          },
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                    ],
+
+                    // Question Text (Compulsory)
                     Text(
-                      currentQuestion["question"],
+                      currentQuestion.question,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.poppins(
                         fontSize: 18.sp,
@@ -171,50 +224,54 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
               ),
               SizedBox(height: 3.h),
 
-              // Options
-              ...currentQuestion["options"].map<Widget>((option) {
-                final isSelected = selectedOption == option;
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedOption = option;
-                    });
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: EdgeInsets.only(bottom: 1.5.h),
-                    padding: EdgeInsets.all(3.w),
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      color: isSelected
-                          ? Colors.deepPurpleAccent.withValues(alpha: 0.2)
-                          : Colors.white,
-                      border: Border.all(
-                        color: isSelected
-                            ? Colors.deepPurpleAccent
-                            : Colors.grey.shade300,
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      option,
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        color: isSelected
-                            ? Colors.deepPurpleAccent
-                            : Colors.black87,
-                        fontWeight:
-                        isSelected ? FontWeight.w600 : FontWeight.w500,
-                      ),
-                    ),
+              // Options List (Expanded to fill space if needed, or scrollable)
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: currentQuestion.options.map((option) {
+                      final isSelected = selectedOption == option;
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedOption = option;
+                          });
+                        },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: EdgeInsets.only(bottom: 1.5.h),
+                          padding: EdgeInsets.all(3.5.w),
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            color: isSelected
+                                ? Colors.deepPurpleAccent.withValues(alpha: 0.1)
+                                : Colors.white,
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.deepPurpleAccent
+                                  : Colors.grey.shade300,
+                              width: isSelected ? 2.5 : 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            option,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              color: isSelected
+                                  ? Colors.deepPurpleAccent
+                                  : Colors.black87,
+                              fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
+                ),
+              ),
 
-              const Spacer(),
-
-              // Next Button
+              // Next / Finish Button
               SizedBox(
                 width: double.infinity,
                 height: 7.h,
@@ -225,9 +282,9 @@ class _QuizQuestionScreenState extends State<QuizQuestionScreen>
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-                  onPressed: nextQuestion,
+                  onPressed: selectedOption == null ? null : nextQuestion,
                   child: Text(
-                    currentIndex == questions.length - 1
+                    currentIndex == widget.quiz.questions.length - 1
                         ? "Finish Quiz"
                         : "Next Question",
                     style: GoogleFonts.poppins(

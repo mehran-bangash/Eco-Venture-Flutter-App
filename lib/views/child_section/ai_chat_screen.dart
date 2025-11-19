@@ -202,7 +202,7 @@ class _TopHeader extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            '🤖 Nova',
+            '🤖 EcoBuddy',
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontSize: 20.sp,
@@ -401,7 +401,7 @@ class _InputBarState extends State<_InputBar> {
                       decoration: InputDecoration(
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
-                        hintText: 'Ask Nova anything...',
+                        hintText: 'Ask EcoBuddy anything...',
                         hintStyle: GoogleFonts.poppins(color: Colors.white70, fontSize: 15.sp),
                         border: InputBorder.none,
                       ),

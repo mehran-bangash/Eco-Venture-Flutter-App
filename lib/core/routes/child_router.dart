@@ -1,4 +1,5 @@
 
+import 'package:eco_venture/models/quiz_model.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_completion_screen.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_question_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
@@ -28,6 +29,7 @@ import 'package:eco_venture/views/child_section/treasureHunt/clue_locked_screen.
 import 'package:eco_venture/views/child_section/treasureHunt/qR_scanner_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/child_progress_model.dart';
 import '../../models/story_model.dart';
 import '../../models/video_model.dart';
 import '../../navigation/bottom_nav_child.dart';
@@ -287,38 +289,54 @@ class ChildRouter {
               GoRoute(
                 path: 'quiz-question-screen',
                 name: 'quizQuestionScreen',
-                builder: (context, state) => const QuizQuestionScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'quiz-completion-screen/:correct/:total', //  MUST have placeholders
-                    name: 'quizCompletionScreen',
-                    pageBuilder: (context, state) {
-                      final correct = int.parse(state.pathParameters['correct']!);
-                      final total = int.parse(state.pathParameters['total']!);
-                      return CustomTransitionPage(
-                        transitionDuration: const Duration(milliseconds: 500),
-                        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                          const begin = Offset(0, 1);
-                          const end = Offset.zero;
-                          var curve = Curves.easeOutCubic;
-                          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                builder: (context, state) {
+                  final quizModel = state.extra as QuizModel;
+                  return QuizQuestionScreen(quiz: quizModel);
+                },
 
-                          return SlideTransition(
-                            position: animation.drive(tween),
-                            child: FadeTransition(opacity: animation, child: child),
-                          );
-                        },
-                        child: QuizCompletionScreen(
-                          correctAnswers: correct,
-                          totalQuestions: total,
-                        ),
-                      );
-                    },
-                  ),
-                ],
               ),
             ],
           ),
+          GoRoute(
+            path: 'quiz-completion-screen/:correct/:total',
+            name: 'quizCompletionScreen',
+            pageBuilder: (context, state) {
+
+              // ✔ Correct: receive values as STRINGS (do not parse here)
+              final correct = state.pathParameters['correct']!;
+              final total = state.pathParameters['total']!;
+
+              // ✔ Correct: progress passed through extra
+              final progress = state.extra as ChildQuizProgressModel?;
+
+              return CustomTransitionPage(
+                transitionDuration: const Duration(milliseconds: 500),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(0, 1);
+                  const end = Offset.zero;
+                  var curve = Curves.easeOutCubic;
+
+                  var tween = Tween(begin: begin, end: end).chain(
+                    CurveTween(curve: curve),
+                  );
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: FadeTransition(
+                      opacity: animation,
+                      child: child,
+                    ),
+                  );
+                },
+                child: QuizCompletionScreen(
+                  correctStr: correct,
+                  totalStr: total,
+                  progress: progress,
+                ),
+              );
+            },
+          ),
+
 
         ],
       ),
