@@ -33,9 +33,9 @@ class RouteNames {
 
   //nested inside child Section Photo journal
   static const naturePhotoJournal = '/child/nature-photo-journal';
-  static const addEntryScreen = '/child/nature-photo-journal/add-entry-screen';
-  static const naturePhotoChatbotScreen =
-      '/child/nature-photo-journal/add-entry-screen/nature-photo-chatbot-screen';
+  static const learnWithAiScreen = '/child/nature-photo-journal/learn-with-Ai-screen';
+  static const naturePhotoExploreScreen =
+      '/child/nature-photo-journal/add-entry-screen/nature-photo-explore-screen';
   static const natureDescriptionScreen =
       '/child/nature-photo-journal/nature-description-screen';
 

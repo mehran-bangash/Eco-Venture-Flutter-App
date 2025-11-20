@@ -4,9 +4,9 @@ import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_completion_
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_question_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dart';
-import 'package:eco_venture/views/child_section/naturePhotoJournal/add_entry_screen.dart';
+import 'package:eco_venture/views/child_section/naturePhotoJournal/learn_with_ai.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_description_screen.dart';
-import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_photo_chatbot_screen.dart';
+import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_photo_explore_screen.dart';
 import 'package:eco_venture/views/child_section/progress_dashboard_screen.dart';
 import 'package:eco_venture/views/child_section/report_issue_screen.dart';
 import 'package:eco_venture/views/child_section/report_safety_screen.dart';
@@ -267,14 +267,14 @@ class ChildRouter {
                 builder: (context, state) => const NatureDescriptionScreen(),
               ),
               GoRoute(
-                path: 'add-entry-screen',
-                name: "addEntryScreen",
-                builder: (context, state) => const AddEntryScreen(),
+                path: 'learn-with-Ai-screen',
+                name: "learnWithAiScreen",
+                builder: (context, state) => const LearnWithAi(),
                 routes: [
                   GoRoute(
-                    path: 'nature-photo-chatbot-screen',
-                    name: 'naturePhotoChatbotScreen',
-                    builder: (context, state) => NaturePhotoChatbotScreen(),
+                    path: 'nature-photo-explore-screen',
+                    name: 'naturePhotoExploreScreen',
+                    builder: (context, state) => NaturePhotoExplorerScreen(),
                   ),
                 ],
               ),
