@@ -8,6 +8,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../../../models/stem_challenge_read_model.dart';
 import '../../../../models/stem_submission_model.dart';
+import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/child_view_model/stem_challgengs/child_stem_challenges_view_model_provider.dart';
 
 class EngineeringSubmitScreen extends ConsumerStatefulWidget {
@@ -41,11 +42,14 @@ class _EngineeringSubmitScreenState
     }
   }
 
+
+
   Future<void> _submitTask() async {
+    // 1. Validation (Images & Days)
     if (_proofImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Upload photos of your build!"),
+          content: Text("Please upload photos!"),
           backgroundColor: Colors.orange,
         ),
       );
@@ -54,30 +58,42 @@ class _EngineeringSubmitScreenState
     if (_daysController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("How long did you build?"),
+          content: Text("Enter time taken"),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
+    // 2. Get User Details (Name & Pic)
+    String studentName =
+        await SharedPreferencesHelper.instance.getUserName() ?? "Student";
+    String? studentPic = await SharedPreferencesHelper.instance.getImageUrl();
+
+    // 3. Create Model with ALL DATA (Snapshots)
     final submission = StemSubmissionModel(
       challengeId: widget.challenge.id,
-      studentId: "",
+      studentId: "", // Service fills this
+      studentName: studentName,
+      studentProfilePic: studentPic, // NEW
       challengeTitle: widget.challenge.title,
+      category: widget.challenge.category, // NEW: From Challenge Model
+      difficulty: widget.challenge.difficulty, // NEW: From Challenge Model
       proofImageUrls: [],
       daysTaken: int.tryParse(_daysController.text.trim()) ?? 1,
       submittedAt: DateTime.now(),
       status: 'pending',
     );
 
+    // 4. Send to ViewModel
     await ref
         .read(childStemChallengesViewModelProvider.notifier)
         .submitChallengeWithProof(
-          submission: submission,
-          proofImages: _proofImages,
-        );
+      submission: submission,
+      proofImages: _proofImages,
+    );
   }
+
 
   @override
   Widget build(BuildContext context) {

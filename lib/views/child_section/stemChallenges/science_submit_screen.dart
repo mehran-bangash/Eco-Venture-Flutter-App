@@ -9,6 +9,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../../../models/stem_challenge_read_model.dart';
 import '../../../../models/stem_submission_model.dart';
+import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/child_view_model/stem_challgengs/child_stem_challenges_view_model_provider.dart';
 
 class ScienceSubmitScreen extends ConsumerStatefulWidget {
@@ -47,10 +48,11 @@ class _ScienceSubmitScreenState extends ConsumerState<ScienceSubmitScreen> {
   }
 
   Future<void> _submitTask() async {
+    // 1. Validation (Images & Days)
     if (_proofImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please add at least one photo!"),
+          content: Text("Please upload photos!"),
           backgroundColor: Colors.orange,
         ),
       );
@@ -59,24 +61,34 @@ class _ScienceSubmitScreenState extends ConsumerState<ScienceSubmitScreen> {
     if (_daysController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Tell us how many days it took."),
+          content: Text("Enter time taken"),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
+    // 2. Get User Details (Name & Pic)
+    String studentName =
+        await SharedPreferencesHelper.instance.getUserName() ?? "Student";
+    String? studentPic = await SharedPreferencesHelper.instance.getImageUrl();
+
+    // 3. Create Model with ALL DATA (Snapshots)
     final submission = StemSubmissionModel(
       challengeId: widget.challenge.id,
-      studentId: "",
+      studentId: "", // Service fills this
+      studentName: studentName,
+      studentProfilePic: studentPic, // NEW
       challengeTitle: widget.challenge.title,
-      proofImageUrls: [], // ViewModel fills this
+      category: widget.challenge.category, // NEW: From Challenge Model
+      difficulty: widget.challenge.difficulty, // NEW: From Challenge Model
+      proofImageUrls: [],
       daysTaken: int.tryParse(_daysController.text.trim()) ?? 1,
       submittedAt: DateTime.now(),
       status: 'pending',
     );
 
-    // Call ViewModel with List
+    // 4. Send to ViewModel
     await ref
         .read(childStemChallengesViewModelProvider.notifier)
         .submitChallengeWithProof(
@@ -260,7 +272,10 @@ class _ScienceSubmitScreenState extends ConsumerState<ScienceSubmitScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Column(
