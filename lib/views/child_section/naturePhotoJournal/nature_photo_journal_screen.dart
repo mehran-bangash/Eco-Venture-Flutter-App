@@ -184,8 +184,8 @@ class _NaturePhotoJournalScreenState extends State<NaturePhotoJournalScreen>
             curve: Curves.elasticOut,
           ),
           child: _buildCrystalButton(
-            onTap: () => {
-              context.goNamed("addEntryScreen")
+            onTap: () {
+              context.goNamed("learnWithAiScreen");
             },
             icon: Icons.add_a_photo_rounded,
             size: 16.w,

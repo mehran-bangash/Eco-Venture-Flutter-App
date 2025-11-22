@@ -172,7 +172,7 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
           onTapDown: (_) => _ctaController.reverse(), // scale to 0.92
           onTapUp: (_) {
             _ctaController.forward(); // scale back
-            context.goNamed("naturePhotoChatbotScreen");
+            context.goNamed('naturePhotoExploreScreen');
           },
           onTapCancel: () => _ctaController.forward(),
           child: Container(
