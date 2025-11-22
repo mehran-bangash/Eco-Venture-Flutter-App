@@ -7,7 +7,6 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../models/quiz_model.dart';
 import '../../../viewmodels/child_view_model/interactive_quiz/child_quiz_provider.dart';
 
-
 class CategoryModel {
   final String id;
   final String title;
@@ -21,7 +20,8 @@ class InteractiveQuizScreen extends ConsumerStatefulWidget {
   const InteractiveQuizScreen({super.key});
 
   @override
-  ConsumerState<InteractiveQuizScreen> createState() => _InteractiveQuizScreenState();
+  ConsumerState<InteractiveQuizScreen> createState() =>
+      _InteractiveQuizScreenState();
 }
 
 class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
@@ -38,18 +38,72 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
 
   // --- STYLE DEFINITIONS (To map dynamic names to your beautiful UI) ---
   final Map<String, CategoryModel> _styleMap = {
-    'Animals': CategoryModel('Animals', 'Animals', Icons.pets_rounded, Color(0xFFFA8B74), Color(0xFFF04A27)),
-    'Plants': CategoryModel('Plants', 'Plants', Icons.eco_rounded, Color(0xFF74FAB6), Color(0xFF27F086)),
-    'Ecosystem': CategoryModel('Ecosystem', 'Ecosystem', Icons.public_rounded, Color(0xFF74D4FA), Color(0xFF279AF0)),
-    'Science': CategoryModel('Science', 'Science', Icons.science_rounded, Color(0xFFB974FA), Color(0xFF7327F0)),
-    'Maths': CategoryModel('Maths', 'Maths', Icons.calculate_rounded, Color(0xFF74FACD), Color(0xFF27F0A8)),
-    'Space': CategoryModel('Space', 'Space', Icons.rocket_launch_rounded, Color(0xFFFA74E8), Color(0xFFF027C6)),
-    'Recycling': CategoryModel('Recycling', 'Recycling', Icons.recycling_rounded, Color(0xFF81C784), Color(0xFF43A047)),
-    'Climate': CategoryModel('Climate', 'Climate', Icons.thermostat_rounded, Color(0xFFFFCC80), Color(0xFFFB8C00)),
+    'Animals': CategoryModel(
+      'Animals',
+      'Animals',
+      Icons.pets_rounded,
+      Color(0xFFFA8B74),
+      Color(0xFFF04A27),
+    ),
+    'Plants': CategoryModel(
+      'Plants',
+      'Plants',
+      Icons.eco_rounded,
+      Color(0xFF74FAB6),
+      Color(0xFF27F086),
+    ),
+    'Ecosystem': CategoryModel(
+      'Ecosystem',
+      'Ecosystem',
+      Icons.public_rounded,
+      Color(0xFF74D4FA),
+      Color(0xFF279AF0),
+    ),
+    'Science': CategoryModel(
+      'Science',
+      'Science',
+      Icons.science_rounded,
+      Color(0xFFB974FA),
+      Color(0xFF7327F0),
+    ),
+    'Maths': CategoryModel(
+      'Maths',
+      'Maths',
+      Icons.calculate_rounded,
+      Color(0xFF74FACD),
+      Color(0xFF27F0A8),
+    ),
+    'Space': CategoryModel(
+      'Space',
+      'Space',
+      Icons.rocket_launch_rounded,
+      Color(0xFFFA74E8),
+      Color(0xFFF027C6),
+    ),
+    'Recycling': CategoryModel(
+      'Recycling',
+      'Recycling',
+      Icons.recycling_rounded,
+      Color(0xFF81C784),
+      Color(0xFF43A047),
+    ),
+    'Climate': CategoryModel(
+      'Climate',
+      'Climate',
+      Icons.thermostat_rounded,
+      Color(0xFFFFCC80),
+      Color(0xFFFB8C00),
+    ),
   };
 
   // Fallback style for unknown categories
-  final CategoryModel _fallbackStyle = CategoryModel('Unknown', 'General', Icons.quiz_rounded, Colors.blueGrey, Colors.blue);
+  final CategoryModel _fallbackStyle = CategoryModel(
+    'Unknown',
+    'General',
+    Icons.quiz_rounded,
+    Colors.blueGrey,
+    Colors.blue,
+  );
 
   // Random Gradients for Quiz Cards
   final List<List<Color>> _randomGradients = [
@@ -98,7 +152,9 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
       );
       _cardControllers.add(ctrl);
       Future.delayed(Duration(milliseconds: 300 + i * 120), () {
-        if (mounted && i < _cardControllers.length) _cardControllers[i].forward();
+        if (mounted && i < _cardControllers.length) {
+          _cardControllers[i].forward();
+        }
       });
     }
   }
@@ -129,12 +185,24 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
     return AnimatedBuilder(
       animation: _bgController,
       builder: (context, child) {
-        final alignment1 = Alignment.lerp(Alignment.topLeft, Alignment.bottomRight, _bgController.value)!;
-        final alignment2 = Alignment.lerp(Alignment.topRight, Alignment.bottomLeft, _bgController.value)!;
+        final alignment1 = Alignment.lerp(
+          Alignment.topLeft,
+          Alignment.bottomRight,
+          _bgController.value,
+        )!;
+        final alignment2 = Alignment.lerp(
+          Alignment.topRight,
+          Alignment.bottomLeft,
+          _bgController.value,
+        )!;
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: const [Color(0xFF0F3460), Color(0xFF1A1A2E), Color(0xFF16213E)],
+              colors: const [
+                Color(0xFF0F3460),
+                Color(0xFF1A1A2E),
+                Color(0xFF16213E),
+              ],
               begin: alignment1,
               end: alignment2,
             ),
@@ -144,7 +212,10 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
     );
   }
 
-  Widget _buildFrostedButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildFrostedButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
@@ -159,7 +230,9 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
-            child: Center(child: Icon(icon, color: Colors.white, size: 6.w)),
+            child: Center(
+              child: Icon(icon, color: Colors.white, size: 6.w),
+            ),
           ),
         ),
       ),
@@ -169,20 +242,31 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
   // --- DYNAMIC DROPDOWN ---
   Widget _buildCategoryDropdown(List<String> dynamicCategories) {
     if (dynamicCategories.isEmpty) {
-      return Text("Loading Categories...", style: GoogleFonts.poppins(color: Colors.white54));
+      return Text(
+        "Loading Categories...",
+        style: GoogleFonts.poppins(color: Colors.white54),
+      );
     }
 
     // Ensure we have a valid selection. If selected is empty or not in list, defaults to first.
-    if (_selectedCategoryId.isEmpty || !dynamicCategories.contains(_selectedCategoryId)) {
+    if (_selectedCategoryId.isEmpty ||
+        !dynamicCategories.contains(_selectedCategoryId)) {
       // We schedule a state update to sync the selected ID
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if(mounted) _onCategoryChanged(dynamicCategories.first);
+        if (mounted) _onCategoryChanged(dynamicCategories.first);
       });
     }
 
     // Get style for currently selected
-    final currentStyle = _styleMap[_selectedCategoryId] ??
-        CategoryModel(_selectedCategoryId, _selectedCategoryId, Icons.category, Colors.blueGrey, Colors.blue);
+    final currentStyle =
+        _styleMap[_selectedCategoryId] ??
+        CategoryModel(
+          _selectedCategoryId,
+          _selectedCategoryId,
+          Icons.category,
+          Colors.blueGrey,
+          Colors.blue,
+        );
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
@@ -197,14 +281,30 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: dynamicCategories.contains(_selectedCategoryId) ? _selectedCategoryId : null,
+              value: dynamicCategories.contains(_selectedCategoryId)
+                  ? _selectedCategoryId
+                  : null,
               dropdownColor: const Color(0xFF1A1A2E).withValues(alpha: 0.95),
-              icon: Icon(Icons.keyboard_arrow_down_rounded, color: currentStyle.color2),
+              icon: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: currentStyle.color2,
+                size: 8.w,
+              ),
               isExpanded: true,
-              hint: Text("Select Category", style: TextStyle(color: Colors.white)),
+              hint: Text(
+                "Select Category",
+                style: TextStyle(color: Colors.white),
+              ),
               items: dynamicCategories.map((catName) {
-                final style = _styleMap[catName] ??
-                    CategoryModel(catName, catName, Icons.category, Colors.teal, Colors.tealAccent);
+                final style =
+                    _styleMap[catName] ??
+                    CategoryModel(
+                      catName,
+                      catName,
+                      Icons.category,
+                      Colors.teal,
+                      Colors.tealAccent,
+                    );
 
                 return DropdownMenuItem(
                   value: catName,
@@ -215,9 +315,9 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
                       Text(
                         style.title,
                         style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 11.sp
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14.sp,
                         ),
                       ),
                     ],
@@ -243,7 +343,12 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
           children: [
             Text(
               'Choose Your Quiz',
-              style: GoogleFonts.poppins(fontSize: 22.sp, fontWeight: FontWeight.w800, color: Colors.white, height: 1.2),
+              style: GoogleFonts.poppins(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+                height: 1.2,
+              ),
             ),
             SizedBox(height: 1.5.h),
 
@@ -251,8 +356,14 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
 
             SizedBox(height: 1.h),
             Text(
-              _selectedCategoryId.isEmpty ? "Please select a category" : 'Showing quizzes for ${_selectedCategoryId.toUpperCase()}',
-              style: GoogleFonts.poppins(fontSize: 10.sp, color: Colors.white70, fontWeight: FontWeight.w500),
+              _selectedCategoryId.isEmpty
+                  ? "Please select a category"
+                  : 'Showing quizzes for ${_selectedCategoryId.toUpperCase()}',
+              style: GoogleFonts.poppins(
+                fontSize: 14.sp,
+                color: Colors.white70,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -269,7 +380,8 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
 
     _initCardAnimations(quizzes.length);
 
-    final activeCategoryStyle = _styleMap[_selectedCategoryId] ?? _fallbackStyle;
+    final activeCategoryStyle =
+        _styleMap[_selectedCategoryId] ?? _fallbackStyle;
 
     return PopScope(
       canPop: false,
@@ -289,7 +401,10 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
                 slivers: [
                   // Header Row
                   SliverPadding(
-                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 5.w,
+                      vertical: 2.h,
+                    ),
                     sliver: SliverToBoxAdapter(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -298,10 +413,34 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
                             icon: Icons.arrow_back_ios_new_rounded,
                             onTap: () => context.goNamed('bottomNavChild'),
                           ),
-                          Text('Quizzes', style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 18.sp, color: Colors.white)),
-                          _buildFrostedButton(icon: Icons.person_outline_rounded, onTap: () {
-                            context.goNamed('childProfile');
-                          }),
+                          Text(
+                            'Quizzes',
+                            style: GoogleFonts.poppins(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18.sp,
+                              color: Colors.white,
+                            ),
+                          ),
+                          _buildFrostedButton(
+                            icon: Icons.refresh_rounded,
+                            onTap: () {
+                              if (_selectedCategoryId.isNotEmpty) {
+                                ref.read(childQuizViewModelProvider.notifier).loadQuizzes(_selectedCategoryId);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      "Refreshing quizzes...",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.green,
+                                    duration: Duration(seconds: 1),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+
                         ],
                       ),
                     ),
@@ -309,54 +448,80 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
 
                   // Parallax Title & Dropdown
                   SliverPadding(
-                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-                    sliver: SliverToBoxAdapter(child: _buildParallaxHeader(dynamicCategories)),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 5.w,
+                      vertical: 2.h,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildParallaxHeader(dynamicCategories),
+                    ),
                   ),
 
                   // Content Grid
                   if (childQuizState.isLoading)
                     SliverFillRemaining(
-                      child: Center(child: CircularProgressIndicator(color: activeCategoryStyle.color)),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: activeCategoryStyle.color,
+                        ),
+                      ),
                     )
                   else if (childQuizState.errorMessage != null)
                     SliverFillRemaining(
-                      child: Center(child: Text("Error: ${childQuizState.errorMessage}", style: TextStyle(color: Colors.red))),
-                    )
-                  else if (quizzes.isEmpty)
-                      SliverFillRemaining(
-                        child: Center(child: Text("No quizzes found.", style: GoogleFonts.poppins(color: Colors.white54))),
-                      )
-                    else
-                      SliverPadding(
-                        padding: EdgeInsets.symmetric(horizontal: 5.w).copyWith(bottom: 10.h),
-                        sliver: SliverGrid(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 2.5.h,
-                            crossAxisSpacing: 4.w,
-                            childAspectRatio: 0.8,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                              final quiz = quizzes[index];
-                              bool isLocked = false;
-                              if (quiz.order > 1) {
-                                try {
-                                  final prevQuiz = quizzes.firstWhere((q) => q.order == quiz.order - 1);
-                                  final prevProgress = progressMap[prevQuiz.id];
-                                  if (prevProgress == null || !prevProgress.isPassed) {
-                                    isLocked = true;
-                                  }
-                                } catch (e) {
-                                  isLocked = true;
-                                }
-                              }
-                              return _buildAnimatedQuizCard(index, quiz, activeCategoryStyle, isLocked);
-                            },
-                            childCount: quizzes.length,
-                          ),
+                      child: Center(
+                        child: Text(
+                          "Error: ${childQuizState.errorMessage}",
+                          style: TextStyle(color: Colors.red),
                         ),
                       ),
+                    )
+                  else if (quizzes.isEmpty)
+                    SliverFillRemaining(
+                      child: Center(
+                        child: Text(
+                          "No quizzes found.",
+                          style: GoogleFonts.poppins(color: Colors.white54),
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 5.w,
+                      ).copyWith(bottom: 10.h),
+                      sliver: SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: 2.5.h,
+                          crossAxisSpacing: 4.w,
+                          childAspectRatio: 0.8,
+                        ),
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final quiz = quizzes[index];
+                          bool isLocked = false;
+                          if (quiz.order > 1) {
+                            try {
+                              final prevQuiz = quizzes.firstWhere(
+                                (q) => q.order == quiz.order - 1,
+                              );
+                              final prevProgress = progressMap[prevQuiz.id];
+                              if (prevProgress == null ||
+                                  !prevProgress.isPassed) {
+                                isLocked = true;
+                              }
+                            } catch (e) {
+                              isLocked = true;
+                            }
+                          }
+                          return _buildAnimatedQuizCard(
+                            index,
+                            quiz,
+                            activeCategoryStyle,
+                            isLocked,
+                          );
+                        }, childCount: quizzes.length),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -366,7 +531,12 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
     );
   }
 
-  Widget _buildAnimatedQuizCard(int index, QuizModel quiz, CategoryModel theme, bool isLocked) {
+  Widget _buildAnimatedQuizCard(
+    int index,
+    QuizModel quiz,
+    CategoryModel theme,
+    bool isLocked,
+  ) {
     if (index >= _cardControllers.length) return const SizedBox.shrink();
 
     final ctrl = _cardControllers[index];
@@ -378,25 +548,32 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
     if (isLocked) {
       cardGradient = [Colors.grey.shade800, Colors.grey.shade900];
     } else {
-      final int colorIndex = (quiz.id?.hashCode ?? index).abs() % _randomGradients.length;
+      final int colorIndex =
+          (quiz.id?.hashCode ?? index).abs() % _randomGradients.length;
       cardGradient = _randomGradients[colorIndex];
     }
 
     return FadeTransition(
       opacity: anim,
       child: SlideTransition(
-        position: Tween<Offset>(begin: const Offset(0, 0.2), end: Offset.zero).animate(anim),
+        position: Tween<Offset>(
+          begin: const Offset(0, 0.2),
+          end: Offset.zero,
+        ).animate(anim),
         child: GestureDetector(
           onTapDown: (_) => setState(() => _pressedIndex = index),
           onTapUp: (_) {
             setState(() => _pressedIndex = -1);
             if (isLocked) {
               ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text("Pass Level ${quiz.order - 1} to unlock this!", style: GoogleFonts.poppins(color: Colors.white)),
-                    backgroundColor: Colors.redAccent,
-                    duration: const Duration(seconds: 2),
-                  )
+                SnackBar(
+                  content: Text(
+                    "Pass Level ${quiz.order - 1} to unlock this!",
+                    style: GoogleFonts.poppins(color: Colors.white,fontSize: 14.sp),
+                  ),
+                  backgroundColor: Colors.redAccent,
+                  duration: const Duration(seconds: 2),
+                ),
               );
             } else {
               Future.delayed(const Duration(milliseconds: 100), () {
@@ -418,7 +595,9 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: isLocked ? Colors.black26 : cardGradient[0].withValues(alpha: 0.4),
+                  color: isLocked
+                      ? Colors.black26
+                      : cardGradient[0].withValues(alpha: 0.4),
                   blurRadius: 15,
                   offset: const Offset(0, 8),
                 ),
@@ -427,10 +606,15 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
             child: Stack(
               children: [
                 Positioned(
-                  top: -40, right: -40,
+                  top: -40,
+                  right: -40,
                   child: Container(
-                    width: 100, height: 100,
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
                 if (quiz.imageUrl != null && !isLocked)
@@ -442,7 +626,7 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
                         child: Image.network(
                           quiz.imageUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (c,e,s) => const SizedBox(),
+                          errorBuilder: (c, e, s) => const SizedBox(),
                         ),
                       ),
                     ),
@@ -457,20 +641,29 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 2.w,
+                              vertical: 0.5.h,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.black26,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               "LVL ${quiz.order}",
-                              style: GoogleFonts.poppins(fontSize: 9.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                              style: GoogleFonts.poppins(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                           Icon(
-                              isLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
-                              color: isLocked ? Colors.white54 : Colors.white,
-                              size: 5.w
+                            isLocked
+                                ? Icons.lock_rounded
+                                : Icons.lock_open_rounded,
+                            color: isLocked ? Colors.white54 : Colors.white,
+                            size: 5.w,
                           ),
                         ],
                       ),
@@ -489,7 +682,10 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
                           ),
                           SizedBox(height: 1.h),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.8.h),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 3.w,
+                              vertical: 0.8.h,
+                            ),
                             decoration: BoxDecoration(
                               color: isLocked ? Colors.white10 : Colors.white,
                               borderRadius: BorderRadius.circular(12),
@@ -500,18 +696,24 @@ class _InteractiveQuizScreenState extends ConsumerState<InteractiveQuizScreen>
                                 Text(
                                   isLocked ? 'Locked' : 'Start',
                                   style: GoogleFonts.poppins(
-                                    fontSize: 10.sp,
+                                    fontSize: 13.sp,
                                     fontWeight: FontWeight.w700,
-                                    color: isLocked ? Colors.white54 : cardGradient[1],
+                                    color: isLocked
+                                        ? Colors.white54
+                                        : cardGradient[1],
                                   ),
                                 ),
                                 if (!isLocked) ...[
                                   SizedBox(width: 1.w),
-                                  Icon(Icons.play_arrow_rounded, color: cardGradient[1], size: 4.w),
-                                ]
+                                  Icon(
+                                    Icons.play_arrow_rounded,
+                                    color: cardGradient[1],
+                                    size: 4.w,
+                                  ),
+                                ],
                               ],
                             ),
-                          )
+                          ),
                         ],
                       ),
                     ],
