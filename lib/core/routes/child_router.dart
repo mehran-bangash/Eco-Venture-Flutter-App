@@ -1,5 +1,6 @@
 
 import 'package:eco_venture/models/quiz_model.dart';
+import 'package:eco_venture/models/stem_challenge_read_model.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_completion_screen.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_question_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
@@ -190,13 +191,18 @@ class ChildRouter {
                   GoRoute(
                     path: 'science-instruction-screen',
                     name: 'scienceInstructionScreen',
-                    builder: (context, state) =>
-                        const ScienceInstructionScreen(),
+                    builder: (context, state) {
+                      final scienceChallenge= state.extra as StemChallengeReadModel;
+                       return ScienceInstructionScreen(challenge: scienceChallenge,);
+                    }
                   ),
                   GoRoute(
                     path: 'science-submit-screen',
                     name: 'scienceSubmitScreen',
-                    builder: (context, state) => const ScienceSubmitScreen(),
+                    builder: (context, state) {
+                      final scienceChallenge= state.extra as StemChallengeReadModel;
+                      return ScienceSubmitScreen(challenge: scienceChallenge,);
+                    },
                   ),
                 ],
               ),
@@ -208,12 +214,18 @@ class ChildRouter {
                   GoRoute(
                     path: 'math-instruction-screen',
                     name: 'mathInstructionScreen',
-                    builder: (context, state) => const MathInstructionScreen(),
+                    builder: (context, state) {
+                      final mathChallenge= state.extra as StemChallengeReadModel;
+                      return   MathInstructionScreen(challenge: mathChallenge,);
+                    },
                   ),
                   GoRoute(
                     path: 'math-submit-screen',
                     name: 'mathSubmitScreen',
-                    builder: (context, state) => const MathSubmitScreen(),
+                    builder: (context, state) {
+                      final mathChallenge= state.extra as StemChallengeReadModel;
+                      return MathSubmitScreen(challenge:mathChallenge);
+                    },
                   ),
                 ],
               ),
@@ -225,14 +237,19 @@ class ChildRouter {
                   GoRoute(
                     path: 'engineering-instruction-screen',
                     name: 'engineeringInstructionScreen',
-                    builder: (context, state) =>
-                        const EngineeringInstructionScreen(),
+                    builder: (context, state) {
+                      final engineeringChallenge= state.extra as StemChallengeReadModel;
+                      return  EngineeringInstructionScreen(challenge:engineeringChallenge);
+                    }
+                        ,
                   ),
                   GoRoute(
                     path: 'engineering-submit-screen',
                     name: 'engineeringSubmitScreen',
-                    builder: (context, state) =>
-                        const EngineeringSubmitScreen(),
+                    builder: (context, state) {
+                      final engineeringChallenge= state.extra as StemChallengeReadModel;
+                      return  EngineeringSubmitScreen(challenge:engineeringChallenge);
+                    }
                   ),
                 ],
               ),
@@ -244,13 +261,19 @@ class ChildRouter {
                   GoRoute(
                     path: 'technology-instruction-screen',
                     name: 'technologyInstructionScreen',
-                    builder: (context, state) =>
-                        const TechnologyInstructionScreen(),
+                    builder: (context, state) {
+                      final technologyScreenChallenge= state.extra as StemChallengeReadModel;
+                      return TechnologyInstructionScreen(challenge:technologyScreenChallenge);
+                    }
+                        ,
                   ),
                   GoRoute(
                     path: 'technology-submit-screen',
                     name: 'technologySubmitScreen',
-                    builder: (context, state) => const TechnologySubmitScreen(),
+                    builder: (context, state) {
+                      final technologyScreenChallenge= state.extra as StemChallengeReadModel;
+                      return TechnologySubmitScreen(challenge:technologyScreenChallenge);
+                    },
                   ),
                 ],
               ),

@@ -1,32 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:eco_venture/views/child_section/stemChallenges/widgets/challenge_card.dart';
+import '../../../viewmodels/child_view_model/stem_challgengs/child_stem_challenges_view_model_provider.dart';
+import 'widgets/challenge_card.dart';
 
-class MathScreen extends StatefulWidget {
+class MathScreen extends ConsumerStatefulWidget {
   const MathScreen({super.key});
 
   @override
-  State<MathScreen> createState() => _MathScreenState();
+  ConsumerState<MathScreen> createState() => _MathScreenState();
 }
 
-class _MathScreenState extends State<MathScreen> with SingleTickerProviderStateMixin {
-  double progress = 0.72;
+class _MathScreenState extends ConsumerState<MathScreen>
+    with SingleTickerProviderStateMixin {
+
+  // Animation variables
   late AnimationController _controller;
-  late Animation<double> _fadeAnim;
+  late Animation<double> _progressAnimation;
+
+  // Constant for the category we are fetching
+  // MUST match the Admin dropdown value exactly
+  final String _category = 'Mathematics';
 
   @override
   void initState() {
     super.initState();
+
+    // 1. Fetch Data on Init
+    Future.microtask(() {
+      ref.read(childStemChallengesViewModelProvider.notifier).loadChallenges(_category);
+    });
+
+    // Animation Setup
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
-    )..repeat(reverse: true);
-
-    _fadeAnim = Tween<double>(begin: 0.7, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+    _progressAnimation = Tween<double>(begin: 0, end: 0).animate(_controller);
+    _controller.forward();
   }
 
   @override
@@ -35,141 +48,162 @@ class _MathScreenState extends State<MathScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  Color get primaryMathBlue => const Color(0xFF283CFF);
-  Color get vibrantCyan => const Color(0xFF03E9F4);
-  Color get softPurple => const Color(0xFF6C63FF);
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: AnimatedContainer(
-        duration: const Duration(seconds: 2),
-        curve: Curves.easeInOut,
-        //  Gradient background — energetic and intelligent
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              primaryMathBlue,
-              softPurple,
-              vibrantCyan,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    // 2. Watch the ViewModel State
+    final stemState = ref.watch(childStemChallengesViewModelProvider);
+    final challenges = stemState.challenges;
+    final submissions = stemState.submissions;
+
+    // 3. Calculate Real-Time Stats
+    int totalScore = 0;
+    int completedCount = 0;
+
+    for (var challenge in challenges) {
+      final sub = submissions[challenge.id];
+      if (sub != null && sub.status == 'approved') {
+        totalScore += sub.pointsAwarded;
+        completedCount++;
+      }
+    }
+
+    double progressValue = challenges.isEmpty ? 0.0 : (completedCount / challenges.length);
+
+    _progressAnimation = Tween<double>(begin: 0, end: progressValue).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
+    _controller.forward(from: 0);
+
+    return PopScope(
+      canPop: false,
+       onPopInvokedWithResult: (didPop, result) {
+         if(!didPop){
+           context.goNamed("bottomNavChild");
+         }
+       },
+      child: Scaffold(
+        body: Container(
+          // Math / Logic Gradient (Deep Indigo/Purple)
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF1A237E), // Deep Indigo
+                Color(0xFF311B92), // Deep Purple
+                Color(0xFF4A148C), // Dark Purple
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
-            physics: const BouncingScrollPhysics(),
-            child: FadeTransition(
-              opacity: _fadeAnim,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  //  Header Section
-                  TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: 1),
-                    duration: const Duration(milliseconds: 800),
-                    builder: (context, value, child) {
-                      return Transform.scale(
-                        scale: value,
-                        child: child,
-                      );
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(4.w),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF00C9FF), Color(0xFF92FE9D)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 12,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
+                  // --- Header Section ---
+                  Container(
+                    padding: EdgeInsets.all(4.w),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF7C4DFF), Color(0xFF512DA8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(Icons.calculate_rounded,
-                                  color: Colors.white, size: 35),
-                              SizedBox(width: 3.w),
-                              Expanded(
-                                child: Text(
-                                  "Math Missions",
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 18.sp,
-                                  ),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.deepPurple.withValues(alpha: 0.4),
+                          blurRadius: 18,
+                          spreadRadius: 1,
+                          offset: const Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+
+                            SizedBox(width: 2.w),
+                            const Icon(Icons.calculate_rounded, color: Colors.white, size: 34),
+                            SizedBox(width: 3.w),
+                            Expanded(
+                              child: Text(
+                                "Math Magic",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18.sp,
                                 ),
                               ),
-                            ],
-                          ),
-                          SizedBox(height: 2.h),
-                          LinearProgressIndicator(
-                            value: progress,
-                            minHeight: 1.3.h,
-                            borderRadius: BorderRadius.circular(20),
-                            backgroundColor: Colors.white.withValues(alpha: 0.2),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.black,
                             ),
-                          ),
-                          SizedBox(height: 1.h),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              "${(progress * 100).toInt()}% Completed",
-                              style: GoogleFonts.poppins(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14.sp,
+                          ],
+                        ),
+                        SizedBox(height: 2.h),
+
+                        // Progress Bar
+                        AnimatedBuilder(
+                          animation: _progressAnimation,
+                          builder: (context, child) {
+                            return ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: LinearProgressIndicator(
+                                value: _progressAnimation.value,
+                                minHeight: 1.4.h,
+                                backgroundColor: Colors.white.withValues(alpha: 0.2),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF69F0AE), // Light Green accent
+                                ),
                               ),
+                            );
+                          },
+                        ),
+                        SizedBox(height: 1.h),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            "${(progressValue * 100).toInt()}% Completed",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14.sp,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
 
                   SizedBox(height: 3.h),
 
-                  //  Score Box with glow
-                  AnimatedContainer(
-                    duration: const Duration(seconds: 1),
+                  // --- Total Score Box ---
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.8.h),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.white24, width: 1),
+                      border: Border.all(color: Colors.white24, width: 1.2),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blueAccent.withValues(alpha: 0.4),
+                          color: Colors.deepPurple.withValues(alpha: 0.3),
                           blurRadius: 15,
-                          spreadRadius: 3,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                    padding:
-                    EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.8.h),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.star_rounded,
-                            color: Colors.amberAccent, size: 28),
+                        const Icon(Icons.star_rounded, color: Colors.amberAccent, size: 28),
                         SizedBox(width: 2.w),
                         Text(
-                          "Total Score: 1420",
+                          "Total Score: $totalScore",
                           style: GoogleFonts.poppins(
                             color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w700,
                             fontSize: 16.sp,
                           ),
                         ),
@@ -179,89 +213,58 @@ class _MathScreenState extends State<MathScreen> with SingleTickerProviderStateM
 
                   SizedBox(height: 3.h),
 
-                  //  Challenge Cards Grid
-                  GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 4.w,
-                    mainAxisSpacing: 3.h,
-                    childAspectRatio: 0.065.h,
-                    children: [
-                      ChallengeCard(
-                        onTap: () {
-                          context.goNamed('mathInstructionScreen');
-                        },
-                        title: "Number Ninja",
-                        imageUrl: "assets/images/rabbit.jpeg",
-                        difficulty: "Medium",
-                        rewardPoints: 20,
-                        backgroundGradient: const [
-                          Color(0xFF4A00E0), // royal violet
-                          Color(0xFF8E2DE2), // bright purple-pink
-                        ],
-                        buttonGradient: const [
-                          Color(0xFF00DBDE),
-                          Color(0xFFFC00FF),
-                        ],
+                  // --- Challenge Grid ---
+                  if (stemState.isLoading)
+                    const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
+                  else if (challenges.isEmpty)
+                    Center(
+                      child: Text(
+                        "No Math challenges yet!",
+                        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 16.sp),
                       ),
-
-                      ChallengeCard(
-                        onTap: () {
-                          context.goNamed('mathInstructionScreen');
-                        },
-                        title: "Shape Quest",
-                        imageUrl: "assets/images/rabbit.jpeg",
-                        difficulty: "Easy",
-                        rewardPoints: 15,
-                        backgroundGradient: const [
-                          Color(0xFF2193B0), // teal blue
-                          Color(0xFF6DD5ED), // light aqua
-                        ],
-                        buttonGradient: const [
-                          Color(0xFF00C9FF),
-                          Color(0xFF92FE9D),
-                        ],
+                    )
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 4.w,
+                        mainAxisSpacing: 3.h,
+                        childAspectRatio: 0.7,
                       ),
+                      itemCount: challenges.length,
+                      itemBuilder: (context, index) {
+                        final challenge = challenges[index];
+                        final submission = submissions[challenge.id];
 
-                       ChallengeCard(
-                         onTap: () {
-                           context.goNamed('mathInstructionScreen');
-                         },
-                        title: "Fraction Frenzy",
-                        imageUrl: "assets/images/rabbit.jpeg",
-                        difficulty: "Hard",
-                        rewardPoints: 40,
-                        backgroundGradient: const [
-                          Color(0xFF8360C3), // deep lavender
-                          Color(0xFF2EBF91), // mint-teal gradient
-                        ],
-                        buttonGradient: const [
-                          Color(0xFFFF6CAB),
-                          Color(0xFF7366FF),
-                        ],
-                      ),
+                        String? statusText;
+                        Color? statusColor;
 
-                       ChallengeCard(
-                         onTap: () {
-                           context.goNamed('mathInstructionScreen');
-                         },
-                        title: "Math Maze",
-                        imageUrl: "assets/images/rabbit.jpeg",
-                        difficulty: "Medium",
-                        rewardPoints: 30,
-                        backgroundGradient: const [
-                          Color(0xFF4776E6), // electric blue
-                          Color(0xFF8E54E9), // violet end
-                        ],
-                        buttonGradient: const [
-                          Color(0xFF00F5A0),
-                          Color(0xFF00D9F5),
-                        ],
-                      ),
+                        if (submission != null) {
+                          if (submission.status == 'pending') {
+                            statusText = "Reviewing";
+                            statusColor = Colors.orange.shade900;
+                          } else if (submission.status == 'approved') {
+                            statusText = "Solved";
+                            statusColor = Colors.green.shade700;
+                          }
+                        }
 
-                    ],
-                  ),
+                        return ChallengeCard(
+                          onTap: () => context.goNamed('mathInstructionScreen', extra: challenge),
+                          title: challenge.title,
+                          imageUrl: challenge.imageUrl ?? "assets/images/math_placeholder.png",
+                          difficulty: challenge.difficulty,
+                          rewardPoints: challenge.points,
+                          backgroundGradient: const [Color(0xFF4527A0), Color(0xFF7E57C2)],
+                          buttonGradient: const [Color(0xFFB388FF), Color(0xFF651FFF)],
+                          // Pass Status Here
+                          statusText: statusText,
+                          statusColor: statusColor,
+                        );
+                      },
+                    ),
                 ],
               ),
             ),

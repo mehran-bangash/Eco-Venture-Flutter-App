@@ -1,284 +1,371 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-class MathSubmitScreen extends StatefulWidget {
-  const MathSubmitScreen({super.key});
+import '../../../../models/stem_challenge_read_model.dart';
+import '../../../../models/stem_submission_model.dart';
+import '../../../viewmodels/child_view_model/stem_challgengs/child_stem_challenges_view_model_provider.dart';
+
+class MathSubmitScreen extends ConsumerStatefulWidget {
+  final StemChallengeReadModel challenge;
+
+  const MathSubmitScreen({super.key, required this.challenge});
 
   @override
-  State<MathSubmitScreen> createState() => _MathSubmitScreenState();
+  ConsumerState<MathSubmitScreen> createState() => _MathSubmitScreenState();
 }
 
-class _MathSubmitScreenState extends State<MathSubmitScreen> {
+class _MathSubmitScreenState extends ConsumerState<MathSubmitScreen> {
+  // CHANGE: List of files
+  final List<File> _proofImages = [];
+  final TextEditingController _daysController = TextEditingController();
 
-  bool addToPortfolio = false;
+  @override
+  void dispose() {
+    _daysController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    final ImagePicker picker = ImagePicker();
+    final List<XFile> images = await picker.pickMultiImage(imageQuality: 80);
+
+    if (images.isNotEmpty) {
+      setState(() {
+        _proofImages.addAll(images.map((x) => File(x.path)));
+      });
+    }
+  }
+
+  Future<void> _submitTask() async {
+    if (_proofImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please upload at least one photo!"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if (_daysController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Enter time taken"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final submission = StemSubmissionModel(
+      challengeId: widget.challenge.id,
+      studentId: "",
+      challengeTitle: widget.challenge.title,
+      proofImageUrls: [], // ViewModel fills this
+      daysTaken: int.tryParse(_daysController.text.trim()) ?? 1,
+      submittedAt: DateTime.now(),
+      status: 'pending',
+    );
+
+    await ref
+        .read(childStemChallengesViewModelProvider.notifier)
+        .submitChallengeWithProof(
+          submission: submission,
+          proofImages: _proofImages,
+        );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F7FC),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              /// --- Header with Gradient Background ---
-              Container(
-                width: 100.w,
-                padding: EdgeInsets.symmetric(vertical: 3.h, horizontal: 3.w),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF7B4EFF), Color(0xFFFFA726)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(24),
-                    bottomRight: Radius.circular(24),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: (){
-                        context.goNamed('mathInstructionScreen');
-                      },
-                      icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Colors.white),
-                    ),
-                    SizedBox(width: 2.w),
-                    Text(
-                      "Submit Your Creation",
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 4.h),
+    final state = ref.watch(childStemChallengesViewModelProvider);
 
-              /// --- Challenge Info Card ---
-              Container(
-                width: 100.w,
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
-                ),
+    ref.listen(childStemChallengesViewModelProvider, (previous, next) {
+      if (next.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Math Challenge Submitted! 🧮"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        ref.read(childStemChallengesViewModelProvider.notifier).resetSuccess();
+        context.goNamed('mathScreen');
+      }
+      if (next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${next.errorMessage}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    });
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.goNamed('stemChallenges');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFEDE7F6), // Light Deep Purple
+        body: SafeArea(
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Paper Duck Challenge",
-                      style: GoogleFonts.poppins(
-                        fontSize: 17.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                    // --- Header ---
+                    Container(
+                      width: 100.w,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 3.h,
+                        horizontal: 3.w,
                       ),
-                    ),
-                    SizedBox(height: 0.5.h),
-                    Text(
-                      "Create a duck out of paper. The most creative one wins!",
-                      style: GoogleFonts.poppins(
-                        fontSize: 15.sp,
-                        color: Colors.grey[700],
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 3.h),
-
-              /// --- Upload File Section ---
-              Container(
-                width: 100.w,
-                padding: EdgeInsets.all(5.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.grey.shade300,
-                    style: BorderStyle.solid,
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.cloud_upload_outlined,
-                        size: 8.h, color: Colors.grey.shade400),
-                    SizedBox(height: 1.h),
-                    Text(
-                      "Upload File",
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16.sp,
-                        color: Colors.black,
-                      ),
-                    ),
-                    SizedBox(height: 0.5.h),
-                    Text(
-                      "Drag & drop or click to upload",
-                      style: GoogleFonts.poppins(
-                        fontSize: 15.sp,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C63FF),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF311B92), Color(0xFF7C4DFF)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 10.w, vertical: 1.5.h),
-                      ),
-                      child: Text(
-                        "Upload",
-                        style: GoogleFonts.poppins(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 3.h),
-
-              /// --- Description Box ---
-              Text(
-                "Description",
-                style: GoogleFonts.poppins(
-                  fontSize: 17.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 1.h),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: TextField(
-                  maxLines: 5,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: "Tell us about your creation...",
-                    hintStyle: GoogleFonts.poppins(
-                      color: Colors.grey[500],
-                      fontSize: 15.sp,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 3.h),
-
-              /// --- Portfolio Toggle ---
-              Container(
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Text(
-                            "Add to my Portfolio",
-                            style: GoogleFonts.poppins(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
+                          IconButton(
+                            onPressed: () => context.pop(),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new,
+                              color: Colors.white,
                             ),
                           ),
-                          SizedBox(height: 0.5.h),
+                          SizedBox(width: 2.w),
                           Text(
-                            "Include this piece in your public portfolio.",
+                            "Submit Solution",
                             style: GoogleFonts.poppins(
-                              fontSize: 14.5.sp,
-                              color: Colors.grey[600],
+                              color: Colors.white,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Switch(
-                      value: addToPortfolio,
-                      onChanged: (val) {
-                        setState(() {
-                          addToPortfolio = val;
-                        });
-                      },
-                      activeThumbColor: const Color(0xFF6C63FF),
+                    SizedBox(height: 4.h),
+
+                    // --- Info Card ---
+                    Container(
+                      width: 100.w,
+                      padding: EdgeInsets.all(5.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepPurple.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.challenge.title,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.deepPurple,
+                            ),
+                          ),
+                          Text(
+                            "${widget.challenge.points} Points",
+                            style: GoogleFonts.poppins(
+                              fontSize: 13.sp,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    SizedBox(height: 3.h),
+
+                    // --- Multi-Upload Section ---
+                    Text(
+                      "Your Work (${_proofImages.length} photos)",
+                      style: GoogleFonts.poppins(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.deepPurple,
+                      ),
+                    ),
+                    SizedBox(height: 1.5.h),
+                    _buildMathMultiUpload(),
+
+                    SizedBox(height: 3.h),
+
+                    // --- Days Input ---
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 4.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.deepPurple.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: TextField(
+                        controller: _daysController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "Time Taken (e.g. 1 hour)",
+                          icon: const Icon(
+                            Icons.timer,
+                            color: Colors.deepPurple,
+                          ),
+                          hintStyle: GoogleFonts.poppins(
+                            color: Colors.grey[400],
+                            fontSize: 15.sp,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 5.h),
+
+                    // --- Submit Button ---
+                    SizedBox(
+                      width: 100.w,
+                      height: 7.h,
+                      child: ElevatedButton(
+                        onPressed: state.isLoading ? null : _submitTask,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF512DA8),
+                          elevation: 5,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                        ),
+                        child: state.isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : Text(
+                                "Submit",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 17.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
                   ],
                 ),
               ),
-              SizedBox(height: 4.h),
-
-              /// --- Submit Button ---
-              SizedBox(
-                width: 100.w,
-                height: 6.5.h,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6C63FF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                  ),
-                  child: Text(
-                    "Submit",
-                    style: GoogleFonts.poppins(
-                      fontSize: 17.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 4.h),
+              if (state.isLoading)
+                const ModalBarrier(dismissible: false, color: Colors.black12),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMathMultiUpload() {
+    if (_proofImages.isEmpty) {
+      return InkWell(
+        onTap: _pickImages,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 100.w,
+          height: 20.h,
+          decoration: BoxDecoration(
+            color: Colors.deepPurple.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.deepPurple.withValues(alpha: 0.3),
+              width: 2,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.add_a_photo, size: 40, color: Colors.deepPurple),
+              SizedBox(height: 1.h),
+              Text(
+                "Upload Solution",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15.sp,
+                  color: Colors.deepPurple,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 20.h,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _proofImages.length + 1,
+        separatorBuilder: (_, __) => SizedBox(width: 3.w),
+        itemBuilder: (context, index) {
+          if (index == _proofImages.length) {
+            return InkWell(
+              onTap: _pickImages,
+              child: Container(
+                width: 20.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.deepPurple.withValues(alpha: 0.3)),
+                ),
+                child: const Center(
+                  child: Icon(Icons.add, size: 40, color: Colors.deepPurple),
+                ),
+              ),
+            );
+          }
+          return Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.file(
+                  _proofImages[index],
+                  width: 20.h,
+                  height: 20.h,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                top: 5,
+                right: 5,
+                child: InkWell(
+                  onTap: () => setState(() => _proofImages.removeAt(index)),
+                  child: const CircleAvatar(
+                    backgroundColor: Colors.red,
+                    radius: 12,
+                    child: Icon(Icons.close, size: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

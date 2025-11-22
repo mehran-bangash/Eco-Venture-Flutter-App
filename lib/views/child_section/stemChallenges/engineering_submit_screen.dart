@@ -1,288 +1,362 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-class EngineeringSubmitScreen extends StatefulWidget {
-  const EngineeringSubmitScreen({super.key});
+import '../../../../models/stem_challenge_read_model.dart';
+import '../../../../models/stem_submission_model.dart';
+import '../../../viewmodels/child_view_model/stem_challgengs/child_stem_challenges_view_model_provider.dart';
+
+class EngineeringSubmitScreen extends ConsumerStatefulWidget {
+  final StemChallengeReadModel challenge;
+
+  const EngineeringSubmitScreen({super.key, required this.challenge});
 
   @override
-  State<EngineeringSubmitScreen> createState() => _EngineeringSubmitScreenState();
+  ConsumerState<EngineeringSubmitScreen> createState() =>
+      _EngineeringSubmitScreenState();
 }
 
-class _EngineeringSubmitScreenState extends State<EngineeringSubmitScreen> {
+class _EngineeringSubmitScreenState
+    extends ConsumerState<EngineeringSubmitScreen> {
+  final List<File> _proofImages = [];
+  final TextEditingController _daysController = TextEditingController();
 
-  bool addToPortfolio = false;
+  @override
+  void dispose() {
+    _daysController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImages() async {
+    final ImagePicker picker = ImagePicker();
+    final List<XFile> images = await picker.pickMultiImage(imageQuality: 80);
+    if (images.isNotEmpty) {
+      setState(() {
+        _proofImages.addAll(images.map((x) => File(x.path)));
+      });
+    }
+  }
+
+  Future<void> _submitTask() async {
+    if (_proofImages.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Upload photos of your build!"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if (_daysController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("How long did you build?"),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final submission = StemSubmissionModel(
+      challengeId: widget.challenge.id,
+      studentId: "",
+      challengeTitle: widget.challenge.title,
+      proofImageUrls: [],
+      daysTaken: int.tryParse(_daysController.text.trim()) ?? 1,
+      submittedAt: DateTime.now(),
+      status: 'pending',
+    );
+
+    await ref
+        .read(childStemChallengesViewModelProvider.notifier)
+        .submitChallengeWithProof(
+          submission: submission,
+          proofImages: _proofImages,
+        );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F7FC),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final state = ref.watch(childStemChallengesViewModelProvider);
+
+    ref.listen(childStemChallengesViewModelProvider, (previous, next) {
+      if (next.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Project Submitted for Review! 🛠️"),
+            backgroundColor: Colors.green,
+          ),
+        );
+        ref.read(childStemChallengesViewModelProvider.notifier).resetSuccess();
+        context.goNamed('engineeringScreen');
+      }
+      if (next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${next.errorMessage}"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    });
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.goNamed('stemChallenges');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFECEFF1), // Light Blue Grey
+        body: SafeArea(
+          child: Stack(
             children: [
-              /// --- Header with Gradient Background ---
-              Container(
-                width: 100.w,
-                padding: EdgeInsets.symmetric(vertical: 3.h, horizontal: 3.w),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF7B4EFF), Color(0xFFFFA726)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(24),
-                    bottomRight: Radius.circular(24),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () {
-
-                          context.goNamed('engineeringInstructionScreen');
-
-                      },
-                      icon: const Icon(Icons.arrow_back_ios_new,
-                          color: Colors.white),
-                    ),
-                    SizedBox(width: 2.w),
-                    Text(
-                      "Submit Your Creation",
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 4.h),
-
-              /// --- Challenge Info Card ---
-              Container(
-                width: 100.w,
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
-                ),
+              SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Paper Duck Challenge",
-                      style: GoogleFonts.poppins(
-                        fontSize: 17.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
+                    // --- Header ---
+                    Container(
+                      width: 100.w,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 3.h,
+                        horizontal: 3.w,
                       ),
-                    ),
-                    SizedBox(height: 0.5.h),
-                    Text(
-                      "Create a duck out of paper. The most creative one wins!",
-                      style: GoogleFonts.poppins(
-                        fontSize: 15.sp,
-                        color: Colors.grey[700],
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 3.h),
-
-              /// --- Upload File Section ---
-              Container(
-                width: 100.w,
-                padding: EdgeInsets.all(5.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: Colors.grey.shade300,
-                    style: BorderStyle.solid,
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.cloud_upload_outlined,
-                        size: 8.h, color: Colors.grey.shade400),
-                    SizedBox(height: 1.h),
-                    Text(
-                      "Upload File",
-                      style: GoogleFonts.poppins(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16.sp,
-                        color: Colors.black,
-                      ),
-                    ),
-                    SizedBox(height: 0.5.h),
-                    Text(
-                      "Drag & drop or click to upload",
-                      style: GoogleFonts.poppins(
-                        fontSize: 15.sp,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6C63FF),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF009688), Color(0xFF26A69A)],
                         ),
-                        padding: EdgeInsets.symmetric(
-                            horizontal: 10.w, vertical: 1.5.h),
-                      ),
-                      child: Text(
-                        "Upload",
-                        style: GoogleFonts.poppins(
-                          fontSize: 15.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 3.h),
-
-              /// --- Description Box ---
-              Text(
-                "Description",
-                style: GoogleFonts.poppins(
-                  fontSize: 17.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 1.h),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 4.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
-                child: TextField(
-                  maxLines: 5,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: "Tell us about your creation...",
-                    hintStyle: GoogleFonts.poppins(
-                      color: Colors.grey[500],
-                      fontSize: 15.sp,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 3.h),
-
-              /// --- Portfolio Toggle ---
-              Container(
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
                         children: [
-                          Text(
-                            "Add to my Portfolio",
-                            style: GoogleFonts.poppins(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
+                          IconButton(
+                            onPressed: () => context.pop(),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new,
+                              color: Colors.white,
                             ),
                           ),
-                          SizedBox(height: 0.5.h),
+                          SizedBox(width: 2.w),
                           Text(
-                            "Include this piece in your public portfolio.",
+                            "Submit Prototype",
                             style: GoogleFonts.poppins(
-                              fontSize: 14.5.sp,
-                              color: Colors.grey[600],
+                              color: Colors.white,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Switch(
-                      value: addToPortfolio,
-                      onChanged: (val) {
-                        setState(() {
-                          addToPortfolio = val;
-                        });
-                      },
-                      activeThumbColor: const Color(0xFF6C63FF),
+                    SizedBox(height: 4.h),
+
+                    // --- Info ---
+                    Container(
+                      width: 100.w,
+                      padding: EdgeInsets.all(5.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.teal.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.challenge.title,
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.teal,
+                            ),
+                          ),
+                          Text(
+                            "${widget.challenge.points} Points",
+                            style: GoogleFonts.poppins(
+                              fontSize: 13.sp,
+                              color: Colors.orange,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    SizedBox(height: 3.h),
+
+                    // --- Upload ---
+                    Text(
+                      "Build Photos (${_proofImages.length})",
+                      style: GoogleFonts.poppins(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.teal,
+                      ),
+                    ),
+                    SizedBox(height: 1.5.h),
+                    _buildEngMultiUpload(),
+
+                    SizedBox(height: 3.h),
+
+                    // --- Time ---
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 4.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.teal.withValues(alpha: 0.2)),
+                      ),
+                      child: TextField(
+                        controller: _daysController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "Time spent (e.g. 3 days)",
+                          icon: const Icon(Icons.build, color: Colors.teal),
+                          hintStyle: GoogleFonts.poppins(
+                            color: Colors.grey[400],
+                            fontSize: 15.sp,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 5.h),
+
+                    // --- Submit Button ---
+                    SizedBox(
+                      width: 100.w,
+                      height: 7.h,
+                      child: ElevatedButton(
+                        onPressed: state.isLoading ? null : _submitTask,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF00796B),
+                          elevation: 5,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                        ),
+                        child: state.isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : Text(
+                                "Submit Build",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 17.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
                   ],
                 ),
               ),
-              SizedBox(height: 4.h),
-
-              /// --- Submit Button ---
-              SizedBox(
-                width: 100.w,
-                height: 6.5.h,
-                child: ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6C63FF),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(50),
-                    ),
-                  ),
-                  child: Text(
-                    "Submit",
-                    style: GoogleFonts.poppins(
-                      fontSize: 17.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(height: 4.h),
+              if (state.isLoading)
+                const ModalBarrier(dismissible: false, color: Colors.black12),
             ],
           ),
         ),
       ),
     );
   }
-}
 
+  Widget _buildEngMultiUpload() {
+    if (_proofImages.isEmpty) {
+      return InkWell(
+        onTap: _pickImages,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 100.w,
+          height: 20.h,
+          decoration: BoxDecoration(
+            color: Colors.teal.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.teal.withValues(alpha: 0.3), width: 2),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.camera_alt, size: 40, color: Colors.teal),
+              SizedBox(height: 1.h),
+              Text(
+                "Add Photos",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15.sp,
+                  color: Colors.teal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 20.h,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: _proofImages.length + 1,
+        separatorBuilder: (_, __) => SizedBox(width: 3.w),
+        itemBuilder: (context, index) {
+          if (index == _proofImages.length) {
+            return InkWell(
+              onTap: _pickImages,
+              child: Container(
+                width: 20.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.teal.withValues(alpha: 0.3)),
+                ),
+                child: const Center(
+                  child: Icon(Icons.add, size: 40, color: Colors.teal),
+                ),
+              ),
+            );
+          }
+          return Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.file(
+                  _proofImages[index],
+                  width: 20.h,
+                  height: 20.h,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              Positioned(
+                top: 5,
+                right: 5,
+                child: InkWell(
+                  onTap: () => setState(() => _proofImages.removeAt(index)),
+                  child: const CircleAvatar(
+                    backgroundColor: Colors.red,
+                    radius: 12,
+                    child: Icon(Icons.close, size: 16, color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}

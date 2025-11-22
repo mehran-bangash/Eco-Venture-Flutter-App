@@ -7,13 +7,13 @@ class ChallengeCard extends StatelessWidget {
   final String imageUrl;
   final String difficulty;
   final int rewardPoints;
-  final VoidCallback? onTap;
-
-  /// Custom gradient to match each screen’s theme (Science, Math, etc.)
+  final VoidCallback onTap;
   final List<Color> backgroundGradient;
+  final List<Color> buttonGradient;
 
-  /// Optional — customize Start button gradient
-  final List<Color>? buttonGradient;
+  // --- NEW: Status Parameters ---
+  final String? statusText;
+  final Color? statusColor;
 
   const ChallengeCard({
     super.key,
@@ -21,186 +21,248 @@ class ChallengeCard extends StatelessWidget {
     required this.imageUrl,
     required this.difficulty,
     required this.rewardPoints,
+    required this.onTap,
     required this.backgroundGradient,
-    this.buttonGradient,
-    this.onTap,
+    required this.buttonGradient,
+    this.statusText,
+    this.statusColor,
   });
-
-  Color _difficultyColor(String level) {
-    switch (level.toLowerCase()) {
-      case "easy":
-        return const Color(0xFF5CE1E6);
-      case "medium":
-        return const Color(0xFFFFC857);
-      case "hard":
-        return const Color(0xFFFF6B6B);
-      default:
-        return Colors.blueGrey;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    final diffColor = _difficultyColor(difficulty);
+    final bool isNetworkImage = imageUrl.startsWith('http');
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: backgroundGradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: diffColor.withValues(alpha: 0.25),
-              blurRadius: 20,
-              spreadRadius: -3,
-              offset: const Offset(0, 8),
-            ),
-          ],
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: backgroundGradient,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 🖼️ IMAGE SECTION
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(22),
-                topRight: Radius.circular(22),
-              ),
-              child: Stack(
-                children: [
-                  Image.asset(
-                    imageUrl,
-                    height: 12.h,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    child: Container(
-                      height: 4.h,
-                      width: 100.w,
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.transparent, Colors.black54],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // 📜 CONTENT SECTION
-            Padding(
-              padding: EdgeInsets.all(3.w),
-              child: Column(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          splashColor: Colors.white.withValues(alpha: 0.1),
+          highlightColor: Colors.white.withValues(alpha: 0.05),
+          child: Stack(
+            // Wrap content in Stack to overlay Badge
+            children: [
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: GoogleFonts.poppins(
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 0.8.h),
-
-                  // 🧠 Difficulty Tag
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 3.w, vertical: 0.5.h),
-                    decoration: BoxDecoration(
-                      color: diffColor.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: diffColor, width: 1.2),
-                    ),
-                    child: Text(
-                      difficulty.toUpperCase(),
-                      style: GoogleFonts.poppins(
-                        color: diffColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13.sp,
+                  // --- Image Section (Flex 5) ---
+                  Expanded(
+                    flex: 5,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(20),
+                      ),
+                      child: Container(
+                        width: double.infinity,
+                        color: Colors.black12,
+                        child: isNetworkImage
+                            ? Image.network(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Center(
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white70,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Center(
+                                    child: Icon(
+                                      Icons.image_not_supported_rounded,
+                                      color: Colors.white38,
+                                      size: 30,
+                                    ),
+                                  );
+                                },
+                              )
+                            : Image.asset(
+                                imageUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Center(
+                                      child: Icon(
+                                        Icons.error,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                              ),
                       ),
                     ),
                   ),
-                  SizedBox(height: 1.5.h),
 
-                  // 💎 Points + Start Button
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
+                  // --- Content Section (Flex 4) ---
+                  Expanded(
+                    flex: 4,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(3.w, 1.2.h, 3.w, 1.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.diamond,
-                              color: Colors.cyanAccent, size: 20),
-                          SizedBox(width: 1.w),
+                          // Title
                           Text(
-                            "$rewardPoints",
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14.sp,
-                              color: Colors.white70,
+                              fontSize: 13.5.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 1.2,
                             ),
                           ),
-                        ],
-                      ),
-                      GestureDetector(
-                        onTap: onTap,
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                              horizontal: 4.w, vertical: 0.8.h),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: buttonGradient ??
-                                  const [
-                                    Color(0xFF00F5A0),
-                                    Color(0xFF00D9F5),
+
+                          // Badges Row
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 2.w,
+                                  vertical: 0.4.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white10),
+                                ),
+                                child: Text(
+                                  difficulty,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 12.5.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              const Spacer(),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 2.w,
+                                  vertical: 0.4.h,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.deepOrange.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.star_rounded,
+                                      color: Colors.amber,
+                                      size: 14.sp,
+                                    ),
+                                    SizedBox(width: 1.w),
+                                    Text(
+                                      "$rewardPoints",
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12.sp,
+                                      ),
+                                    ),
                                   ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.cyanAccent.withValues(alpha: 0.3),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                                ),
                               ),
                             ],
                           ),
-                          child: Text(
-                            "Start",
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                              fontSize: 13.sp,
-                            ),
-                          ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
+                  ),
+
+                  // --- Bottom Decoration ---
+                  Container(
+                    height: 0.6.h,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: buttonGradient),
+                      borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(20),
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+
+              // --- STATUS BADGE (Overlay) ---
+              if (statusText != null && statusText!.isNotEmpty)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 3.w,
+                      vertical: 0.5.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor ?? Colors.orange,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white, width: 1.5),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          statusText == 'Done'
+                              ? Icons.check_circle
+                              : Icons.access_time_filled,
+                          color: Colors.white,
+                          size: 12.sp,
+                        ),
+                        SizedBox(width: 1.w),
+                        Text(
+                          statusText!,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
