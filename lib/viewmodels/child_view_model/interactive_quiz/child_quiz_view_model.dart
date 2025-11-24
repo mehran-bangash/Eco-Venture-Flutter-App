@@ -7,31 +7,32 @@ import 'child_quiz_state.dart';
 class ChildQuizViewModel extends StateNotifier<ChildQuizState> {
   final ChildQuizRepository _repository;
 
-  StreamSubscription? _quizSubscription;
+  StreamSubscription? _topicSubscription;
   StreamSubscription? _progressSubscription;
-  StreamSubscription? _categoriesSubscription; // NEW
+  StreamSubscription? _categoriesSubscription;
 
   ChildQuizViewModel(this._repository) : super(ChildQuizState()) {
     _loadUserProgress();
-    _loadCategories(); // NEW: Start listening to categories immediately
+    _loadCategories();
   }
 
-  // New: Load Categories
+  // Load Category List
   void _loadCategories() {
     _categoriesSubscription = _repository.getCategoriesStream().listen((cats) {
       state = state.copyWith(categoryNames: cats);
     });
   }
 
-  void loadQuizzes(String category) {
-    _quizSubscription?.cancel();
+  // 1. Load TOPICS for a Category
+  void loadTopics(String category) {
+    _topicSubscription?.cancel();
     state = state.copyWith(isLoading: true);
 
-    _quizSubscription = _repository.getQuizzesStream(category).listen(
-          (quizzes) {
+    _topicSubscription = _repository.getTopicsStream(category).listen(
+          (topics) {
         state = state.copyWith(
           isLoading: false,
-          quizzes: quizzes,
+          topics: topics,
         );
       },
       onError: (error) {
@@ -40,6 +41,7 @@ class ChildQuizViewModel extends StateNotifier<ChildQuizState> {
     );
   }
 
+  // 2. Load Progress (Unlock Logic)
   void _loadUserProgress() {
     _progressSubscription = _repository.getProgressStream().listen(
           (progressMap) {
@@ -51,9 +53,10 @@ class ChildQuizViewModel extends StateNotifier<ChildQuizState> {
     );
   }
 
-  Future<void> saveQuizResult(ChildQuizProgressModel result) async {
+  // 3. Save Level Result
+  Future<void> saveLevelResult(ChildQuizProgressModel result) async {
     try {
-      await _repository.saveProgress(result);
+      await _repository.saveLevelResult(result);
     } catch (e) {
       state = state.copyWith(errorMessage: "Failed to save progress: $e");
     }
@@ -61,9 +64,9 @@ class ChildQuizViewModel extends StateNotifier<ChildQuizState> {
 
   @override
   void dispose() {
-    _quizSubscription?.cancel();
+    _topicSubscription?.cancel();
     _progressSubscription?.cancel();
-    _categoriesSubscription?.cancel(); // Dispose new subscription
+    _categoriesSubscription?.cancel();
     super.dispose();
   }
 }

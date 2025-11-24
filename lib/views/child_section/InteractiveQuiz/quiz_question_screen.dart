@@ -1,17 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // REQUIRED
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../models/child_progress_model.dart';
-import '../../../models/quiz_model.dart';
+import '../../../models/quiz_topic_model.dart';
 import '../../../viewmodels/child_view_model/interactive_quiz/child_quiz_provider.dart';
 
+// Argument Model
+class QuizQuestionArgs {
+  final QuizLevelModel level;
+  final String topicId;
+  final String category;
+
+  QuizQuestionArgs({
+    required this.level,
+    required this.topicId,
+    required this.category,
+  });
+}
 
 class QuizQuestionScreen extends ConsumerStatefulWidget {
-  final QuizModel quiz; // Now accepts the Real Quiz Object
+  final QuizQuestionArgs args;
 
-  const QuizQuestionScreen({super.key, required this.quiz});
+  const QuizQuestionScreen({super.key, required this.args});
 
   @override
   ConsumerState<QuizQuestionScreen> createState() => _QuizQuestionScreenState();
@@ -20,13 +32,15 @@ class QuizQuestionScreen extends ConsumerStatefulWidget {
 class _QuizQuestionScreenState extends ConsumerState<QuizQuestionScreen>
     with SingleTickerProviderStateMixin {
 
+  late QuizLevelModel level;
+  late String topicId;
+  late String category;
+
   int currentIndex = 0;
   String? selectedOption;
-
-  // --- Tracking Variables ---
   int correctAnswersCount = 0;
   int wrongAnswersCount = 0;
-  List<Map<String, dynamic>> attemptDetails = []; // To save detailed report
+  List<Map<String, dynamic>> attemptDetails = [];
 
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -34,8 +48,11 @@ class _QuizQuestionScreenState extends ConsumerState<QuizQuestionScreen>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 400));
+    level = widget.args.level;
+    topicId = widget.args.topicId;
+    category = widget.args.category;
+
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
     _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
     _controller.forward();
   }
@@ -49,17 +66,15 @@ class _QuizQuestionScreenState extends ConsumerState<QuizQuestionScreen>
   void nextQuestion() async {
     if (selectedOption == null) return;
 
-    final currentQuestion = widget.quiz.questions[currentIndex];
+    final currentQuestion = level.questions[currentIndex];
     final bool isCorrect = selectedOption == currentQuestion.answer;
 
-    // 1. Update Counters
     if (isCorrect) {
       correctAnswersCount++;
     } else {
       wrongAnswersCount++;
     }
 
-    // 2. Record Detail for Report
     attemptDetails.add({
       'question': currentQuestion.question,
       'selected': selectedOption,
@@ -67,29 +82,30 @@ class _QuizQuestionScreenState extends ConsumerState<QuizQuestionScreen>
       'is_correct': isCorrect,
     });
 
-    // 3. Check if Quiz Ended
-    if (currentIndex < widget.quiz.questions.length - 1) {
+    if (currentIndex < level.questions.length - 1) {
       setState(() {
         currentIndex++;
         selectedOption = null;
       });
       _controller.forward(from: 0);
     } else {
-      // --- FINISH QUIZ LOGIC ---
       await _finishQuiz();
     }
   }
 
   Future<void> _finishQuiz() async {
-    final totalQuestions = widget.quiz.questions.length;
+    final totalQuestions = level.questions.length;
     final double percentage = (correctAnswersCount / totalQuestions) * 100;
-    final bool isPassed = percentage >= widget.quiz.passingPercentage;
 
-    // 1. Create Progress Model
+    // Logic: Must equal or exceed passing %
+    final bool isPassed = percentage >= level.passingPercentage;
+
+    print("DEBUG: Finishing Quiz. Topic: $topicId, Order: ${level.order}, Pass: $isPassed");
+
     final progress = ChildQuizProgressModel(
-      quizId: widget.quiz.id!,
-      category: widget.quiz.category,
-      order: widget.quiz.order,
+      topicId: topicId,
+      category: category,
+      levelOrder: level.order,
       correctAnswers: correctAnswersCount,
       wrongAnswers: wrongAnswersCount,
       attemptPercentage: percentage,
@@ -99,12 +115,8 @@ class _QuizQuestionScreenState extends ConsumerState<QuizQuestionScreen>
       attempts: 1,
     );
 
-    // 2. Save to Firebase
-    await ref
-        .read(childQuizViewModelProvider.notifier)
-        .saveQuizResult(progress);
+    await ref.read(childQuizViewModelProvider.notifier).saveLevelResult(progress);
 
-    // 3. Navigate to Completion Screen
     if (!mounted) return;
 
     context.goNamed(
@@ -113,190 +125,169 @@ class _QuizQuestionScreenState extends ConsumerState<QuizQuestionScreen>
         'correct': correctAnswersCount.toString(),
         'total': totalQuestions.toString(),
       },
-      extra: progress, // ✔ passing progress object correctly
+      extra: progress,
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-    // Safety check for empty quiz
-    if (widget.quiz.questions.isEmpty) {
-      return Scaffold(body: Center(child: Text("No questions in this quiz.")));
-    }
+    if (level.questions.isEmpty) return const Scaffold(body: Center(child: Text("No questions.")));
 
-    final currentQuestion = widget.quiz.questions[currentIndex];
+    final currentQuestion = level.questions[currentIndex];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F6FF),
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        elevation: 0,
-        backgroundColor: Colors.deepPurpleAccent,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => context.pop(), // Allow exit
-        ),
-        title: Text(
-          widget.quiz.title, // Real Title
-          style: GoogleFonts.poppins(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16.sp,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if(!didPop){
+          context.goNamed('interactiveQuiz');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF6F6FF),
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          elevation: 0,
+          backgroundColor: Colors.deepPurpleAccent,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white),
+            onPressed: () => context.pop(),
+          ),
+          title: Text(
+            "Level ${level.order}",
+            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 17.sp),
           ),
         ),
-      ),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Progress Indicator
-              LinearProgressIndicator(
-                value: (currentIndex + 1) / widget.quiz.questions.length,
-                backgroundColor: Colors.grey[300],
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                    Colors.deepPurpleAccent),
-              ),
-              SizedBox(height: 2.h),
-
-              Center(
-                child: Text(
-                  "Question ${currentIndex + 1} of ${widget.quiz.questions.length}",
-                  style: GoogleFonts.poppins(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 17.sp,
-                    color: Colors.deepPurpleAccent,
+        body: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- 1. PROGRESS BAR ---
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: (currentIndex + 1) / level.questions.length,
+                    backgroundColor: Colors.grey[300],
+                    minHeight: 1.h,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.deepPurpleAccent),
                   ),
                 ),
-              ),
-              SizedBox(height: 3.h),
+                SizedBox(height: 2.h),
 
-              // Question Card
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
+                // --- 2. QUESTION COUNTER (FIXED VISIBILITY) ---
+                Center(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                    decoration: BoxDecoration(
                       color: Colors.deepPurpleAccent.withValues(alpha: 0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // OPTIONAL IMAGE LOGIC
-                    if (currentQuestion.imageUrl != null && currentQuestion.imageUrl!.isNotEmpty) ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.network(
-                          currentQuestion.imageUrl!,
-                          height: 25.h,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const SizedBox.shrink(); // Hide if image fails to load
-                          },
-                        ),
-                      ),
-                      SizedBox(height: 2.h),
-                    ],
-
-                    // Question Text (Compulsory)
-                    Text(
-                      currentQuestion.question,
-                      textAlign: TextAlign.center,
+                    child: Text(
+                      "Question ${currentIndex + 1} / ${level.questions.length}",
                       style: GoogleFonts.poppins(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.sp, // Larger Font
+                        color: Colors.deepPurpleAccent,
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-              SizedBox(height: 3.h),
+                SizedBox(height: 3.h),
 
-              // Options List (Expanded to fill space if needed, or scrollable)
-              Expanded(
-                child: SingleChildScrollView(
+                // --- 3. QUESTION CARD ---
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(5.w),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 5))]
+                  ),
                   child: Column(
-                    children: currentQuestion.options.map((option) {
-                      final isSelected = selectedOption == option;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedOption = option;
-                          });
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          margin: EdgeInsets.only(bottom: 1.5.h),
-                          padding: EdgeInsets.all(3.5.w),
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            color: isSelected
-                                ? Colors.deepPurpleAccent.withValues(alpha: 0.1)
-                                : Colors.white,
-                            border: Border.all(
-                              color: isSelected
-                                  ? Colors.deepPurpleAccent
-                                  : Colors.grey.shade300,
-                              width: isSelected ? 2.5 : 1.5,
-                            ),
-                          ),
-                          child: Text(
-                            option,
-                            style: GoogleFonts.poppins(
-                              fontSize: 16.sp,
-                              color: isSelected
-                                  ? Colors.deepPurpleAccent
-                                  : Colors.black87,
-                              fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.w500,
-                            ),
+                    children: [
+                      if (currentQuestion.imageUrl != null && currentQuestion.imageUrl!.isNotEmpty) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            currentQuestion.imageUrl!,
+                            height: 22.h,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (c, e, s) => const SizedBox.shrink(),
                           ),
                         ),
-                      );
-                    }).toList(),
+                        SizedBox(height: 2.h),
+                      ],
+                      Text(
+                          currentQuestion.question,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.w700, color: Colors.black87)
+                      ),
+                    ],
                   ),
                 ),
-              ),
+                SizedBox(height: 3.h),
 
-              // Next / Finish Button
-              SizedBox(
-                width: double.infinity,
-                height: 7.h,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurpleAccent,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  onPressed: selectedOption == null ? null : nextQuestion,
-                  child: Text(
-                    currentIndex == widget.quiz.questions.length - 1
-                        ? "Finish Quiz"
-                        : "Next Question",
-                    style: GoogleFonts.poppins(
-                      fontSize: 17.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                // --- 4. OPTIONS ---
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: currentQuestion.options.map((opt) {
+                        final isSelected = selectedOption == opt;
+                        return GestureDetector(
+                          onTap: () => setState(() => selectedOption = opt),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: EdgeInsets.only(bottom: 1.5.h),
+                            padding: EdgeInsets.all(4.w),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.deepPurpleAccent : Colors.white,
+                              border: Border.all(color: isSelected ? Colors.transparent : Colors.grey.shade300, width: 1.5),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: isSelected ? [BoxShadow(color: Colors.deepPurpleAccent.withValues(alpha: 0.3), blurRadius: 8)] : [],
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                      opt,
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 15.sp,
+                                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                          color: isSelected ? Colors.white : Colors.black87
+                                      )
+                                  ),
+                                ),
+                                if (isSelected) Icon(Icons.check_circle, color: Colors.white, size: 18.sp)
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(height: 2.h),
-            ],
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 7.h,
+                  child: ElevatedButton(
+                    onPressed: selectedOption == null ? null : nextQuestion,
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurpleAccent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))
+                    ),
+                    child: Text(
+                        currentIndex == level.questions.length - 1 ? "FINISH" : "NEXT",
+                        style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)
+                    ),
+                  ),
+                )
+              ],
+            ),
           ),
         ),
       ),

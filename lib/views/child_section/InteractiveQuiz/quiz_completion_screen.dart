@@ -30,147 +30,155 @@ class QuizCompletionScreen extends StatelessWidget {
     // Determine status from the Progress Model (if available)
     final bool isPassed = progress?.isPassed ?? false;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F9FF),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-          child: Column(
-            children: [
-              SizedBox(height: 5.h),
-              Text(
-                isPassed ? "Level Complete! 🎉" : "Good Effort! 💪",
-                style: GoogleFonts.poppins(
-                  fontSize: 22.sp,
-                  fontWeight: FontWeight.w700,
-                  color: isPassed ? Colors.deepPurpleAccent : Colors.orangeAccent,
-                ),
-              ),
-              SizedBox(height: 1.h),
-              if (isPassed)
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.green),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if(!didPop){
+          context.goNamed('childQuizTopicDetailScreen');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9F9FF),
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+            child: Column(
+              children: [
+                SizedBox(height: 5.h),
+                Text(
+                  isPassed ? "Level Complete! 🎉" : "Good Effort! 💪",
+                  style: GoogleFonts.poppins(
+                    fontSize: 22.sp,
+                    fontWeight: FontWeight.w700,
+                    color: isPassed ? Colors.deepPurpleAccent : Colors.orangeAccent,
                   ),
-                  child: Text(
-                    "🔓 Next Level Unlocked",
-                    style: GoogleFonts.poppins(
-                        fontSize: 10.sp,
-                        color: Colors.green,
-                        fontWeight: FontWeight.w600
+                ),
+                SizedBox(height: 1.h),
+                if (isPassed)
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.green),
+                    ),
+                    child: Text(
+                      "🔓 Next Level Unlocked",
+                      style: GoogleFonts.poppins(
+                          fontSize: 10.sp,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600
+                      ),
+                    ),
+                  ),
+
+                SizedBox(height: 4.h),
+
+                // Score Circle
+                Container(
+                  height: 45.w,
+                  width: 45.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isPassed ? Colors.deepPurpleAccent : Colors.orangeAccent,
+                      width: 4,
+                    ),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                            isPassed ? Icons.emoji_events : Icons.thumb_up,
+                            color: isPassed ? Colors.amberAccent : Colors.orangeAccent,
+                            size: 10.w
+                        ),
+                        SizedBox(height: 1.h),
+                        Text(
+                          "$correctAnswers / $totalQuestions",
+                          style: GoogleFonts.poppins(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Text(
+                          "${accuracy.toStringAsFixed(0)}%",
+                          style: GoogleFonts.poppins(
+                            fontSize: 16.sp,
+                            color: Colors.grey[800],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
 
-              SizedBox(height: 4.h),
+                SizedBox(height: 4.h),
 
-              // Score Circle
-              Container(
-                height: 45.w,
-                width: 45.w,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isPassed ? Colors.deepPurpleAccent : Colors.orangeAccent,
-                    width: 4,
+                // Performance Card
+                Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(5.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withValues(alpha: 0.1),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      )
+                    ],
                   ),
-                ),
-                child: Center(
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                          isPassed ? Icons.emoji_events : Icons.thumb_up,
-                          color: isPassed ? Colors.amberAccent : Colors.orangeAccent,
-                          size: 10.w
-                      ),
-                      SizedBox(height: 1.h),
                       Text(
-                        "$correctAnswers / $totalQuestions",
-                        style: GoogleFonts.poppins(
-                          fontSize: 20.sp,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
-                        ),
-                      ),
-                      Text(
-                        "${accuracy.toStringAsFixed(0)}%",
+                        "Summary",
                         style: GoogleFonts.poppins(
                           fontSize: 16.sp,
-                          color: Colors.grey[800],
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w700,
                         ),
+                      ),
+                      SizedBox(height: 2.h),
+                      buildPerformanceRow(
+                          Icons.check_circle_outline,
+                          "Correct Answers",
+                          correctAnswers.toString(),
+                          color: Colors.green
+                      ),
+                      buildPerformanceRow(
+                          Icons.cancel_outlined,
+                          "Wrong Answers",
+                          wrongAnswers.toString(),
+                          color: Colors.redAccent
+                      ),
+                      buildPerformanceRow(
+                          Icons.percent,
+                          "Accuracy",
+                          "${accuracy.toStringAsFixed(0)}%",
+                          color: Colors.deepPurpleAccent
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              SizedBox(height: 4.h),
+                const Spacer(),
 
-              // Performance Card
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(5.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.1),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    )
-                  ],
+                // Buttons
+                buildGradientButton(
+                  text: "Back to Levels",
+                  icon: Icons.list_alt_rounded,
+                  onPressed: () {
+                    context.goNamed('interactiveQuiz');
+                  },
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Summary",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    buildPerformanceRow(
-                        Icons.check_circle_outline,
-                        "Correct Answers",
-                        correctAnswers.toString(),
-                        color: Colors.green
-                    ),
-                    buildPerformanceRow(
-                        Icons.cancel_outlined,
-                        "Wrong Answers",
-                        wrongAnswers.toString(),
-                        color: Colors.redAccent
-                    ),
-                    buildPerformanceRow(
-                        Icons.percent,
-                        "Accuracy",
-                        "${accuracy.toStringAsFixed(0)}%",
-                        color: Colors.deepPurpleAccent
-                    ),
-                  ],
-                ),
-              ),
-
-              const Spacer(),
-
-              // Buttons
-              buildGradientButton(
-                text: "Back to Levels",
-                icon: Icons.list_alt_rounded,
-                onPressed: () {
-                  context.goNamed('interactiveQuiz');
-                },
-              ),
-              SizedBox(height: 2.h),
-            ],
+                SizedBox(height: 2.h),
+              ],
+            ),
           ),
         ),
       ),

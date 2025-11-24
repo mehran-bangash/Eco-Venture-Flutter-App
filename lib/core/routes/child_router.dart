@@ -1,6 +1,7 @@
 
-import 'package:eco_venture/models/quiz_model.dart';
+import 'package:eco_venture/models/quiz_topic_model.dart';
 import 'package:eco_venture/models/stem_challenge_read_model.dart';
+import 'package:eco_venture/views/child_section/InteractiveQuiz/child_quiz_topic_detail_screen.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_completion_screen.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_question_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
@@ -310,11 +311,20 @@ class ChildRouter {
             builder: (context, state) => const InteractiveQuizScreen(),
             routes: [
               GoRoute(
+                path: RouteNames.childQuizTopicDetailScreen,
+                name: 'childQuizTopicDetailScreen',
+                builder: (context, state) {
+                  final quizModel = state.extra as QuizTopicModel;
+                  return ChildQuizTopicDetailScreen(topic: quizModel);
+                },
+
+              ),
+              GoRoute(
                 path: 'quiz-question-screen',
                 name: 'quizQuestionScreen',
                 builder: (context, state) {
-                  final quizModel = state.extra as QuizModel;
-                  return QuizQuestionScreen(quiz: quizModel);
+                  final questionArgs = state.extra as QuizQuestionArgs;
+                  return QuizQuestionScreen(args:questionArgs ,);
                 },
 
               ),

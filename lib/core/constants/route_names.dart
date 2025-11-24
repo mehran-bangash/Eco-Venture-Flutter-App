@@ -72,6 +72,8 @@ class RouteNames {
   static const interactiveQuiz = '/child/interactive-quiz';
   static const quizQuestionScreen='/child/interactive-quiz/quiz-question-screen';
   static const quizCompletionScreen='/child/interactive-quiz/quiz-question-screen/quiz-completion-screen';
+  static const childQuizTopicDetailScreen='/child/interactive-quiz/child-quiz-topic-detail-screen';
+
 
 
 

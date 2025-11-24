@@ -1,33 +1,33 @@
 import '../../../models/child_progress_model.dart';
-import '../../../models/quiz_model.dart';
+import '../../../models/quiz_topic_model.dart';
 
 
 class ChildQuizState {
   final bool isLoading;
   final String? errorMessage;
-  final List<QuizModel> quizzes;
-  final Map<String, ChildQuizProgressModel> progress;
-  final List<String> categoryNames; // NEW: Holds dynamic categories
+  final List<QuizTopicModel> topics; // Holds Topics now
+  final Map<String, ChildQuizProgressModel> progress; // Key: "TopicID_LevelOrder"
+  final List<String> categoryNames;
 
   ChildQuizState({
     this.isLoading = false,
     this.errorMessage,
-    this.quizzes = const [],
+    this.topics = const [],
     this.progress = const {},
-    this.categoryNames = const [], // Default empty
+    this.categoryNames = const [],
   });
 
   ChildQuizState copyWith({
     bool? isLoading,
     String? errorMessage,
-    List<QuizModel>? quizzes,
+    List<QuizTopicModel>? topics,
     Map<String, ChildQuizProgressModel>? progress,
     List<String>? categoryNames,
   }) {
     return ChildQuizState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
-      quizzes: quizzes ?? this.quizzes,
+      topics: topics ?? this.topics,
       progress: progress ?? this.progress,
       categoryNames: categoryNames ?? this.categoryNames,
     );

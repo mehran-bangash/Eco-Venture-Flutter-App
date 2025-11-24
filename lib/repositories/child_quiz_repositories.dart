@@ -1,5 +1,5 @@
 import '../models/child_progress_model.dart';
-import '../models/quiz_model.dart';
+import '../models/quiz_topic_model.dart';
 import '../services/child_quiz_service.dart';
 
 class ChildQuizRepository {
@@ -7,19 +7,22 @@ class ChildQuizRepository {
 
   ChildQuizRepository(this._service);
 
-  Stream<List<QuizModel>> getQuizzesStream(String category) {
-    return _service.getPublicQuizzesStream(category);
+  // 1. Get List of TOPICS for a Category
+  Stream<List<QuizTopicModel>> getTopicsStream(String category) {
+    return _service.getPublicTopicsStream(category);
   }
 
+  // 2. Get User Progress
   Stream<Map<String, ChildQuizProgressModel>> getProgressStream() {
     return _service.getChildProgressStream();
   }
 
-  Future<void> saveProgress(ChildQuizProgressModel progress) async {
-    await _service.saveQuizResult(progress);
+  // 3. Save Level Result
+  Future<void> saveLevelResult(ChildQuizProgressModel progress) async {
+    await _service.saveLevelResult(progress);
   }
 
-  // New Method
+  // 4. Get Categories List
   Stream<List<String>> getCategoriesStream() {
     return _service.getCategoriesStream();
   }
