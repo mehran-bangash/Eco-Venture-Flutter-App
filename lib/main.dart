@@ -10,7 +10,6 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Correct way: load from project root
   await dotenv.load(fileName: ".env");
 
   await Firebase.initializeApp(

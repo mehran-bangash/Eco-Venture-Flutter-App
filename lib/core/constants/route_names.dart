@@ -7,20 +7,21 @@ class RouteNames {
 
   //child section
   static const bottomNavChild = '/child';
+  static const bottomNavTeacher = '/teacher';
   // Role-based homes
   static const childHome = '/child/home';
-  static const teacherHome = '/teacher/home';
   static const parentHome = '/parent/home';
 
   //  nested inside child
   static const childProfile = '/child/child-profile';
   static const editProfile = '/child/child-profile/edit-profile';
   static const childSettings = '/child/child-settings';
-  static const aiChatScreen= '/child/ai-chat-screen';
-  static const reportSafetyScreen='/child/report-safety-screen';
-  static const reportIssueScreen='/child/report-safety-screen/report-issue-screen';
-  static const progressDashboardScreen='/child/progress-dashboard-screen';
-  static const rewardScreen= '/child/reward-screen';
+  static const aiChatScreen = '/child/ai-chat-screen';
+  static const reportSafetyScreen = '/child/report-safety-screen';
+  static const reportIssueScreen =
+      '/child/report-safety-screen/report-issue-screen';
+  static const progressDashboardScreen = '/child/progress-dashboard-screen';
+  static const rewardScreen = '/child/reward-screen';
 
   // nested inside child Section multiMediaContent
   static const multiMediaContent = '/child/multimedia-content';
@@ -33,7 +34,8 @@ class RouteNames {
 
   //nested inside child Section Photo journal
   static const naturePhotoJournal = '/child/nature-photo-journal';
-  static const learnWithAiScreen = '/child/nature-photo-journal/learn-with-Ai-screen';
+  static const learnWithAiScreen =
+      '/child/nature-photo-journal/learn-with-Ai-screen';
   static const naturePhotoExploreScreen =
       '/child/nature-photo-journal/add-entry-screen/nature-photo-explore-screen';
   static const natureDescriptionScreen =
@@ -62,20 +64,62 @@ class RouteNames {
   static const technologySubmitScreen =
       '/child/stem-challenges/technology-screen/technology-submit-screen';
 
-//nested inside child Section treasureHunt
+  //nested inside child Section treasureHunt
   static const treasureHunt = '/child/treasure-hunt';
-  static const  clueLockedScreen='/child/treasure-hunt/clue-locked-screen';
-  static const qrScannerScreen='/child/treasure-hunt/clue-locked-screen/qr-scanner-screen';
-  static const qrSuccessScreen='/child/treasure-hunt/clue-locked-screen/qr-success-scree/qr-scanner-screen';
+  static const clueLockedScreen = '/child/treasure-hunt/clue-locked-screen';
+  static const qrScannerScreen =
+      '/child/treasure-hunt/clue-locked-screen/qr-scanner-screen';
+  static const qrSuccessScreen =
+      '/child/treasure-hunt/clue-locked-screen/qr-success-scree/qr-scanner-screen';
 
   //nested inside child Section interactiveQuiz
   static const interactiveQuiz = '/child/interactive-quiz';
-  static const quizQuestionScreen='/child/interactive-quiz/quiz-question-screen';
-  static const quizCompletionScreen='/child/interactive-quiz/quiz-question-screen/quiz-completion-screen';
-  static const childQuizTopicDetailScreen='/child/interactive-quiz/child-quiz-topic-detail-screen';
+  static const quizQuestionScreen =
+      '/child/interactive-quiz/quiz-question-screen';
+  static const quizCompletionScreen =
+      '/child/interactive-quiz/quiz-question-screen/quiz-completion-screen';
+  static const childQuizTopicDetailScreen =
+      '/child/interactive-quiz/child-quiz-topic-detail-screen';
 
+  // Teacher Routes
 
+  static const teacherHome = '/teacher/home';
+  static const addStudentScreen = '/teacher/home/add-student-screen';
+  static const studentDetailScreen='/teacher/home/student-detail-screen';
+  static const classReportScreen='/teacher/home/class-report-screen';
 
+// Teacher Profile Section
+  static const teacherProfile = '/teacher/teacher-profile';
+  static const teacherEditProfile =
+      '/teacher/teacher-profile/edit-profile';
+  static const teacherSettings = '/teacher/teacher-settings';
+  static const teacherAiChatScreen = '/teacher/ai-chat-screen';
+  static const teacherReportSafetyScreen =
+      '/teacher/report-safety-screen';
+  static const teacherReportIssueScreen =
+      '/teacher/report-safety-screen/report-issue-screen';
+  static const teacherProgressDashboardScreen =
+      '/teacher/progress-dashboard-screen';
+  static const teacherRewardScreen = '/teacher/reward-screen';
+
+  // Teacher Quiz Module
+  static const teacherQuizDashboard='/teacher/home/teacher-quiz-dashboard';
+  static const teacherAddQuizScreen='/teacher/home/teacher-quiz-dashboard/teacher-add-quiz-screen';
+  static const teacherEditQuizScreen='/teacher/home/teacher-quiz-dashboard/teacher-edit-quiz-screen';
+
+  // Teacher STEM Challenges Module
+  static const teacherStemChallengeDashboard='/teacher/home/teacher-stem-challenge-dashboard';
+  static const  teacherAddStemChallengeScreen='/teacher/home/teacher-stem-challenge-dashboard/teacher-add-stem-challenge-screen';
+  static const  teacherEditStemChallengeScreen='/teacher/home/teacher-stem-challenge-dashboard/teacher-edit-stem-challenge-screen';
+
+   //Teacher MultiMediaContent
+   static const teacherMultimediaDashboard='/teacher/home/teacher-multimedia-dashboard';
+   static const teacherVideoDashboard='/teacher/home/teacher-multimedia-dashboard/teacher-video-dashboard';
+   static const teacherAddVideoScreen='/teacher/home/teacher-multimedia-dashboard/teacher-video-dashboard/teacher-add-video-screen';
+   static const teacherEditVideoScreen='/teacher/home/teacher-multimedia-dashboard/teacher-video-dashboard/teacher-edit-video-screen';
+   static const teacherStoryDashboard='/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard';
+   static const teacherAddStoryScreen='/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard/teacher-add-story-screen';
+   static const teacherEditStoryScreen='/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard/teacher-edit-story-screen';
 
 
 

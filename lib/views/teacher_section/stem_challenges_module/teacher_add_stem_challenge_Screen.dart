@@ -1,0 +1,507 @@
+import 'dart:ui'; // REQUIRED for PathMetrics and PathMetric
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:responsive_sizer/responsive_sizer.dart';
+
+// 1. Removed Riverpod Imports
+// import 'package:flutter_riverpod/flutter_riverpod.dart';
+// import '../../../../models/stem_challenge_model.dart';
+// import '../../../../viewmodels/child_section/stem_challenges/stem_challenges_provider.dart';
+
+// 2. Change back to StatefulWidget
+class TeacherAddStemChallengeScreen extends StatefulWidget {
+  const TeacherAddStemChallengeScreen({super.key});
+
+  @override
+  State<TeacherAddStemChallengeScreen> createState() => _TeacherAddStemChallengeScreenState();
+}
+
+class _TeacherAddStemChallengeScreenState extends State<TeacherAddStemChallengeScreen> {
+  // --- COLORS ---
+  final Color _primaryBlue = const Color(0xFF1565C0);
+  final Color _lightBlue = const Color(0xFFE3F2FD);
+  final Color _textDark = const Color(0xFF1B2559);
+  final Color _textGrey = const Color(0xFFA3AED0);
+  final Color _borderGrey = const Color(0xFFE0E0E0);
+  final Color _dashedBorderColor = const Color(0xFFBDBDBD);
+
+  // --- CONTROLLERS & STATE ---
+  final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _pointsController = TextEditingController(text: "50");
+  final TextEditingController _materialController = TextEditingController();
+
+  // Dropdowns
+  String _selectedCategory = 'Science';
+  final List<String> _categories = ['Science', 'Technology', 'Engineering', 'Mathematics'];
+  String _selectedDifficulty = 'Easy';
+  final List<String> _difficultyLevels = ['Easy', 'Medium', 'Hard'];
+
+  // Image & Lists
+  File? _challengeImage;
+  List<String> _materials = ['Baking Soda', 'Vinegar'];
+  List<String> _steps = ["Mix baking soda and vinegar", "Observe the chemical reaction"];
+
+  // Local Loading State
+  bool _isLoading = false;
+
+  // FIX: Defined missing variable
+  bool _shouldPopAfterSave = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F7FE),
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              // --- ULTRA PRO HEADER ---
+              _buildHeader(),
+
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // --- CARD 1: BASIC DETAILS ---
+                      Container(
+                        padding: EdgeInsets.all(5.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader("Challenge Basics"),
+                            SizedBox(height: 2.5.h),
+                            _buildLabel("Challenge Title"),
+                            _buildTextField(controller: _titleController, hint: "e.g. Bridge Building"),
+                            SizedBox(height: 2.5.h),
+
+                            Row(
+                              children: [
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  _buildLabel("Category"),
+                                  _buildDropdown(_categories, _selectedCategory, (v) => setState(() => _selectedCategory = v!))
+                                ])),
+                                SizedBox(width: 4.w),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  _buildLabel("Difficulty"),
+                                  _buildDropdown(_difficultyLevels, _selectedDifficulty, (v) => setState(() => _selectedDifficulty = v!))
+                                ])),
+                              ],
+                            ),
+                            SizedBox(height: 2.5.h),
+                            _buildLabel("Points Reward"),
+                            _buildTextField(controller: _pointsController, hint: "50", isNumber: true),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 3.h),
+
+                      // --- CARD 2: VISUALS ---
+                      Container(
+                        padding: EdgeInsets.all(5.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionHeader("Visuals"),
+                            SizedBox(height: 2.h),
+                            _buildLabel("Cover Image"),
+                            _buildImageUpload(),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 3.h),
+
+                      // --- CARD 3: MATERIALS ---
+                      Container(
+                        padding: EdgeInsets.all(5.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildSectionHeader("Materials"),
+                                // FIX: Using _showAddItemDialog correctly
+                                _buildAddButton("Add Item", () => _showAddItemDialog("Material", (val) => setState(() => _materials.add(val))))
+                              ],
+                            ),
+                            SizedBox(height: 2.h),
+                            Wrap(
+                              spacing: 2.w, runSpacing: 1.h,
+                              children: _materials.map((m) => _buildChip(m, () => setState(() => _materials.remove(m)))).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 3.h),
+
+                      // --- CARD 4: STEPS ---
+                      Container(
+                        padding: EdgeInsets.all(5.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _buildSectionHeader("Instructions"),
+                                // FIX: Using _showAddItemDialog correctly
+                                _buildAddButton("Add Step", () => _showAddItemDialog("Step Description", (val) => setState(() => _steps.add(val))))
+                              ],
+                            ),
+                            SizedBox(height: 2.h),
+                            ..._steps.asMap().entries.map((e) => _buildStepItem(e.key + 1, e.value)),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 5.h),
+
+                      // Footer Buttons
+                      _buildFooterButtons(_isLoading),
+                      SizedBox(height: 5.h),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Loading Overlay
+          if (_isLoading)
+            Container(
+              color: Colors.black54,
+              child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // --- MOCK SAVE LOGIC ---
+  Future<void> _saveChallenge() async {
+    if (_titleController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a title")));
+      return;
+    }
+    if (_pointsController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter points")));
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    // Simulate Network Delay
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Challenge Saved Successfully! (Mock)", style: TextStyle(fontSize: 15.sp)), backgroundColor: Colors.green));
+
+      if (_shouldPopAfterSave) {
+        Navigator.pop(context);
+      } else {
+        _clearForm();
+      }
+    }
+  }
+
+  // Clear form for "Save & Add Another"
+  void _clearForm() {
+    setState(() {
+      _titleController.clear();
+      _pointsController.text = "50";
+      _materialController.clear();
+      _selectedCategory = _categories.first;
+      _selectedDifficulty = _difficultyLevels.first;
+      _challengeImage = null;
+      _materials = []; // Clear list
+      _steps = []; // Clear list
+    });
+  }
+
+  // --- WIDGET BUILDERS ---
+
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(top: 6.h, bottom: 3.h, left: 5.w, right: 5.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [_primaryBlue, const Color(0xFF42A5F5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+        boxShadow: [BoxShadow(color: _primaryBlue.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+      ),
+      child: Row(
+        children: [
+          InkWell(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              padding: EdgeInsets.all(2.w),
+              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+              child: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+            ),
+          ),
+          SizedBox(width: 4.w),
+          Text(
+            "New Challenge",
+            style: GoogleFonts.poppins(fontSize: 20.sp, fontWeight: FontWeight.w700, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: GoogleFonts.poppins(
+        fontSize: 17.sp,
+        fontWeight: FontWeight.w800,
+        color: _textDark,
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 1.h),
+      child: Text(
+        text,
+        style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: _textDark),
+      ),
+    );
+  }
+
+  Widget _buildTextField({required TextEditingController controller, required String hint, bool isNumber = false, bool isCenter = false}) {
+    return TextField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      textAlign: isCenter ? TextAlign.center : TextAlign.start,
+      style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w500),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 15.sp),
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: _primaryBlue, width: 1.5)),
+      ),
+    );
+  }
+
+  Widget _buildDropdown(List<String> items, String selected, Function(String?) onChanged) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selected,
+          isExpanded: true,
+          icon: Icon(Icons.keyboard_arrow_down, color: _primaryBlue, size: 22.sp),
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w500)))).toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageUpload() {
+    return CustomPaint(
+      painter: DashedRectPainter(color: _primaryBlue, strokeWidth: 2, gap: 6, radius: 16),
+      child: InkWell(
+        onTap: () async {
+          final ImagePicker picker = ImagePicker();
+          final XFile? img = await picker.pickImage(source: ImageSource.gallery);
+          if (img != null) setState(() => _challengeImage = File(img.path));
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          height: 22.h,
+          width: double.infinity,
+          alignment: Alignment.center,
+          decoration: _challengeImage == null ? BoxDecoration(color: _primaryBlue.withOpacity(0.05), borderRadius: BorderRadius.circular(16)) : null,
+          child: _challengeImage != null
+              ? ClipRRect(borderRadius: BorderRadius.circular(16), child: Image.file(_challengeImage!, fit: BoxFit.cover, width: double.infinity, height: double.infinity))
+              : Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.cloud_upload_rounded, size: 32.sp, color: _primaryBlue),
+              SizedBox(height: 1.h),
+              Text("Tap to upload image", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: _primaryBlue)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddButton(String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+        decoration: BoxDecoration(color: _primaryBlue.withOpacity(0.1), borderRadius: BorderRadius.circular(30)),
+        child: Row(children: [Icon(Icons.add, size: 18.sp, color: _primaryBlue), SizedBox(width: 1.5.w), Text(label, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.bold, color: _primaryBlue))]),
+      ),
+    );
+  }
+
+  Widget _buildChip(String label, VoidCallback onDelete) {
+    return Chip(
+      label: Text(label, style: GoogleFonts.poppins(fontSize: 14.sp, color: _primaryBlue, fontWeight: FontWeight.w500)),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: _primaryBlue.withOpacity(0.2))),
+      deleteIcon: Icon(Icons.close, size: 18.sp, color: Colors.redAccent),
+      onDeleted: onDelete,
+      padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
+    );
+  }
+
+  Widget _buildStepItem(int index, String text) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 2.h),
+      padding: EdgeInsets.all(4.w),
+      decoration: BoxDecoration(color: const Color(0xFFF8F9FA), borderRadius: BorderRadius.circular(14)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(radius: 14.sp, backgroundColor: _primaryBlue, child: Text("$index", style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.bold))),
+          SizedBox(width: 3.w),
+          Expanded(child: Text(text, style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark))),
+          InkWell(onTap: () => setState(() => _steps.remove(text)), child: Icon(Icons.delete_outline, color: Colors.redAccent, size: 20.sp))
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDashedAddButton({required String label, required VoidCallback onTap}) {
+    return CustomPaint(
+      painter: DashedRectPainter(color: _dashedBorderColor, strokeWidth: 1.5, gap: 5, radius: 10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(vertical: 1.5.h),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_circle, color: _primaryBlue, size: 16.sp),
+              SizedBox(width: 2.w),
+              Text(
+                label,
+                style: GoogleFonts.poppins(fontSize: 11.sp, fontWeight: FontWeight.w600, color: _primaryBlue),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Updated Footer Buttons with Logic and Loading State
+  Widget _buildFooterButtons(bool isLoading) {
+    return Column(
+      children: [
+        // Save Challenge (Blue)
+        SizedBox(
+          width: double.infinity,
+          height: 7.5.h,
+          child: ElevatedButton(
+            onPressed: isLoading ? null : () {
+              setState(() => _shouldPopAfterSave = true);
+              _saveChallenge();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: _primaryBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 5),
+            child: Text("Publish Challenge", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ),
+        SizedBox(height: 2.h),
+
+        // Save & Add Another (Light Blue)
+        SizedBox(
+          width: double.infinity,
+          height: 7.5.h,
+          child: ElevatedButton(
+            onPressed: isLoading ? null : () {
+              setState(() => _shouldPopAfterSave = false);
+              _saveChallenge();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: _lightBlue, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+            child: Text("Save & Add Another", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: _primaryBlue)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- FIX: Added _showAddItemDialog ---
+  void _showAddItemDialog(String title, Function(String) onAdd) {
+    final ctrl = TextEditingController();
+    showDialog(context: context, builder: (ctx) => AlertDialog(
+      title: Text("Add $title", style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.bold)),
+      content: TextField(controller: ctrl, style: TextStyle(fontSize: 15.sp), decoration: InputDecoration(hintText: "Enter detail", filled: true, fillColor: const Color(0xFFF8F9FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx), child: Text("Cancel", style: TextStyle(fontSize: 14.sp))),
+        ElevatedButton(onPressed: () { if(ctrl.text.trim().isNotEmpty) { onAdd(ctrl.text.trim()); Navigator.pop(ctx); }}, style: ElevatedButton.styleFrom(backgroundColor: _primaryBlue), child: Text("Add", style: TextStyle(fontSize: 14.sp, color: Colors.white)))
+      ],
+    ));
+  }
+}
+
+// --- CUSTOM PAINTER ---
+class DashedRectPainter extends CustomPainter {
+  final double strokeWidth; final Color color; final double gap; final double radius;
+  DashedRectPainter({this.strokeWidth = 1.0, this.color = Colors.red, this.gap = 5.0, this.radius = 0});
+  @override void paint(Canvas canvas, Size size) {
+    Paint dashedPaint = Paint()..color = color..strokeWidth = strokeWidth..style = PaintingStyle.stroke;
+    Path path = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, size.width, size.height), Radius.circular(radius)));
+    PathMetrics pathMetrics = path.computeMetrics();
+    for (PathMetric pathMetric in pathMetrics) {
+      double distance = 0.0;
+      while (distance < pathMetric.length) { canvas.drawPath(pathMetric.extractPath(distance, distance + 5), dashedPaint); distance += 5 + gap; }
+    }
+  }
+  @override bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
