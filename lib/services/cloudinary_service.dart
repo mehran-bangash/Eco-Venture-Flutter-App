@@ -11,6 +11,10 @@ class CloudinaryService {
 
   // --- UPDATED: Using your new specific preset ---
   final String studentTaskPreset = "Eco_stem_challenges";
+  final String teacherQuizPreset = "eco_teacher_quiz";
+  final String teacherStemPreset = "eco_teacher_stem_challenge";
+  final String teacherMultimediaPreset = "eco_teacher_multimedia_content";
+
 
   /// Core: Upload image to Cloudinary
   Future<String?> uploadImage(File imageFile, {String? preset}) async {
@@ -105,4 +109,52 @@ class CloudinaryService {
       print("Error deleting image: $e");
     }
   }
+
+
+  // --- CORE UPLOAD LOGIC (Private) ---
+  Future<String?> _upload(File file, String preset, {bool isVideo = false}) async {
+    try {
+      final mimeType = lookupMimeType(file.path) ?? (isVideo ? 'video/mp4' : 'image/jpeg');
+      final fileType = mimeType.split('/');
+      final resourceType = isVideo ? 'video' : 'image';
+
+      final uri = Uri.parse("https://api.cloudinary.com/v1_1/$cloudName/$resourceType/upload");
+
+      final request = http.MultipartRequest("POST", uri)
+        ..fields['upload_preset'] = preset
+        ..files.add(
+          await http.MultipartFile.fromPath(
+            'file',
+            file.path,
+            contentType: MediaType(fileType[0], fileType[1]),
+          ),
+        );
+
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        final responseData = await response.stream.bytesToString();
+        final jsonResponse = json.decode(responseData);
+        return jsonResponse['secure_url'];
+      } else {
+        print("Cloudinary upload failed: ${response.statusCode}");
+        return null;
+      }
+    } catch (e) {
+      print("⚠ Cloudinary Error: $e");
+      return null;
+    }
+  }
+  // --- 2. Teacher Quiz Image Upload (NEW) ---
+  Future<String?> uploadTeacherQuizImage(File imageFile) async {
+    return await _upload(imageFile, teacherQuizPreset);
+  }
+
+  Future<String?> uploadTeacherStemImage(File imageFile) async {
+    return await _upload(imageFile, teacherStemPreset);
+  }
+  Future<String?> uploadTeacherMultimediaFile(File file, {bool isVideo = false}) async {
+    return await _upload(file, teacherMultimediaPreset, isVideo: isVideo);
+  }
+
 }

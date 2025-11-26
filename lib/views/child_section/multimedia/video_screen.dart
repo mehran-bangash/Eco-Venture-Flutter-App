@@ -95,7 +95,7 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
                       ),
                       // CHANGED: Image.network for Cloudinary URL
                       child: Image.network(
-                        video.thumbnailUrl,
+                        video.thumbnailUrl ?? "", // Handle null safety
                         height: 12.h,
                         width: double.infinity,
                         fit: BoxFit.cover,
@@ -243,10 +243,10 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
                       childAspectRatio: 0.78,
                     ),
                     // CHANGED: Use real data length
-                    itemCount: videoState.videos?.length,
+                    itemCount: videoState.videos?.length ?? 0, // Added safe check
                     itemBuilder: (context, index) {
-                      final video = videoState.videos?[index];
-                      return _buildVideoCard(video!, index);
+                      final video = videoState.videos![index];
+                      return _buildVideoCard(video, index);
                     },
                   ),
                 ),

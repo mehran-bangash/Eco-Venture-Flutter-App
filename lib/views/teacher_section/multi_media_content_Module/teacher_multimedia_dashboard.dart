@@ -36,8 +36,8 @@ class TeacherMultimediaDashboard extends StatelessWidget {
               "Educational Videos",
               "Upload & Manage Class Videos",
               Icons.play_circle_fill_rounded,
-              const [Color(0xFFFF512F), Color(0xFFDD2476)], // Red/Pink Gradient
-                  () => context.goNamed('teacherVideoDashboard'),
+              const [Color(0xFFFF512F), Color(0xFFDD2476)],
+                  () => context.pushNamed('teacherVideoDashboard'),
             ),
             SizedBox(height: 3.h),
             _buildMenuCard(
@@ -45,8 +45,8 @@ class TeacherMultimediaDashboard extends StatelessWidget {
               "Interactive Stories",
               "Create Digital Storybooks",
               Icons.auto_stories_rounded,
-              const [Color(0xFF8E2DE2), Color(0xFF4A00E0)], // Purple Gradient
-                  () => context.goNamed('teacherStoryDashboard'),
+              const [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                  () => context.pushNamed('teacherStoryDashboard'),
             ),
           ],
         ),
@@ -69,7 +69,6 @@ class TeacherMultimediaDashboard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            // Decorative Circles
             Positioned(top: -30, right: -30, child: Container(width: 150, height: 150, decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle))),
             Positioned(bottom: -30, left: -30, child: Container(width: 100, height: 100, decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle))),
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:eco_venture/services/shared_preferences_helper.dart';
 import 'package:http/http.dart' as http;
 
 import '../core/exceptions/api_exceptions.dart';
@@ -36,5 +37,34 @@ class ApiService {
         );
     }
   }
+
+  Future<void> createStudent({
+    required String name,
+    required String email,
+    required String password,
+    required String nodeBaseUrl,
+  }) async {
+    try {
+      final String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+
+      if (teacherId == null) {
+        throw Exception("Teacher ID not found. Please login again.");
+      }
+
+      final url = "$nodeBaseUrl/create-student";
+
+      final data = {
+        "email": email,
+        "password": password,
+        "name": name,
+        "teacherId": teacherId,
+      };
+
+      await sendUserToken(url, data);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
 }
 

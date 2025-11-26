@@ -9,14 +9,12 @@ class ApiConstants {
  //  static const String chatEndpoint= "${baseUrl}chat";
 
 
-  // 🌍 Use your deployed Render backend
+  // Use your deployed Render backend
  static const String baseUrl = "https://eco-venture-backend.onrender.com/";
-
  static const String signInEndpoint = "${baseUrl}signIn";
  static const String signUpEndpoint = "${baseUrl}signup";
  static const String googleEndpoint = "${baseUrl}google";
  static const String getUserEndpoint = "${baseUrl}user";
  static const String chatEndpoint = "${baseUrl}chat";
-
-
+ static const String createStudentEndPoint="${baseUrl}create-student";
 }

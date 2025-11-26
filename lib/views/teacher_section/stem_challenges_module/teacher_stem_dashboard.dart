@@ -1,46 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../models/stem_challenge_model.dart';
+import '../../../viewmodels/teacher_stem_challenge/teacher_stem_provider.dart';
 
-class TeacherStemDashboard extends StatefulWidget {
+class TeacherStemDashboard extends ConsumerStatefulWidget {
   const TeacherStemDashboard({super.key});
 
   @override
-  State<TeacherStemDashboard> createState() => _TeacherStemDashboardState();
+  ConsumerState<TeacherStemDashboard> createState() =>
+      _TeacherStemDashboardState();
 }
 
-class _TeacherStemDashboardState extends State<TeacherStemDashboard> {
+class _TeacherStemDashboardState extends ConsumerState<TeacherStemDashboard> {
   // --- PRO COLORS ---
-  final Color _primary = const Color(0xFF1565C0); // Teacher Blue
+  final Color _primary = const Color(0xFF1565C0);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
   final Color _textGrey = const Color(0xFFA3AED0);
 
-  // Mock Data (Replace with Firebase Stream)
-  final List<Map<String, dynamic>> _challenges = [
-    {
-      'title': 'Build a Water Filter',
-      'category': 'Engineering',
-      'difficulty': 'Medium',
-      'points': 50,
-      'materials': ['Bottle', 'Sand', 'Gravel'],
-      'steps': ['Cut bottle', 'Layer materials'],
-      'imageUrl': null
-    },
-    {
-      'title': 'Paper Bridge Challenge',
-      'category': 'Physics',
-      'difficulty': 'Hard',
-      'points': 80,
-      'materials': ['Paper', 'Tape'],
-      'steps': ['Fold paper', 'Test weight'],
-      'imageUrl': null
-    },
+  // Filter State
+  String _selectedCategory = 'Science';
+  final List<String> _categories = [
+    'Science',
+    'Technology',
+    'Engineering',
+    'Mathematics',
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Initial Fetch
+    Future.microtask(() {
+      ref
+          .read(teacherStemViewModelProvider.notifier)
+          .loadChallenges(_selectedCategory);
+    });
+  }
+
+  void _showFilterDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.all(5.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Select Category",
+              style: GoogleFonts.poppins(
+                fontSize: 17.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            ..._categories.map(
+              (c) => ListTile(
+                title: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)),
+                trailing: _selectedCategory == c
+                    ? Icon(Icons.check, color: _primary)
+                    : null,
+                onTap: () {
+                  setState(() => _selectedCategory = c);
+                  ref
+                      .read(teacherStemViewModelProvider.notifier)
+                      .loadChallenges(c);
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final stemState = ref.watch(teacherStemViewModelProvider);
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -53,81 +98,103 @@ class _TeacherStemDashboardState extends State<TeacherStemDashboard> {
         centerTitle: true,
         title: Text(
           "STEM Challenges",
-          style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp),
+          style: GoogleFonts.poppins(
+            color: _textDark,
+            fontWeight: FontWeight.w700,
+            fontSize: 18.sp,
+          ),
         ),
         actions: [
           IconButton(
-              onPressed: () {},
-              icon: Icon(Icons.filter_list_rounded, color: _primary, size: 22.sp)
+            onPressed: _showFilterDialog,
+            icon: Icon(Icons.filter_list_rounded, color: _primary, size: 22.sp),
           ),
           SizedBox(width: 3.w),
         ],
       ),
       body: Column(
         children: [
-          // Search Bar
+          // Header Info
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
-              child: TextField(
-                style: GoogleFonts.poppins(fontSize: 15.sp),
-                decoration: InputDecoration(
-                  hintText: "Search challenges...",
-                  hintStyle: GoogleFonts.poppins(color: _textGrey, fontSize: 14.sp),
-                  prefixIcon: Icon(Icons.search, color: _primary),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 1.8.h),
+            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+            child: Row(
+              children: [
+                Text(
+                  "Showing: $_selectedCategory",
+                  style: GoogleFonts.poppins(color: _textGrey, fontSize: 13.sp),
                 ),
-              ),
+              ],
             ),
           ),
 
           // List
           Expanded(
-            child: ListView.separated(
-              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
-              itemCount: _challenges.length,
-              separatorBuilder: (c, i) => SizedBox(height: 2.h),
-              itemBuilder: (context, index) {
-                final challenge = _challenges[index];
-                return _buildChallengeCard(challenge);
-              },
-            ),
+            child: stemState.isLoading
+                ? Center(child: CircularProgressIndicator(color: _primary))
+                : stemState.challenges.isEmpty
+                ? Center(
+                    child: Text(
+                      "No challenges found in $_selectedCategory",
+                      style: GoogleFonts.poppins(
+                        color: _textGrey,
+                        fontSize: 15.sp,
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 5.w,
+                      vertical: 1.h,
+                    ),
+                    itemCount: stemState.challenges.length,
+                    separatorBuilder: (c, i) => SizedBox(height: 2.h),
+                    itemBuilder: (context, index) {
+                      final challenge = stemState.challenges[index];
+                      return _buildChallengeCard(challenge);
+                    },
+                  ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.pushNamed('teacherAddStemChallengeScreen'),
+        onPressed: () => context.pushNamed(
+          'teacherAddStemChallengeScreen',
+        ), // Use correct route name
         backgroundColor: _primary,
         elevation: 4,
         icon: Icon(Icons.science_rounded, size: 18.sp),
         label: Text(
-            "Create Challenge",
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15.sp)
+          "Create Challenge",
+          style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 15.sp,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildChallengeCard(Map<String, dynamic> challenge) {
+  Widget _buildChallengeCard(StemChallengeModel challenge) {
     return Container(
       padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Icon Container
           Container(
-            height: 16.w, width: 16.w,
+            height: 16.w,
+            width: 16.w,
             decoration: BoxDecoration(
               color: _primary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(16),
@@ -142,16 +209,20 @@ class _TeacherStemDashboardState extends State<TeacherStemDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  challenge['title'],
-                  style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textDark),
+                  challenge.title,
+                  style: GoogleFonts.poppins(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w700,
+                    color: _textDark,
+                  ),
                 ),
                 SizedBox(height: 0.5.h),
                 Text(
-                  "${challenge['points']} Points • ${challenge['difficulty']}",
+                  "${challenge.points} Points • ${challenge.difficulty}",
                   style: GoogleFonts.poppins(fontSize: 13.sp, color: _textGrey),
                 ),
                 SizedBox(height: 1.5.h),
-                _buildTag(challenge['category'], Colors.purple),
+                _buildTag(challenge.category, Colors.purple),
               ],
             ),
           ),
@@ -160,27 +231,46 @@ class _TeacherStemDashboardState extends State<TeacherStemDashboard> {
           Column(
             children: [
               InkWell(
-                  onTap: () {
-                    // Navigate to Edit (Mock Data passed)
-                    context.pushNamed('teacherEditStemChallengeScreen', extra: challenge);
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(2.w),
-                    margin: EdgeInsets.only(bottom: 1.h),
-                    decoration: BoxDecoration(color: Colors.blue.shade50, shape: BoxShape.circle),
-                    child: Icon(Icons.edit, color: Colors.blue, size: 16.sp),
-                  )
+                onTap: () {
+                  // Navigate to Edit (Pass Model)
+                  context.pushNamed(
+                    'teacherEditStemChallengeScreen',
+                    extra: challenge,
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.all(2.w),
+                  margin: EdgeInsets.only(bottom: 1.h),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.edit, color: Colors.blue, size: 16.sp),
+                ),
               ),
               InkWell(
-                  onTap: () {}, // Delete
-                  child: Container(
-                    padding: EdgeInsets.all(2.w),
-                    decoration: BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),
-                    child: Icon(Icons.delete_outline, color: Colors.red, size: 16.sp),
-                  )
+                onTap: () {
+                  if (challenge.id != null) {
+                    ref
+                        .read(teacherStemViewModelProvider.notifier)
+                        .deleteChallenge(challenge.id!, challenge.category);
+                  }
+                },
+                child: Container(
+                  padding: EdgeInsets.all(2.w),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.delete_outline,
+                    color: Colors.red,
+                    size: 16.sp,
+                  ),
+                ),
               ),
             ],
-          )
+          ),
         ],
       ),
     );
@@ -195,7 +285,11 @@ class _TeacherStemDashboardState extends State<TeacherStemDashboard> {
       ),
       child: Text(
         text,
-        style: GoogleFonts.poppins(fontSize: 11.sp, color: color, fontWeight: FontWeight.w600),
+        style: GoogleFonts.poppins(
+          fontSize: 11.sp,
+          color: color,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

@@ -15,25 +15,28 @@ class StoryPage {
     return {'text': text, 'image': imageUrl};
   }
 }
-// --- UPDATED STORY MODEL ---
 
 class StoryModel {
   final String id;
   final String adminId;
   final String title;
-  final String thumbnailUrl;
+  final String description; // Added
+  final String? thumbnailUrl; // Made nullable
   final List<StoryPage> pages;
+  final DateTime uploadedAt; // Added
   final int likes;
   final int dislikes;
   final int views;
   final Map<String, bool> userLikes;
 
   StoryModel({
-    required this.id,
-    required this.adminId,
+    this.id = '',
+    this.adminId = '',
     required this.title,
-    required this.thumbnailUrl,
+    required this.description,
+    this.thumbnailUrl,
     required this.pages,
+    required this.uploadedAt,
     this.likes = 0,
     this.dislikes = 0,
     this.views = 0,
@@ -50,14 +53,13 @@ class StoryModel {
       id: map['id'] ?? '',
       adminId: map['adminId'] ?? '',
       title: map['title'] ?? '',
-      thumbnailUrl: map['thumbnailUrl'] ?? '',
+      description: map['description'] ?? '',
+      thumbnailUrl: map['thumbnailUrl'],
       pages: pagesList,
-
-      // --- FIX 1: Added Type-Safe Parsing for Counters ---
+      uploadedAt: DateTime.tryParse(map['uploadedAt'] ?? '') ?? DateTime.now(),
       likes: (map['likes'] as num? ?? 0).toInt(),
       dislikes: (map['dislikes'] as num? ?? 0).toInt(),
       views: (map['views'] as num? ?? 0).toInt(),
-
       userLikes: Map<String, bool>.from(map['userLikes'] ?? {}),
     );
   }
@@ -67,8 +69,10 @@ class StoryModel {
       'id': id,
       'adminId': adminId,
       'title': title,
+      'description': description,
       'thumbnailUrl': thumbnailUrl,
       'pages': pages.map((e) => e.toMap()).toList(),
+      'uploadedAt': uploadedAt.toIso8601String(),
       'likes': likes,
       'dislikes': dislikes,
       'views': views,
@@ -76,14 +80,14 @@ class StoryModel {
     };
   }
 
-  // --- FIX 2: Added the 'copyWith' Method ---
-  // This is required for the ViewModel's optimistic UI updates.
   StoryModel copyWith({
     String? id,
     String? adminId,
     String? title,
+    String? description,
     String? thumbnailUrl,
     List<StoryPage>? pages,
+    DateTime? uploadedAt,
     int? likes,
     int? dislikes,
     int? views,
@@ -93,8 +97,10 @@ class StoryModel {
       id: id ?? this.id,
       adminId: adminId ?? this.adminId,
       title: title ?? this.title,
+      description: description ?? this.description,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       pages: pages ?? this.pages,
+      uploadedAt: uploadedAt ?? this.uploadedAt,
       likes: likes ?? this.likes,
       dislikes: dislikes ?? this.dislikes,
       views: views ?? this.views,

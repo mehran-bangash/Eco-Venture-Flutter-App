@@ -1,46 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../models/quiz_topic_model.dart';
+import '../../../viewmodels/teacher_quiz/teacher_quiz_provider.dart';
 
-class TeacherQuizDashboard extends StatefulWidget {
+class TeacherQuizDashboard extends ConsumerStatefulWidget {
   const TeacherQuizDashboard({super.key});
 
   @override
-  State<TeacherQuizDashboard> createState() => _TeacherQuizDashboardState();
+  ConsumerState<TeacherQuizDashboard> createState() => _TeacherQuizDashboardState();
 }
 
-class _TeacherQuizDashboardState extends State<TeacherQuizDashboard> {
+class _TeacherQuizDashboardState extends ConsumerState<TeacherQuizDashboard> {
   // --- PRO COLORS ---
-  final Color _primary = const Color(0xFF1565C0); // Teacher Blue
+  final Color _primary = const Color(0xFF1565C0);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
   final Color _textGrey = const Color(0xFFA3AED0);
 
-  // Mock Data (To be replaced by Firebase Stream)
-  final List<Map<String, dynamic>> _topics = [
-    {
-      'title': 'Solar System Basics',
-      'category': 'Science',
-      'levels': 3,
-      'created_at': '2 days ago'
-    },
-    {
-      'title': 'Fractions & Decimals',
-      'category': 'Maths',
-      'levels': 5,
-      'created_at': '1 week ago'
-    },
-    {
-      'title': 'Rainforest Ecosystem',
-      'category': 'Ecosystem',
-      'levels': 2,
-      'created_at': 'Yesterday'
-    },
-  ];
+  // State
+  String _selectedCategory = 'Science';
+  final List<String> _categories = ['Science', 'Maths', 'Animals', 'Ecosystem'];
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch initial data
+    Future.microtask(() {
+      ref.read(teacherQuizViewModelProvider.notifier).loadQuizzes(_selectedCategory);
+    });
+  }
+
+  void _showFilterDialog() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.all(5.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Select Category", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.bold)),
+            SizedBox(height: 2.h),
+            ..._categories.map((c) => ListTile(
+              title: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)),
+              trailing: _selectedCategory == c ? Icon(Icons.check, color: _primary) : null,
+              onTap: () {
+                setState(() => _selectedCategory = c);
+                ref.read(teacherQuizViewModelProvider.notifier).loadQuizzes(c);
+                Navigator.pop(ctx);
+              },
+            )),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final quizState = ref.watch(teacherQuizViewModelProvider);
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -57,7 +80,7 @@ class _TeacherQuizDashboardState extends State<TeacherQuizDashboard> {
         ),
         actions: [
           IconButton(
-              onPressed: () {},
+              onPressed: _showFilterDialog,
               icon: Icon(Icons.filter_list_rounded, color: _primary, size: 22.sp)
           ),
           SizedBox(width: 3.w),
@@ -65,36 +88,28 @@ class _TeacherQuizDashboardState extends State<TeacherQuizDashboard> {
       ),
       body: Column(
         children: [
-          // Search Bar
+          // Header Info
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-              ),
-              child: TextField(
-                style: GoogleFonts.poppins(fontSize: 15.sp),
-                decoration: InputDecoration(
-                  hintText: "Search topics...",
-                  hintStyle: GoogleFonts.poppins(color: _textGrey, fontSize: 14.sp),
-                  prefixIcon: Icon(Icons.search, color: _primary),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 1.8.h),
-                ),
-              ),
+            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+            child: Row(
+              children: [
+                Text("Showing: $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 13.sp)),
+              ],
             ),
           ),
 
           // List of Topics
           Expanded(
-            child: ListView.separated(
+            child: quizState.isLoading
+                ? Center(child: CircularProgressIndicator(color: _primary))
+                : quizState.quizzes.isEmpty
+                ? Center(child: Text("No quizzes found in $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 15.sp)))
+                : ListView.separated(
               padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
-              itemCount: _topics.length,
+              itemCount: quizState.quizzes.length,
               separatorBuilder: (c, i) => SizedBox(height: 2.h),
               itemBuilder: (context, index) {
-                final topic = _topics[index];
+                final topic = quizState.quizzes[index];
                 return _buildTopicCard(topic);
               },
             ),
@@ -102,7 +117,7 @@ class _TeacherQuizDashboardState extends State<TeacherQuizDashboard> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.goNamed('teacherAddQuizScreen'),
+        onPressed: () => context.pushNamed('teacherAddQuizScreen'),
         backgroundColor: _primary,
         elevation: 4,
         icon: Icon(Icons.add, size: 18.sp),
@@ -114,7 +129,7 @@ class _TeacherQuizDashboardState extends State<TeacherQuizDashboard> {
     );
   }
 
-  Widget _buildTopicCard(Map<String, dynamic> topic) {
+  Widget _buildTopicCard(QuizTopicModel topic) {
     return Container(
       padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
@@ -141,15 +156,17 @@ class _TeacherQuizDashboardState extends State<TeacherQuizDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  topic['title'],
+                  topic.topicName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textDark),
                 ),
                 SizedBox(height: 0.5.h),
                 Row(
                   children: [
-                    _buildTag(topic['category'], Colors.purple),
+                    _buildTag(topic.category, Colors.purple),
                     SizedBox(width: 2.w),
-                    _buildTag("${topic['levels']} Levels", Colors.orange),
+                    _buildTag("${topic.levels.length} Levels", Colors.orange),
                   ],
                 )
               ],
@@ -161,14 +178,19 @@ class _TeacherQuizDashboardState extends State<TeacherQuizDashboard> {
             children: [
               InkWell(
                   onTap: () {
-                    // Navigate to Edit Screen (Pass Mock Data for now)
-                    context.goNamed('teacherEditQuizScreen', extra: topic);
+                    // Navigate to Edit Screen
+                    context.pushNamed('teacherEditQuizScreen', extra: topic);
                   },
                   child: Icon(Icons.edit, color: _textGrey, size: 18.sp)
               ),
               SizedBox(height: 1.5.h),
               InkWell(
-                  onTap: () {}, // Delete
+                  onTap: () {
+                    // Call Delete in ViewModel
+                    if(topic.id != null) {
+                      ref.read(teacherQuizViewModelProvider.notifier).deleteQuiz(topic.id!, topic.category);
+                    }
+                  },
                   child: Icon(Icons.delete_outline, color: Colors.redAccent, size: 18.sp)
               ),
             ],

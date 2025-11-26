@@ -1,40 +1,44 @@
 import 'dart:io';
 import 'dart:ui'; // Required for CustomPainter
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import '../../../../models/story_model.dart';
+import '../../../viewmodels/multimedia_content/teacher_multimedia_provider.dart';
 
-class TeacherAddStoryScreen extends StatefulWidget {
+
+class TeacherAddStoryScreen extends ConsumerStatefulWidget {
   const TeacherAddStoryScreen({super.key});
 
   @override
-  State<TeacherAddStoryScreen> createState() => _TeacherAddStoryScreenState();
+  ConsumerState<TeacherAddStoryScreen> createState() => _TeacherAddStoryScreenState();
 }
 
-class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
+class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
   // --- PRO COLORS ---
   final Color _primaryPurple = const Color(0xFF8E2DE2); // Story Theme Purple
-  final Color _accentPurple = const Color(0xFF4A00E0);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
-  final Color _border = const Color(0xFFE0E0E0);
-  final Color _dashedColor = const Color(0xFFBDBDBD);
+  final Color _borderGrey = const Color(0xFFE0E0E0);
+  final Color _dashedBorderColor = const Color(0xFFBDBDBD);
 
   final TextEditingController _titleController = TextEditingController();
+  final TextEditingController _descController = TextEditingController(); // Added Description
   File? _coverImage;
 
-  // List of Pages: Each page has 'text' (String) and 'image' (File?)
-  final List<Map<String, dynamic>> _pages = [];
-  bool _isLoading = false;
+  // List of Pages using the Model class
+  final List<StoryPage> _pages = [];
 
   @override
   void dispose() {
     _titleController.dispose();
+    _descController.dispose();
     super.dispose();
   }
 
-  // --- MOCK SAVE LOGIC ---
+  // --- SAVE LOGIC ---
   Future<void> _saveStory() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a story title"), backgroundColor: Colors.red));
@@ -45,14 +49,16 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2)); // Mock Delay
+    final newStory = StoryModel(
+      title: _titleController.text.trim(),
+      description: _descController.text.trim(),
+      thumbnailUrl: _coverImage?.path, // Local path, ViewModel handles upload
+      pages: _pages,
+      uploadedAt: DateTime.now(),
+      likes: 0, dislikes: 0, views: 0,
+    );
 
-    if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Story Published Successfully!"), backgroundColor: Colors.green));
-      Navigator.pop(context);
-    }
+    await ref.read(teacherMultimediaViewModelProvider.notifier).addStory(newStory);
   }
 
   Future<void> _pickCoverImage() async {
@@ -63,6 +69,19 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(teacherMultimediaViewModelProvider);
+
+    ref.listen(teacherMultimediaViewModelProvider, (prev, next) {
+      if (next.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Story Published Successfully!"), backgroundColor: Colors.green));
+        ref.read(teacherMultimediaViewModelProvider.notifier).resetSuccess();
+        Navigator.pop(context);
+      }
+      if (next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${next.errorMessage}"), backgroundColor: Colors.red));
+      }
+    });
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -87,12 +106,19 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
                 SizedBox(height: 2.h),
                 Container(
                   padding: EdgeInsets.all(5.w),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)]),
+                  decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel("Story Title"),
                       _buildTextField(controller: _titleController, hint: "e.g. The Brave Little Rabbit"),
+                      SizedBox(height: 2.h),
+                      _buildLabel("Description"),
+                      _buildTextField(controller: _descController, hint: "Short summary...", maxLines: 3),
                       SizedBox(height: 3.h),
                       _buildLabel("Cover Illustration"),
                       _buildCoverUpload(),
@@ -107,7 +133,7 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
                   children: [
                     _buildSectionHeader("Pages (${_pages.length})"),
                     InkWell(
-                      onTap: () => _showPageEditor(),
+                      onTap: () => _showPageEditor(), // Open Modal to Add Page
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.8.h),
@@ -137,9 +163,13 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
                   width: double.infinity,
                   height: 7.h,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveStory,
-                    style: ElevatedButton.styleFrom(backgroundColor: _primaryPurple, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 5),
-                    child: _isLoading
+                    onPressed: state.isLoading ? null : _saveStory,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _primaryPurple,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 5,
+                    ),
+                    child: state.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text("Publish Story", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
@@ -148,6 +178,7 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
               ],
             ),
           ),
+          if (state.isLoading) Container(color: Colors.black26, child: const Center(child: CircularProgressIndicator(color: Colors.white))),
         ],
       ),
     );
@@ -158,15 +189,17 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
   Widget _buildSectionHeader(String title) => Text(title, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textDark));
   Widget _buildLabel(String text) => Padding(padding: EdgeInsets.only(bottom: 1.h), child: Text(text, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.grey[700])));
 
-  Widget _buildTextField({required TextEditingController controller, required String hint}) {
+  Widget _buildTextField({required TextEditingController controller, required String hint, int maxLines = 1}) {
     return TextField(
       controller: controller,
+      maxLines: maxLines,
       style: GoogleFonts.poppins(fontSize: 15.sp),
       decoration: InputDecoration(
         hintText: hint,
+        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 14.sp),
         filled: true, fillColor: const Color(0xFFF8F9FA),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _border)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _borderGrey)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _borderGrey)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _primaryPurple, width: 1.5)),
       ),
     );
@@ -174,7 +207,7 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
 
   Widget _buildCoverUpload() {
     return CustomPaint(
-      painter: DashedRectPainter(color: _dashedColor, strokeWidth: 1.5, gap: 6, radius: 12),
+      painter: DashedRectPainter(color: _dashedBorderColor, strokeWidth: 1.5, gap: 6, radius: 12),
       child: InkWell(
         onTap: _pickCoverImage,
         borderRadius: BorderRadius.circular(12),
@@ -191,6 +224,9 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
 
   Widget _buildPageCard(int index) {
     final page = _pages[index];
+    // Check if imageUrl is a local path (since we haven't uploaded yet in Add Screen)
+    final imageProvider = (page.imageUrl.isNotEmpty) ? FileImage(File(page.imageUrl)) : null;
+
     return Container(
       padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10)]),
@@ -206,10 +242,10 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(page['text'] ?? "", maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 14.sp, color: _textDark)),
-                if (page['image'] != null) ...[
+                Text(page.text, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 14.sp, color: _textDark)),
+                if (imageProvider != null) ...[
                   SizedBox(height: 1.h),
-                  ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.file(page['image'], height: 8.h, width: 15.w, fit: BoxFit.cover)),
+                  ClipRRect(borderRadius: BorderRadius.circular(8), child: Image(image: imageProvider, height: 8.h, width: 15.w, fit: BoxFit.cover)),
                 ]
               ],
             ),
@@ -230,8 +266,10 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
 
   // --- PAGE EDITOR MODAL ---
   void _showPageEditor({int? existingIndex}) {
-    final pageTextCtrl = TextEditingController(text: existingIndex != null ? _pages[existingIndex]['text'] : "");
-    File? pageImage = existingIndex != null ? _pages[existingIndex]['image'] : null;
+    final textCtrl = TextEditingController(text: existingIndex != null ? _pages[existingIndex].text : "");
+    File? pageImage = (existingIndex != null && _pages[existingIndex].imageUrl.isNotEmpty)
+        ? File(_pages[existingIndex].imageUrl)
+        : null;
 
     showModalBottomSheet(
       context: context,
@@ -257,10 +295,14 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
                         children: [
                           _buildLabel("Story Text"),
                           TextField(
-                            controller: pageTextCtrl,
+                            controller: textCtrl,
                             maxLines: 5,
                             style: TextStyle(fontSize: 15.sp),
-                            decoration: InputDecoration(hintText: "Once upon a time...", filled: true, fillColor: const Color(0xFFF8F9FA), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)),
+                            decoration: InputDecoration(
+                                hintText: "Once upon a time...",
+                                filled: true, fillColor: const Color(0xFFF8F9FA),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
+                            ),
                           ),
                           SizedBox(height: 3.h),
 
@@ -274,12 +316,12 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
                             child: Container(
                               height: 20.h, width: double.infinity,
                               decoration: BoxDecoration(
-                                  color: const Color(0xFFF8F9FA),
+                                  color: Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: _border),
+                                  border: Border.all(color: Colors.grey.shade300),
                                   image: pageImage != null ? DecorationImage(image: FileImage(pageImage!), fit: BoxFit.cover) : null
                               ),
-                              child: pageImage == null ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_a_photo, color: _primaryPurple, size: 24.sp), Text("Add Image", style: TextStyle(color: _primaryPurple))])) : null,
+                              child: pageImage == null ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_photo_alternate, color: _primaryPurple, size: 24.sp), Text("Add Image", style: TextStyle(color: _primaryPurple))])) : null,
                             ),
                           ),
                           if (pageImage != null)
@@ -294,9 +336,14 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
                     width: double.infinity, height: 7.h,
                     child: ElevatedButton(
                       onPressed: () {
-                        if (pageTextCtrl.text.trim().isEmpty && pageImage == null) return;
+                        if (textCtrl.text.trim().isEmpty && pageImage == null) return;
 
-                        final newPage = {'text': pageTextCtrl.text, 'image': pageImage};
+                        // Store local path. ViewModel handles upload later.
+                        final newPage = StoryPage(
+                            text: textCtrl.text,
+                            imageUrl: pageImage?.path ?? ""
+                        );
+
                         setState(() {
                           if (existingIndex != null) _pages[existingIndex] = newPage;
                           else _pages.add(newPage);
@@ -316,7 +363,6 @@ class _TeacherAddStoryScreenState extends State<TeacherAddStoryScreen> {
   }
 }
 
-// --- CUSTOM PAINTER ---
 class DashedRectPainter extends CustomPainter {
   final double strokeWidth; final Color color; final double gap; final double radius;
   DashedRectPainter({this.strokeWidth = 1.0, this.color = Colors.red, this.gap = 5.0, this.radius = 0});

@@ -14,6 +14,11 @@ class SharedPreferencesHelper {
   static String userDOBKey = 'USERDOBKEY';
   static String userTokenKey = 'USERTOKENKEY';
   static String userImageUrlKey='USERIMAGEURLKEY';
+  static const String childTeacherIdKey = 'child_teacher_id';
+  static const String isTeacherAddedKey = 'is_teacher_added';
+  static const String childNameKey = 'child_name';
+  static const String childEmailKey = 'child_email';
+
 
   Future<bool> saveUserId(String userId) async {
     final pref = await SharedPreferences.getInstance();
@@ -91,6 +96,52 @@ class SharedPreferencesHelper {
     return pref.getString(userImgUrlKey);
   }
 
+  // Children Added By Teacher
+
+  Future<bool> saveChildName(String name) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(childNameKey, name);
+  }
+
+  Future<String?> getChildName() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(childNameKey);
+  }
+
+  // 2. Save/Get Child Email
+  Future<bool> saveChildEmail(String email) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(childEmailKey, email);
+  }
+
+  Future<String?> getChildEmail() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(childEmailKey);
+  }
+
+  // 3. Save the ID of the Teacher who added this child
+  Future<bool> saveChildTeacherId(String teacherId) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setString(childTeacherIdKey, teacherId);
+  }
+
+  // 4. Get that Teacher's ID (Used to fetch teacher's quizzes)
+  Future<String?> getChildTeacherId() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString(childTeacherIdKey);
+  }
+
+  // 5. Flag: Was this child added by a teacher?
+  Future<bool> saveIsTeacherAdded(bool isAdded) async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.setBool(isTeacherAddedKey, isAdded);
+  }
+
+  Future<bool> getIsTeacherAdded() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getBool(isTeacherAddedKey) ?? false;
+  }
+
   Future<void> clearAll() async {
     final pref = await SharedPreferences.getInstance();
     await pref.remove(userIdKey);
@@ -102,6 +153,10 @@ class SharedPreferencesHelper {
     await pref.remove(userDOBKey);
     await pref.remove(userTokenKey);
     await pref.remove(userImgUrlKey);
+    await pref.remove(childTeacherIdKey);
+    await pref.remove(isTeacherAddedKey);
+    await pref.remove(childNameKey);
+    await pref.remove(childEmailKey);
   }
 
 }

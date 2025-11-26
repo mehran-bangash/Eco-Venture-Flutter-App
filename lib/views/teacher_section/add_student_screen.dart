@@ -1,52 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Riverpod
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-class AddStudentScreen extends StatefulWidget {
+import '../../viewmodels/teacher_auth/teacher_auth_provider.dart';
+
+class AddStudentScreen extends ConsumerStatefulWidget {
   const AddStudentScreen({super.key});
 
   @override
-  State<AddStudentScreen> createState() => _AddStudentScreenState();
+  ConsumerState<AddStudentScreen> createState() => _AddStudentScreenState();
 }
 
-class _AddStudentScreenState extends State<AddStudentScreen> {
+class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool _isLoading = false;
 
   // --- PRO COLORS ---
-  final Color _primary = const Color(0xFF4E54C8); // Matches Home Header
-  final Color _accent = const Color(0xFF8F94FB);
+  final Color _primary = const Color(0xFF1565C0); // Teacher Blue
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
   final Color _textGrey = const Color(0xFFA3AED0);
   final Color _surface = Colors.white;
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   Future<void> _registerStudent() async {
-    if (_nameController.text.isEmpty || _emailController.text.isEmpty) {
+    // 1. Validation
+    if (_nameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Please fill all fields", style: TextStyle(fontSize: 15.sp)), backgroundColor: Colors.red)
+          const SnackBar(content: Text("Please fill all fields"), backgroundColor: Colors.red)
       );
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    // TODO: Connect to Node.js Backend Logic Later
-    await Future.delayed(const Duration(seconds: 2)); // Mock UI delay
-
-    setState(() => _isLoading = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Student Added Successfully!", style: TextStyle(fontSize: 15.sp)), backgroundColor: Colors.green)
-      );
-      Navigator.pop(context);
-    }
+    // 2. Call ViewModel (Real Backend Logic)
+    await ref.read(teacherAuthViewModelProvider.notifier).addStudent(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // 3. Watch State for Loading
+    final authState = ref.watch(teacherAuthViewModelProvider);
+
+    // 4. Listen for Side Effects (Success/Error)
+    ref.listen(teacherAuthViewModelProvider, (previous, next) {
+      if (next.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error: ${next.errorMessage}"), backgroundColor: Colors.red)
+        );
+      }
+      if (next.isSuccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Student Registered Successfully! 🎉"), backgroundColor: Colors.green)
+        );
+        ref.read(teacherAuthViewModelProvider.notifier).resetState();
+        Navigator.pop(context);
+      }
+    });
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -71,7 +96,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
             Container(
               padding: EdgeInsets.all(5.w),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [_primary, _accent]),
+                gradient: LinearGradient(colors: [_primary, const Color(0xFF42A5F5)]),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [BoxShadow(color: _primary.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
               ),
@@ -104,7 +129,7 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
             ),
             SizedBox(height: 4.h),
 
-            // Form Fields Container
+            // Form Fields
             Container(
               padding: EdgeInsets.all(6.w),
               decoration: BoxDecoration(
@@ -139,14 +164,14 @@ class _AddStudentScreenState extends State<AddStudentScreen> {
               width: double.infinity,
               height: 7.5.h,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _registerStudent,
+                onPressed: authState.isLoading ? null : _registerStudent,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _primary,
                   elevation: 8,
                   shadowColor: _primary.withOpacity(0.4),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                 ),
-                child: _isLoading
+                child: authState.isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text("Register Student", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.white)),
               ),

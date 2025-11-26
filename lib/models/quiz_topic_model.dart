@@ -2,20 +2,19 @@ class QuizTopicModel {
   String? id;
   final String category;
   final String topicName;
-  final String createdBy; // 'admin' or 'teacher' - Critical for Child UI filtering
-  final String creatorId; // UID of the teacher (if teacher-created)
+  final String createdBy; // 'teacher'
+  final String creatorId; // Teacher UID
   final List<QuizLevelModel> levels;
 
   QuizTopicModel({
     this.id,
     required this.category,
     required this.topicName,
-    this.createdBy = 'admin', // Default to admin if missing
+    this.createdBy = 'teacher',
     this.creatorId = '',
     required this.levels,
   });
 
-  // --- 1. Convert to Map (For Teacher Saving) ---
   Map<String, dynamic> toMap() {
     Map<String, dynamic> levelsMap = {};
     for (var level in levels) {
@@ -26,17 +25,15 @@ class QuizTopicModel {
       'topic_name': topicName,
       'created_by': createdBy,
       'creator_id': creatorId,
-      'category': category, // Useful to save redundancy
+      'category': category,
       'levels': levelsMap,
     };
   }
 
-  // --- 2. Create from Map (For Child/Teacher Reading) ---
   factory QuizTopicModel.fromMap(String id, String category, Map<String, dynamic> map) {
     var rawLevels = map['levels'];
     List<QuizLevelModel> parsedLevels = [];
 
-    // ROBUST FIX: Handle both Map (Standard) and List (Firebase Arrays)
     if (rawLevels != null) {
       if (rawLevels is Map) {
         rawLevels.forEach((key, value) {
@@ -54,20 +51,18 @@ class QuizTopicModel {
       }
     }
 
-    // Sort levels by order (1, 2, 3...)
     parsedLevels.sort((a, b) => a.order.compareTo(b.order));
 
     return QuizTopicModel(
       id: id,
       category: category,
       topicName: map['topic_name'] ?? '',
-      createdBy: map['created_by'] ?? 'admin',
+      createdBy: map['created_by'] ?? 'teacher',
       creatorId: map['creator_id'] ?? '',
       levels: parsedLevels,
     );
   }
 
-  // --- 3. CopyWith (For Editing/Updates) ---
   QuizTopicModel copyWith({
     String? id,
     String? category,
@@ -87,7 +82,6 @@ class QuizTopicModel {
   }
 }
 
-// --- LEVEL MODEL ---
 class QuizLevelModel {
   final int order;
   final String title;
@@ -126,13 +120,7 @@ class QuizLevelModel {
     );
   }
 
-  QuizLevelModel copyWith({
-    int? order,
-    String? title,
-    int? passingPercentage,
-    int? points,
-    List<QuestionModel>? questions,
-  }) {
+  QuizLevelModel copyWith({int? order, String? title, int? passingPercentage, int? points, List<QuestionModel>? questions}) {
     return QuizLevelModel(
       order: order ?? this.order,
       title: title ?? this.title,
@@ -143,7 +131,6 @@ class QuizLevelModel {
   }
 }
 
-// --- QUESTION MODEL ---
 class QuestionModel {
   final String question;
   final List<String> options;
@@ -175,12 +162,7 @@ class QuestionModel {
     );
   }
 
-  QuestionModel copyWith({
-    String? question,
-    List<String>? options,
-    String? answer,
-    String? imageUrl,
-  }) {
+  QuestionModel copyWith({String? question, List<String>? options, String? answer, String? imageUrl}) {
     return QuestionModel(
       question: question ?? this.question,
       options: options ?? this.options,
