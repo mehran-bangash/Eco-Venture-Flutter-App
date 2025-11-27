@@ -379,7 +379,9 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
           "Scavenger Hunt",
           Icons.qr_code_scanner_rounded,
           const [Color(0xFF00B4DB), Color(0xFF0083B0)], // Blue
-              () {},
+              () {
+                context.goNamed('teacherTreasureHuntDashboard');
+              },
         ),
       ],
     );

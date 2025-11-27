@@ -121,6 +121,12 @@ class RouteNames {
    static const teacherAddStoryScreen='/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard/teacher-add-story-screen';
    static const teacherEditStoryScreen='/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard/teacher-edit-story-screen';
 
+   //Treasure Hunt
+   static const teacherTreasureHuntDashboard='/teacher/home/teacher-treasure-hunt';
+   static const teacherAddTreasureHuntScreen='/teacher/home/teacher-treasure-hunt/add';
+  static const teacherEditTreasureHuntScreen='/teacher/home/teacher-treasure-hunt/edit';
+
+
 
 
 

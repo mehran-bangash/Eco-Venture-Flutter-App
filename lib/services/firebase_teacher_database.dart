@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import '../models/qr_hunt_model.dart';
 import '../models/quiz_topic_model.dart';
 import '../models/stem_challenge_model.dart';
 import '../models/story_model.dart';
@@ -301,6 +302,71 @@ class FirebaseTeacherDatabase {
         return stories;
       } catch (e) {
         print("Error parsing stories: $e");
+        return [];
+      }
+    });
+  }
+
+
+  // ==================================================
+  //  TEACHER QR HUNT MODULE
+  // ==================================================
+
+  // 1. ADD HUNT
+  Future<void> addQrHunt(QrHuntModel hunt) async {
+    try {
+      final teacherId = await _getTeacherId();
+      final newKey = _generateKey();
+      final huntWithMeta = hunt.copyWith(id: newKey, adminId: teacherId);
+
+      final path = 'Teacher_Content/$teacherId/QrHunts/$newKey';
+      await _database.ref(path).set(huntWithMeta.toMap());
+    } catch (e) {
+      throw Exception('Failed to add QR hunt: $e');
+    }
+  }
+
+  // 2. UPDATE HUNT
+  Future<void> updateQrHunt(QrHuntModel hunt) async {
+    if (hunt.id == null) throw Exception("Hunt ID missing");
+    try {
+      final teacherId = await _getTeacherId();
+      final path = 'Teacher_Content/$teacherId/QrHunts/${hunt.id}';
+      await _database.ref(path).update(hunt.toMap());
+    } catch (e) {
+      throw Exception('Failed to update QR hunt: $e');
+    }
+  }
+
+  // 3. DELETE HUNT
+  Future<void> deleteQrHunt(String huntId) async {
+    try {
+      final teacherId = await _getTeacherId();
+      final path = 'Teacher_Content/$teacherId/QrHunts/$huntId';
+      await _database.ref(path).remove();
+    } catch (e) {
+      throw Exception('Failed to delete QR hunt: $e');
+    }
+  }
+
+  // 4. FETCH HUNTS
+  Stream<List<QrHuntModel>> getTeacherQrHuntsStream() async* {
+    final teacherId = await _getTeacherId();
+    yield* _database.ref('Teacher_Content/$teacherId/QrHunts').onValue.map((event) {
+      final data = event.snapshot.value;
+      if (data == null) return [];
+      try {
+        final Map<dynamic, dynamic> mapData = data as Map<dynamic, dynamic>;
+        final List<QrHuntModel> hunts = [];
+        mapData.forEach((key, value) {
+          // Ensure ID is injected correctly
+          final huntMap = Map<String, dynamic>.from(value as Map);
+          huntMap['id'] = key.toString();
+          hunts.add(QrHuntModel.fromMap(key.toString(), huntMap));
+        });
+        return hunts;
+      } catch (e) {
+        print("Error parsing QR hunts: $e");
         return [];
       }
     });

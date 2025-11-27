@@ -13,6 +13,9 @@ import 'package:eco_venture/views/teacher_section/quiz_module/teacher_quiz_dashb
 import 'package:eco_venture/views/teacher_section/stem_challenges_module/teacher_edit_stem_challenge_screen.dart';
 import 'package:eco_venture/views/teacher_section/stem_challenges_module/teacher_stem_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/teacher_home_screen.dart';
+import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_add_treasure_hunt_screen.dart';
+import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_edit_treasure_hunt_screen.dart';
+import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_treasure_hunt_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/view_student_detail_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/quiz_topic_model.dart';
@@ -195,6 +198,28 @@ class TeacherRouter {
                 ],
               ),
             ],
+          ),
+          GoRoute(
+            path: RouteNames.teacherTreasureHuntDashboard,
+            name: 'teacherTreasureHuntDashboard',
+            builder: (context, state) => const TeacherTreasureHuntDashboard(),
+            routes: [
+              GoRoute(
+                path: RouteNames.teacherAddTreasureHuntScreen,
+                name: 'teacherAddTreasureHuntScreen',
+                builder: (context, state) => const TeacherAddTreasureHuntScreen(),
+              ),
+              GoRoute(
+                path: RouteNames.teacherEditTreasureHuntScreen,
+                name: 'teacherEditTreasureHuntScreen',
+                builder: (context, state) {
+                  final dynamic huntData = state.extra;
+                  return TeacherEditTreasureHuntScreen(huntData: huntData);
+                },
+              ),
+
+
+            ]
           ),
         ],
       ),

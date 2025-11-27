@@ -1,0 +1,95 @@
+class QrHuntModel {
+  final String? id;
+  final String? adminId; // Teacher ID
+  final String title;
+  final int points;
+  final String difficulty; // Easy, Medium, Hard
+  final List<String> clues;
+  final String? qrCodeUrl; // URL of generated QR image (optional)
+  final DateTime createdAt;
+
+  // --- TRACKING FIELDS (For Child Progress) ---
+  final int cluesFound; // How many clues the child has scanned
+  final bool isCompleted;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+
+  QrHuntModel({
+    this.id,
+    this.adminId,
+    required this.title,
+    required this.points,
+    required this.difficulty,
+    required this.clues,
+    this.qrCodeUrl,
+    required this.createdAt,
+    this.cluesFound = 0,
+    this.isCompleted = false,
+    this.startedAt,
+    this.completedAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'adminId': adminId,
+      'title': title,
+      'points': points,
+      'difficulty': difficulty,
+      'clues': clues,
+      'qrCodeUrl': qrCodeUrl,
+      'createdAt': createdAt.toIso8601String(),
+      'cluesFound': cluesFound,
+      'isCompleted': isCompleted,
+      'startedAt': startedAt?.toIso8601String(),
+      'completedAt': completedAt?.toIso8601String(),
+    };
+  }
+
+  factory QrHuntModel.fromMap(String id, Map<String, dynamic> map) {
+    return QrHuntModel(
+      id: id,
+      adminId: map['adminId'],
+      title: map['title'] ?? '',
+      points: (map['points'] as num? ?? 0).toInt(),
+      difficulty: map['difficulty'] ?? 'Easy',
+      clues: List<String>.from(map['clues'] ?? []),
+      qrCodeUrl: map['qrCodeUrl'],
+      createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
+      cluesFound: (map['cluesFound'] as num? ?? 0).toInt(),
+      isCompleted: map['isCompleted'] ?? false,
+      startedAt: map['startedAt'] != null ? DateTime.tryParse(map['startedAt']) : null,
+      completedAt: map['completedAt'] != null ? DateTime.tryParse(map['completedAt']) : null,
+    );
+  }
+
+  QrHuntModel copyWith({
+    String? id,
+    String? adminId,
+    String? title,
+    int? points,
+    String? difficulty,
+    List<String>? clues,
+    String? qrCodeUrl,
+    DateTime? createdAt,
+    int? cluesFound,
+    bool? isCompleted,
+    DateTime? startedAt,
+    DateTime? completedAt,
+  }) {
+    return QrHuntModel(
+      id: id ?? this.id,
+      adminId: adminId ?? this.adminId,
+      title: title ?? this.title,
+      points: points ?? this.points,
+      difficulty: difficulty ?? this.difficulty,
+      clues: clues ?? this.clues,
+      qrCodeUrl: qrCodeUrl ?? this.qrCodeUrl,
+      createdAt: createdAt ?? this.createdAt,
+      cluesFound: cluesFound ?? this.cluesFound,
+      isCompleted: isCompleted ?? this.isCompleted,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+    );
+  }
+}
