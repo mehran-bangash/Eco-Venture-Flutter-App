@@ -19,7 +19,7 @@ import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_
 import 'package:eco_venture/views/teacher_section/view_student_detail_screen.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/quiz_topic_model.dart';
-import '../../views/child_section/progress_dashboard_screen.dart';
+import '../../views/child_section/child_progress_dashboard.dart';
 import '../../views/child_section/report_issue_screen.dart';
 import '../../views/child_section/report_safety_screen.dart';
 import '../../views/child_section/rewards_screen.dart';
@@ -51,11 +51,11 @@ class TeacherRouter {
       ),
 
       // Teacher Progress Dashboard
-      GoRoute(
-        path: 'progress-dashboard-screen',
-        name: 'teacherProgressDashboard',
-        builder: (context, state) => const ProgressDashboardScreen(),
-      ),
+      // GoRoute(
+      //   path: 'progress-dashboard-screen',
+      //   name: 'teacherProgressDashboard',
+      //   builder: (context, state) => const ProgressDashboardScreen(),
+      // ),
 
       // Teacher Rewards
       GoRoute(

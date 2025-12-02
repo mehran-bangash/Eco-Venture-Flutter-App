@@ -6,7 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 import '../../../models/story_model.dart';
-// Ensure this provider path is correct for your project
 import '../../../viewmodels/child_view_model/multimedia_content/video_story_provider.dart';
 
 class StoryScreen extends ConsumerStatefulWidget {
@@ -23,11 +22,7 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..forward();
-
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..forward();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(storyViewModelProvider.notifier).fetchStories();
     });
@@ -45,8 +40,10 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
       curve: Interval(0.1 * index, 1.0, curve: Curves.easeOutCubic),
     );
 
-    // FIX: Handle nullable URL safely
     final String displayImage = story.thumbnailUrl ?? "";
+
+    // Check origin
+    final bool isTeacher = story.createdBy == 'teacher';
 
     return FadeTransition(
       opacity: fade,
@@ -67,7 +64,10 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.15)),
+                border: Border.all(
+                    color: isTeacher ? Colors.amber.withOpacity(0.6) : Colors.white.withOpacity(0.15),
+                    width: isTeacher ? 2 : 1
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.2),
@@ -79,28 +79,50 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Thumbnail
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                    child: displayImage.isNotEmpty && displayImage.startsWith('http')
-                        ? Image.network(
-                      displayImage, // FIX: Corrected variable name
-                      height: 12.h,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          height: 12.h,
-                          color: Colors.black12,
-                          child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-                        );
-                      },
-                      errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                    )
-                        : _buildPlaceholder(), // Fallback if URL is null/empty/local
+                  // --- IMAGE + BADGE STACK ---
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        child: displayImage.isNotEmpty && displayImage.startsWith('http')
+                            ? Image.network(
+                          displayImage,
+                          height: 13.h,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(height: 13.h, color: Colors.black12, child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)));
+                          },
+                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                        )
+                            : _buildPlaceholder(),
+                      ),
+
+                      // --- BADGE ---
+                      Positioned(
+                        top: 8, left: 8,
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.4.h),
+                          decoration: BoxDecoration(
+                            color: isTeacher ? Colors.amber : Colors.cyan,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(isTeacher ? Icons.school : Icons.public, size: 12.sp, color: Colors.black87),
+                              SizedBox(width: 1.w),
+                              Text(
+                                isTeacher ? "Classroom" : "Global",
+                                style: GoogleFonts.poppins(fontSize: 10.sp, fontWeight: FontWeight.w700, color: Colors.black87),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
 
                   // Details
@@ -112,11 +134,7 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
                         children: [
                           Text(
                             story.title,
-                            style: GoogleFonts.poppins(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
+                            style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: Colors.white),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -126,11 +144,7 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
                             children: [
                               Text(
                                 "${story.pages.length} Pages",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12.sp,
-                                  color: Colors.white70,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white70, fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),
@@ -141,17 +155,10 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.15),
                                 shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                  width: 1,
-                                ),
+                                border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
                               ),
                               padding: const EdgeInsets.all(6),
-                              child: const Icon(
-                                Icons.menu_book_rounded,
-                                color: Colors.white,
-                                size: 20,
-                              ),
+                              child: const Icon(Icons.menu_book_rounded, color: Colors.white, size: 20),
                             ),
                           ),
                         ],
@@ -169,11 +176,9 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
 
   Widget _buildPlaceholder() {
     return Container(
-      height: 12.h,
+      height: 13.h,
       color: Colors.white10,
-      child: Center(
-        child: Icon(Icons.auto_stories, color: Colors.white24, size: 30.sp),
-      ),
+      child: Center(child: Icon(Icons.auto_stories, color: Colors.white24, size: 30.sp)),
     );
   }
 
@@ -185,11 +190,7 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFF0D324D),
-              Color(0xFF2F5755),
-              Color(0xFF1E3C40),
-            ],
+            colors: [Color(0xFF0D324D), Color(0xFF2F5755), Color(0xFF1E3C40)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -199,27 +200,9 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
             padding: EdgeInsets.all(2.h),
             child: Builder(
               builder: (context) {
-                if (storyState.isLoading) {
-                  return const Center(child: CircularProgressIndicator(color: Colors.white));
-                }
-
-                if (storyState.error != null) {
-                  return Center(
-                    child: Text(
-                      'Error: ${storyState.error}',
-                      style: GoogleFonts.poppins(color: Colors.redAccent),
-                    ),
-                  );
-                }
-
-                if (storyState.stories == null || storyState.stories!.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No stories found.',
-                      style: GoogleFonts.poppins(color: Colors.white70),
-                    ),
-                  );
-                }
+                if (storyState.isLoading) return const Center(child: CircularProgressIndicator(color: Colors.white));
+                if (storyState.error != null) return Center(child: Text('Error: ${storyState.error}', style: GoogleFonts.poppins(color: Colors.redAccent)));
+                if (storyState.stories == null || storyState.stories!.isEmpty) return Center(child: Text('No stories found.', style: GoogleFonts.poppins(color: Colors.white70)));
 
                 return GridView.builder(
                   physics: const BouncingScrollPhysics(),
@@ -227,7 +210,7 @@ class _StoryScreenState extends ConsumerState<StoryScreen>
                     crossAxisCount: 2,
                     crossAxisSpacing: 2.h,
                     mainAxisSpacing: 2.h,
-                    childAspectRatio: 0.8,
+                    childAspectRatio: 0.75, // Adjusted aspect ratio
                   ),
                   itemCount: storyState.stories!.length,
                   itemBuilder: (context, index) {

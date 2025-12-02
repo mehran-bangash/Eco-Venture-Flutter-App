@@ -1,113 +1,167 @@
 import 'dart:async';
+import 'package:rxdart/rxdart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/child_progress_model.dart';
 import '../models/quiz_topic_model.dart';
+
 import '../services/shared_preferences_helper.dart';
 
 class ChildQuizService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // 1. FETCH TOPICS (From Public Node)
-  Stream<List<QuizTopicModel>> getPublicTopicsStream(String category) {
-    return _database.ref('Public/Quizzes/$category').onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null) return [];
+  // --- HELPER: FIND TEACHER ID ---
+  Future<String?> _getTeacherId() async {
+    try {
+      // 1. Try Local Storage
+      String? teacherId = await SharedPreferencesHelper.instance.getChildTeacherId();
+      if (teacherId != null && teacherId.isNotEmpty) return teacherId;
 
-      try {
-        final List<QuizTopicModel> topics = [];
-
-        // Handle Map (Standard)
-        if (data is Map) {
-          data.forEach((key, value) {
-            if (value is Map) {
-              final topicMap = Map<String, dynamic>.from(value);
-              topics.add(QuizTopicModel.fromMap(key.toString(), category, topicMap));
-            }
-          });
-        }
-        // Handle List (Firebase Array Optimization)
-        else if (data is List) {
-          for (var item in data) {
-            if (item != null && item is Map) {
-              final topicMap = Map<String, dynamic>.from(item);
-              topics.add(QuizTopicModel.fromMap(topicMap['id'] ?? 'unknown', category, topicMap));
-            }
+      // 2. Check Firebase Auth & Firestore
+      final user = _auth.currentUser;
+      if (user != null) {
+        final doc = await _firestore.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          if (data.containsKey('teacher_id')) {
+            teacherId = data['teacher_id'];
+            await SharedPreferencesHelper.instance.saveChildTeacherId(teacherId!);
+            return teacherId;
           }
         }
+      }
+    } catch (e) { print("Error fetching teacher ID: $e"); }
+    return null;
+  }
 
-        return topics;
-      } catch (e) {
-        print("Error parsing public topics: $e");
-        return [];
+  // ==================================================
+  //  1. ADMIN CONTENT (Public)
+  // ==================================================
+
+  Stream<List<QuizTopicModel>> getAdminTopicsStream(String category) {
+    return _database.ref('Public/Quizzes/$category').onValue.map((event) {
+      return _parseTopics(event.snapshot.value, category);
+    }).handleError((e) => <QuizTopicModel>[]);
+  }
+
+  Stream<List<String>> getAdminCategoriesStream() {
+    return _database.ref('Public/Quizzes').onValue.map((event) {
+      return _extractKeys(event.snapshot.value);
+    });
+  }
+
+  // ==================================================
+  //  2. TEACHER CONTENT (Classroom)
+  // ==================================================
+
+  Stream<List<QuizTopicModel>> getTeacherTopicsStream(String category) {
+    return Stream.fromFuture(_getTeacherId()).asyncExpand((teacherId) {
+      if (teacherId != null && teacherId.isNotEmpty) {
+        return _database.ref('Teacher_Content/$teacherId/Quizzes/$category').onValue.map((event) {
+          return _parseTopics(event.snapshot.value, category);
+        }).handleError((e) => <QuizTopicModel>[]);
+      } else {
+        return Stream.value([]);
       }
     });
   }
 
-  // 2. FETCH USER PROGRESS (ULTRA-ROBUST FIX)
+  Stream<List<String>> getTeacherCategoriesStream() {
+    return Stream.fromFuture(_getTeacherId()).asyncExpand((teacherId) {
+      if (teacherId != null && teacherId.isNotEmpty) {
+        return _database.ref('Teacher_Content/$teacherId/Quizzes').onValue.map((event) {
+          return _extractKeys(event.snapshot.value);
+        });
+      } else {
+        return Stream.value([]);
+      }
+    });
+  }
+
+  // ==================================================
+  //  HELPERS
+  // ==================================================
+
+  List<QuizTopicModel> _parseTopics(dynamic data, String category) {
+    if (data == null) return [];
+    try {
+      final List<QuizTopicModel> topics = [];
+      if (data is Map) {
+        data.forEach((key, value) {
+          if (value is Map) {
+            final topicMap = Map<String, dynamic>.from(value);
+            topics.add(QuizTopicModel.fromMap(key.toString(), category, topicMap));
+          }
+        });
+      } else if (data is List) {
+        for (var item in data) {
+          if (item != null && item is Map) {
+            final topicMap = Map<String, dynamic>.from(item);
+            topics.add(QuizTopicModel.fromMap(topicMap['id'] ?? 'unknown', category, topicMap));
+          }
+        }
+      }
+      return topics;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  List<String> _extractKeys(dynamic data) {
+    if (data is Map) {
+      final keys = data.keys.map((k) => k.toString()).toList();
+      keys.sort();
+      return keys;
+    }
+    return [];
+  }
+
+  // ==================================================
+  //  PROGRESS LOGIC (FIXED)
+  // ==================================================
+
+  // 2. FETCH USER PROGRESS
   Stream<Map<String, ChildQuizProgressModel>> getChildProgressStream() {
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid = user?.uid;
-      if (uid == null) uid = await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
 
       if (uid == null) {
         yield {};
       } else {
+        // Listen to the entire progress node
         yield* _database.ref('child_quiz_progress/$uid').onValue.map((event) {
           final data = event.snapshot.value;
-          if (data == null) return {};
+          final Map<String, ChildQuizProgressModel> progressMap = {};
 
-          try {
-            final Map<String, ChildQuizProgressModel> progressMap = {};
-
-            // Level 1: Category (Should be Map, but check safety)
-            if (data is Map) {
-              data.forEach((catKey, topicsData) {
-                // Level 2: Topics (Should be Map)
-                if (topicsData is Map) {
-                  topicsData.forEach((topicId, levelsData) {
-                    // Level 3: Levels (CRITICAL: Can be Map OR List)
-                    _parseLevelsSafe(topicId.toString(), levelsData, progressMap);
-                  });
-                } else if (topicsData is List) {
-                  // Rare edge case for Topics array
-                  for(var tData in topicsData) {
-                    if (tData is Map) {
-                      // We might not have topicId here easily if it was a list key,
-                      // so we rely on data content or skip.
-                    }
-                  }
-                }
-              });
-            }
-
-            return progressMap;
-          } catch (e) {
-            print("Error parsing child progress: $e");
-            return {};
+          if (data != null) {
+            // print("DEBUG: Parsing Progress Data...");
+            _parseRecursiveProgress(data, progressMap);
           }
+
+          return progressMap;
         });
       }
     });
   }
 
-  // --- HELPER: Handle Map vs List for Levels ---
-  void _parseLevelsSafe(String topicId, dynamic levelsData, Map<String, ChildQuizProgressModel> progressMap) {
-    if (levelsData == null) return;
-
-    // Case A: It's a Map (e.g. "1": {...}, "2": {...})
-    if (levelsData is Map) {
-      levelsData.forEach((levelKey, levelVal) {
-        _addModelToMap(levelVal, progressMap);
-      });
-    }
-    // Case B: It's a List (e.g. [null, {...}, {...}])
-    // Firebase turns numeric keys "1", "2" into an array where index 0 is null.
-    else if (levelsData is List) {
-      for (var item in levelsData) {
+  // Robust Recursive Parser that handles Lists and Maps
+  void _parseRecursiveProgress(dynamic data, Map<String, ChildQuizProgressModel> progressMap) {
+    if (data is Map) {
+      // Check if this IS a progress object (Leaf Node)
+      if (data.containsKey('level_order') && data.containsKey('topic_id')) {
+        _addModelToMap(data, progressMap);
+      } else {
+        // Not a leaf, recurse into children
+        data.forEach((k, v) => _parseRecursiveProgress(v, progressMap));
+      }
+    } else if (data is List) {
+      // Handle Arrays (Firebase converts keys "0", "1" to List)
+      for (var item in data) {
         if (item != null) {
-          _addModelToMap(item, progressMap);
+          _parseRecursiveProgress(item, progressMap);
         }
       }
     }
@@ -115,27 +169,27 @@ class ChildQuizService {
 
   void _addModelToMap(dynamic data, Map<String, ChildQuizProgressModel> progressMap) {
     try {
-      // Ensure data is actually a Map before conversion
       if (data is! Map) return;
-
       final safeData = Map<String, dynamic>.from(data);
       final model = ChildQuizProgressModel.fromMap(safeData);
 
-      // Create key: "TopicID_LevelOrder"
+      // Key Format: "TopicID_LevelOrder"
+      // Example: "-OfII6llw2egstbu9d5__1"
       final key = "${model.topicId}_${model.levelOrder}";
       progressMap[key] = model;
+
+      // print("DEBUG: Found Progress: $key (Passed: ${model.isPassed})");
     } catch (e) {
-      print("Skipping invalid progress entry: $e");
+      // print("Skipping invalid entry: $e");
     }
   }
 
   // 3. SAVE PROGRESS
   Future<void> saveLevelResult(ChildQuizProgressModel progress) async {
     String? childId = await SharedPreferencesHelper.instance.getUserId();
-    if (childId == null) childId = _auth.currentUser?.uid;
+    childId ??= _auth.currentUser?.uid;
     if (childId == null) throw Exception("Child not logged in");
 
-    // Save path
     final path = 'child_quiz_progress/$childId/${progress.category}/${progress.topicId}/${progress.levelOrder}';
 
     final snapshot = await _database.ref(path).get();
@@ -146,6 +200,7 @@ class ChildQuizService {
       final existingProgress = ChildQuizProgressModel.fromMap(existingData);
 
       final bool finalPassedStatus = existingProgress.isPassed || passedNow;
+
       final updatedMap = progress.toMap();
       updatedMap['is_passed'] = finalPassedStatus;
       updatedMap['attempts'] = existingProgress.attempts + 1;
@@ -157,23 +212,5 @@ class ChildQuizService {
       map['attempts'] = 1;
       await _database.ref(path).set(map);
     }
-  }
-
-  // 4. GET CATEGORIES
-  Stream<List<String>> getCategoriesStream() {
-    return _database.ref('Public/Quizzes').onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null) return <String>[];
-
-      try {
-        if (data is Map) {
-          return data.keys.map((key) => key.toString()).toList();
-        }
-        return <String>[];
-      } catch (e) {
-        print("Error fetching categories: $e");
-        return <String>[];
-      }
-    });
   }
 }

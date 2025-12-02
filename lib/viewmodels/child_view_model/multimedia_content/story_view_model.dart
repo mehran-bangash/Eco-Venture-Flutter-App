@@ -1,101 +1,55 @@
+
+import 'dart:async';
 import 'package:eco_venture/viewmodels/child_view_model/multimedia_content/story_state.dart';
 import 'package:state_notifier/state_notifier.dart';
+
 import '../../../models/story_model.dart';
 import '../../../repositories/video_StoryRepo.dart';
 
-import '../../../services/shared_preferences_helper.dart'; // <-- Adjust path as needed
-
 class StoryViewModel extends StateNotifier<StoryState> {
-  final VideoStoryRepo _repo;
+  final VideoStoryRepository _repo;
+  StreamSubscription? _sub;
 
   StoryViewModel(this._repo) : super(StoryState());
 
-  // Fetch public stories as List<StoryModel>
-  Future<void> fetchStories() async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final List<StoryModel> stories = await _repo.getPublicStories();
-      state = state.copyWith(isLoading: false, stories: stories);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-    }
+  void fetchStories() {
+    state = state.copyWith(isLoading: true);
+    _sub?.cancel();
+    _sub = _repo.getStories().listen(
+          (data) => state = state.copyWith(isLoading: false, stories: data),
+      onError: (e) => state = state.copyWith(isLoading: false, error: e.toString()),
+    );
   }
 
-  // --- NEW FUNCTIONS ADDED ---
-
-  /// Increment story view count
-  Future<void> incrementView(String storyId) async {
-    try {
-      // Calls the new repo function
-      await _repo.incrementStoryView(storyId);
-    } catch (e) {
-      print("Error incrementing story view: $e");
-    }
+  Future<void> incrementView(StoryModel story) async {
+    final newViews = story.views + 1;
+    await _repo.updateStoryInteraction(
+        story.id, story.adminId, story.createdBy, {'views': newViews}
+    );
   }
 
-  /// Toggle story like/dislike
-  Future<void> toggleLikeDislike({
-    required String storyId,
-    required bool isLiking,
-  }) async {
+  Future<void> toggleLikeDislike({required StoryModel story, required String userId, required bool isLiking}) async {
+    final userLikes = Map<String, bool>.from(story.userLikes);
 
-    // 1. Get the userId from SharedPreferences for the optimistic update
-    final String? userId = await SharedPreferencesHelper.instance.getUserId();
-
-    if (userId == null || userId.isEmpty) {
-      print("ViewModel: Cannot toggle like, user ID is null or empty.");
-      return; // Stop
+    if (userLikes[userId] == isLiking) {
+      userLikes.remove(userId);
+    } else {
+      userLikes[userId] = isLiking;
     }
 
-    final originalStories = state.stories;
+    int likes = userLikes.values.where((v) => v == true).length;
+    int dislikes = userLikes.values.where((v) => v == false).length;
 
-    // 2. Perform the Optimistic Update on the local state
-    final updatedStories = state.stories?.map((story) {
-      if (story.id == storyId) {
-
-        final updatedLikesMap = Map<String, bool>.from(story.userLikes);
-        final bool? currentVote = updatedLikesMap[userId];
-
-        if (isLiking) {
-          if (currentVote == true) {
-            updatedLikesMap.remove(userId);
-          } else {
-            updatedLikesMap[userId] = true;
-          }
-        } else {
-          if (currentVote == false) {
-            updatedLikesMap.remove(userId);
-          } else {
-            updatedLikesMap[userId] = false;
-          }
+    await _repo.updateStoryInteraction(
+        story.id, story.adminId, story.createdBy,
+        {
+          'likes': likes,
+          'dislikes': dislikes,
+          'userLikes': userLikes
         }
-
-        final likeCount = updatedLikesMap.values.where((v) => v == true).length;
-        final dislikeCount = updatedLikesMap.values.where((v) => v == false).length;
-
-        // Use the copyWith method we added to StoryModel
-        return story.copyWith(
-          likes: likeCount,
-          dislikes: dislikeCount,
-          userLikes: updatedLikesMap,
-        );
-      }
-      return story;
-    }).toList();
-
-    // 3. Update the UI state
-    state = state.copyWith(stories: updatedStories);
-
-    // 4. Call the repository
-    try {
-      await _repo.toggleStoryLikeDislike(
-        storyId: storyId,
-        isLiking: isLiking,
-      );
-    } catch (e) {
-      print("DB Failed: $e");
-      // Roll back the UI on failure
-      state = state.copyWith(stories: originalStories);
-    }
+    );
   }
+
+  @override
+  void dispose() { _sub?.cancel(); super.dispose(); }
 }

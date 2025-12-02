@@ -1,55 +1,20 @@
-import 'package:eco_venture/models/story_model.dart';
-import 'package:eco_venture/models/video_model.dart';
+import '../models/video_model.dart';
+import '../models/story_model.dart';
+import '../services/video_story_service.dart';
 
-import '../services/Database_video_story.dart';
+class VideoStoryRepository {
+  final VideoStoryService _service;
 
-class VideoStoryRepo {
-  final DatabaseVideoStory _databaseService;
+  VideoStoryRepository(this._service);
 
-  VideoStoryRepo(this._databaseService);
+  Stream<List<VideoModel>> getVideos() => _service.getVideosStream();
+  Stream<List<StoryModel>> getStories() => _service.getStoriesStream();
 
-  /// Fetch public videos
-  Future<List<VideoModel>> getPublicVideos() {
-    return _databaseService.fetchPublicVideos();
+  Future<void> updateVideoInteraction(String videoId, String creatorId, String createdBy, Map<String, dynamic> updates) async {
+    await _service.updateVideoInteraction(videoId, creatorId, createdBy, updates);
   }
 
-  /// Increment video views
-  Future<void> incrementVideoView(String videoId) {
-    return _databaseService.incrementVideoView(videoId);
+  Future<void> updateStoryInteraction(String storyId, String creatorId, String createdBy, Map<String, dynamic> updates) async {
+    await _service.updateStoryInteraction(storyId, creatorId, createdBy, updates);
   }
-
-  /// Toggle like/dislike
-  Future<void> toggleVideoLikeDislike({
-    required String videoId,
-    required String userId,
-    required bool isLiking,
-  }) {
-    return _databaseService.toggleVideoLikeDislike(
-      videoId: videoId,
-      userId: userId,
-      isLiking: isLiking,
-    );
-  }
-
-  /// Fetch public stories
-  Future<List<StoryModel>> getPublicStories() {
-    return _databaseService.fetchPublicStories();
-  }
-
-  /// Increment story views
-  Future<void> incrementStoryView(String storyId) {
-    return _databaseService.incrementStoryView(storyId);
-  }
-
-  /// Toggle story like/dislike
-  Future<void> toggleStoryLikeDislike({
-    required String storyId,
-    required bool isLiking,
-  }) {
-    return _databaseService.toggleStoryLikeDislike(
-      storyId: storyId,
-      isLiking: isLiking,
-    );
-  }
-
 }

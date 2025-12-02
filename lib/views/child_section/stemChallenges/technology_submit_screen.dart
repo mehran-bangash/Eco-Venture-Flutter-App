@@ -5,10 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-
 import '../../../../models/stem_challenge_read_model.dart';
 import '../../../../models/stem_submission_model.dart';
-import '../../../services/shared_preferences_helper.dart';
+import '../../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/child_view_model/stem_challgengs/child_stem_challenges_view_model_provider.dart';
 
 class TechnologySubmitScreen extends ConsumerStatefulWidget {
@@ -23,6 +22,7 @@ class TechnologySubmitScreen extends ConsumerStatefulWidget {
 
 class _TechnologySubmitScreenState
     extends ConsumerState<TechnologySubmitScreen> {
+  // FIX: List of Files
   final List<File> _proofImages = [];
   final TextEditingController _daysController = TextEditingController();
 
@@ -42,14 +42,11 @@ class _TechnologySubmitScreenState
     }
   }
 
-
-
   Future<void> _submitTask() async {
-    // 1. Validation (Images & Days)
     if (_proofImages.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please upload photos!"),
+          content: Text("Upload screenshots!"),
           backgroundColor: Colors.orange,
         ),
       );
@@ -58,42 +55,39 @@ class _TechnologySubmitScreenState
     if (_daysController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Enter time taken"),
+          content: Text("Enter dev time"),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    // 2. Get User Details (Name & Pic)
     String studentName =
         await SharedPreferencesHelper.instance.getUserName() ?? "Student";
     String? studentPic = await SharedPreferencesHelper.instance.getImageUrl();
 
-    // 3. Create Model with ALL DATA (Snapshots)
     final submission = StemSubmissionModel(
       challengeId: widget.challenge.id,
-      studentId: "", // Service fills this
+      studentId: "",
       studentName: studentName,
-      studentProfilePic: studentPic, // NEW
+      studentProfilePic: studentPic,
       challengeTitle: widget.challenge.title,
-      category: widget.challenge.category, // NEW: From Challenge Model
-      difficulty: widget.challenge.difficulty, // NEW: From Challenge Model
+      category: widget.challenge.category,
+      difficulty: widget.challenge.difficulty,
       proofImageUrls: [],
       daysTaken: int.tryParse(_daysController.text.trim()) ?? 1,
       submittedAt: DateTime.now(),
       status: 'pending',
     );
 
-    // 4. Send to ViewModel
+    // FIX: Passing List
     await ref
         .read(childStemChallengesViewModelProvider.notifier)
         .submitChallengeWithProof(
-      submission: submission,
-      proofImages: _proofImages,
-    );
+          submission: submission,
+          proofImages: _proofImages,
+        );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -121,9 +115,9 @@ class _TechnologySubmitScreenState
     });
 
     return PopScope(
-      canPop: false,
+       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
+        if(!didPop){
           context.goNamed('stemChallenges');
         }
       },
@@ -156,7 +150,7 @@ class _TechnologySubmitScreenState
                       child: Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.pop(),
+                            onPressed: () =>  context.goNamed('stemChallenges'),
                             icon: const Icon(
                               Icons.arrow_back_ios_new,
                               color: Colors.white,
@@ -184,7 +178,7 @@ class _TechnologySubmitScreenState
                         color: const Color(0xFF1E1E1E),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: Colors.cyanAccent.withValues(alpha: 0.3),
+                          color: Colors.cyanAccent.withOpacity(0.3),
                         ),
                       ),
                       child: Column(
@@ -231,7 +225,7 @@ class _TechnologySubmitScreenState
                         color: const Color(0xFF1E1E1E),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.purpleAccent.withValues(alpha: 0.5),
+                          color: Colors.purpleAccent.withOpacity(0.5),
                         ),
                       ),
                       child: TextField(
@@ -262,15 +256,12 @@ class _TechnologySubmitScreenState
                         onPressed: state.isLoading ? null : _submitTask,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6200EA),
-                          elevation: 5,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(25),
                           ),
                         ),
                         child: state.isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
+                            ? const CircularProgressIndicator(color: Colors.white)
                             : Text(
                                 "Deploy Submission",
                                 style: GoogleFonts.poppins(
@@ -303,7 +294,7 @@ class _TechnologySubmitScreenState
           width: 100.w,
           height: 20.h,
           decoration: BoxDecoration(
-            color: Colors.purple.withValues(alpha: 0.1),
+            color: Colors.purple.withOpacity(0.1),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.purpleAccent, width: 1.5),
           ),

@@ -38,7 +38,6 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
     super.dispose();
   }
 
-  // --- SAVE LOGIC ---
   Future<void> _saveStory() async {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please enter a story title"), backgroundColor: Colors.red));
@@ -50,9 +49,12 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
     }
 
     final newStory = StoryModel(
+      // FIX: Added id and adminId with empty strings (backend fills them)
+      id: '',
+      adminId: '',
       title: _titleController.text.trim(),
       description: _descController.text.trim(),
-      thumbnailUrl: _coverImage?.path, // Local path, ViewModel handles upload
+      thumbnailUrl: _coverImage?.path, // Local path
       pages: _pages,
       uploadedAt: DateTime.now(),
       likes: 0, dislikes: 0, views: 0,

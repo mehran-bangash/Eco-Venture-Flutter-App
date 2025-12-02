@@ -2,21 +2,22 @@ class VideoModel {
   final String id;
   final String adminId;
   final String title;
-  final String description; // Added
+  final String description;
   final String category;
   final String videoUrl;
-  final String? thumbnailUrl; // Changed to nullable
+  final String? thumbnailUrl;
   final String duration;
-  final DateTime uploadedAt; // Added
+  final DateTime uploadedAt;
   final int likes;
   final int dislikes;
   final int views;
   final String status;
+  final String createdBy; // 'admin' or 'teacher'
   final Map<String, bool> userLikes;
 
   VideoModel({
-    this.id = '',
-    this.adminId = '',
+    required this.id,
+    required this.adminId,
     required this.title,
     required this.description,
     required this.category,
@@ -28,28 +29,11 @@ class VideoModel {
     this.dislikes = 0,
     this.views = 0,
     this.status = 'published',
+    this.createdBy = 'admin',
     Map<String, bool>? userLikes,
   }) : userLikes = userLikes ?? {};
 
-  factory VideoModel.fromMap(Map<String, dynamic> map) {
-    return VideoModel(
-      id: map['id'] ?? '',
-      adminId: map['adminId'] ?? '',
-      title: map['title'] ?? '',
-      description: map['description'] ?? '',
-      category: map['category'] ?? 'General',
-      videoUrl: map['videoUrl'] ?? '',
-      thumbnailUrl: map['thumbnailUrl'],
-      duration: map['duration'] ?? '00:00',
-      uploadedAt: DateTime.tryParse(map['uploadedAt'] ?? '') ?? DateTime.now(),
-      likes: (map['likes'] as num? ?? 0).toInt(),
-      dislikes: (map['dislikes'] as num? ?? 0).toInt(),
-      views: (map['views'] as num? ?? 0).toInt(),
-      status: map['status'] ?? 'published',
-      userLikes: Map<String, bool>.from(map['userLikes'] ?? {}),
-    );
-  }
-
+  // --- 1. TO MAP (Required for Firebase Write) ---
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -65,10 +49,35 @@ class VideoModel {
       'dislikes': dislikes,
       'views': views,
       'status': status,
-      'userLikes': userLikes,
+      'created_by': createdBy,
+      'userLikes': userLikes, // Firebase handles Map<String,bool> natively usually, or convert manually if needed
     };
   }
 
+  // --- 2. FROM MAP ---
+  factory VideoModel.fromMap(Map<String, dynamic> map) {
+    int safeInt(dynamic v) => (v is num) ? v.toInt() : int.tryParse('$v') ?? 0;
+
+    return VideoModel(
+      id: map['id'] ?? '',
+      adminId: map['adminId'] ?? '',
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      category: map['category'] ?? 'General',
+      videoUrl: map['videoUrl'] ?? '',
+      thumbnailUrl: map['thumbnailUrl'],
+      duration: map['duration'] ?? '00:00',
+      uploadedAt: DateTime.tryParse(map['uploadedAt'] ?? '') ?? DateTime.now(),
+      likes: safeInt(map['likes']),
+      dislikes: safeInt(map['dislikes']),
+      views: safeInt(map['views']),
+      status: map['status'] ?? 'published',
+      createdBy: map['created_by'] ?? 'admin',
+      userLikes: Map<String, bool>.from(map['userLikes'] ?? {}),
+    );
+  }
+
+  // --- 3. COPY WITH ---
   VideoModel copyWith({
     String? id,
     String? adminId,
@@ -83,6 +92,7 @@ class VideoModel {
     int? dislikes,
     int? views,
     String? status,
+    String? createdBy,
     Map<String, bool>? userLikes,
   }) {
     return VideoModel(
@@ -99,6 +109,7 @@ class VideoModel {
       dislikes: dislikes ?? this.dislikes,
       views: views ?? this.views,
       status: status ?? this.status,
+      createdBy: createdBy ?? this.createdBy,
       userLikes: userLikes ?? this.userLikes,
     );
   }

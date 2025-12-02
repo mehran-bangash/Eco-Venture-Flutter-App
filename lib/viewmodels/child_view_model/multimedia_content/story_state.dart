@@ -2,24 +2,16 @@ import '../../../models/story_model.dart';
 
 class StoryState {
   final bool isLoading;
-  final String? error;
   final List<StoryModel>? stories;
-
-  StoryState({
-    this.isLoading = false,
-    this.error,
-    this.stories,
-  });
-
+  final String? error;
+  StoryState({this.isLoading = false, this.stories, this.error});
   StoryState copyWith({
     bool? isLoading,
-    String? error,
     List<StoryModel>? stories,
-  }) {
-    return StoryState(
-      isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
-      stories: stories ?? this.stories,
-    );
-  }
+    String? error,
+  }) => StoryState(
+    isLoading: isLoading ?? this.isLoading,
+    stories: stories ?? this.stories,
+    error: error,
+  );
 }

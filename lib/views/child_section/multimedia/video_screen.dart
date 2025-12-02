@@ -8,7 +8,6 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../models/video_model.dart';
 import '../../../viewmodels/child_view_model/multimedia_content/video_story_provider.dart';
 
-
 class VideoScreen extends ConsumerStatefulWidget {
   const VideoScreen({super.key});
 
@@ -18,18 +17,13 @@ class VideoScreen extends ConsumerStatefulWidget {
 
 class _VideoScreenState extends ConsumerState<VideoScreen>
     with SingleTickerProviderStateMixin {
-
-
   late final AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _controller =
-    AnimationController(vsync: this, duration: const Duration(seconds: 1))
-      ..forward();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1))..forward();
 
-    // ADDED: Fetch data once on start
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(videoViewModelProvider.notifier).fetchVideos();
     });
@@ -41,21 +35,18 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
     super.dispose();
   }
 
-
   Widget _buildVideoCard(VideoModel video, int index) {
     final fade = CurvedAnimation(
       parent: _controller,
-      curve: Interval(
-          (0.1 * index).clamp(0.0, 1.0), // Safety clamp
-          1.0,
-          curve: Curves.easeOutCubic
-      ),
+      curve: Interval((0.1 * index).clamp(0.0, 1.0), 1.0, curve: Curves.easeOutCubic),
     );
+
+    // Check origin
+    final bool isTeacher = video.createdBy == 'teacher';
 
     return FadeTransition(
       opacity: fade,
       child: GestureDetector(
-        // CHANGED: Pass the video object to the next screen
         onTap: () => context.goNamed('videoPlayScreen', extra: video),
         child: AnimatedScale(
           scale: 1.0,
@@ -69,17 +60,21 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.white.withValues(alpha: 0.2),
-                      Colors.white.withValues(alpha: 0.05),
+                      Colors.white.withOpacity(0.2),
+                      Colors.white.withOpacity(0.05),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+                  border: Border.all(
+                    // Highlight border for Teacher content
+                    color: isTeacher ? Colors.amber.withOpacity(0.5) : Colors.white.withOpacity(0.25),
+                    width: isTeacher ? 1.5 : 1,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
+                      color: Colors.black.withOpacity(0.15),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -88,86 +83,93 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                      // CHANGED: Image.network for Cloudinary URL
-                      child: Image.network(
-                        video.thumbnailUrl ?? "", // Handle null safety
-                        height: 12.h,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        // Added simple error builder to match your style
-                        errorBuilder: (_, __, ___) => Container(
-                          height: 12.h,
-                          color: Colors.grey[300],
-                          child: Center(
-                            child: Icon(Icons.broken_image,
-                                color: Colors.redAccent, size: 10.w),
+                    // --- IMAGE + BADGE STACK ---
+                    Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                          child: Image.network(
+                            video.thumbnailUrl ?? "",
+                            height: 13.h, // Increased slightly
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              height: 13.h,
+                              color: Colors.grey[300],
+                              child: Center(child: Icon(Icons.broken_image, color: Colors.redAccent, size: 10.w)),
+                            ),
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(height: 13.h, color: Colors.black12);
+                            },
                           ),
                         ),
-                        // Optional: Keep layout while loading
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(height: 12.h, color: Colors.black12);
-                        },
-                      ),
+
+                        // --- BADGE ---
+                        Positioned(
+                          top: 8, left: 8,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.4.h),
+                            decoration: BoxDecoration(
+                              color: isTeacher ? Colors.amber : Colors.cyan,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(isTeacher ? Icons.school : Icons.public, size: 12.sp, color: Colors.black87),
+                                SizedBox(width: 1.w),
+                                Text(
+                                  isTeacher ? "Classroom" : "Global",
+                                  style: GoogleFonts.poppins(
+                                      fontSize: 10.sp,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.black87
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
-                    /// Content (title + info + play)
+                    /// Content
                     Expanded(
                       child: Padding(
                         padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            /// Title
                             Text(
-                              video.title, // CHANGED: from map key to model property
+                              video.title,
                               style: GoogleFonts.poppins(
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.white.withValues(alpha: 0.95),
+                                color: Colors.white.withOpacity(0.95),
                               ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-
                             const Spacer(),
-
-                            /// Duration + Rating
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  video.duration, // CHANGED: from map key to model property
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 12.sp,
-                                    color: Colors.white70,
-                                    fontWeight: FontWeight.w500,
+                                  video.duration,
+                                  style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white70, fontWeight: FontWeight.w500),
+                                ),
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 1),
                                   ),
+                                  padding: const EdgeInsets.all(6),
+                                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
                                 ),
                               ],
-                            ),
-
-                            SizedBox(height: 0.8.h),
-
-                            /// Play Button
-                            Align(
-                              alignment: Alignment.bottomRight,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.4), width: 1),
-                                ),
-                                padding: const EdgeInsets.all(6),
-                                child: const Icon(Icons.play_arrow_rounded,
-                                    color: Colors.white, size: 20),
-                              ),
                             ),
                           ],
                         ),
@@ -183,8 +185,6 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
     );
   }
 
-
-  // Gradient Background (KEPT EXACTLY SAME)
   Widget _animatedBackground({required Widget child}) {
     return AnimatedBuilder(
       animation: _controller,
@@ -205,7 +205,6 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
 
   @override
   Widget build(BuildContext context) {
-    // ADDED: Watch the state
     final videoState = ref.watch(videoViewModelProvider);
 
     return Scaffold(
@@ -216,22 +215,14 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                /// Header
                 Padding(
                   padding: EdgeInsets.only(left: 2.w, bottom: 2.h),
                   child: Text(
-                    "Explore Nature Videos ",
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    "Explore Nature Videos",
+                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w600),
                   ),
                 ),
-
-
                 Expanded(
-                  // CHANGED: Logic to handle Loading vs Data
                   child: videoState.isLoading
                       ? const Center(child: CircularProgressIndicator(color: Colors.white))
                       : GridView.builder(
@@ -240,13 +231,12 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
                       crossAxisCount: 2,
                       crossAxisSpacing: 3.w,
                       mainAxisSpacing: 2.h,
-                      childAspectRatio: 0.78,
+                      childAspectRatio: 0.75, // Adjusted aspect ratio
                     ),
-                    // CHANGED: Use real data length
-                    itemCount: videoState.videos?.length ?? 0, // Added safe check
+                    itemCount: videoState.videos?.length,
                     itemBuilder: (context, index) {
-                      final video = videoState.videos![index];
-                      return _buildVideoCard(video, index);
+                      final video = videoState.videos?[index];
+                      return _buildVideoCard(video!, index);
                     },
                   ),
                 ),

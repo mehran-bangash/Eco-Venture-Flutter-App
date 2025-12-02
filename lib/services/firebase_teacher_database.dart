@@ -166,24 +166,39 @@ class FirebaseTeacherDatabase {
   Stream<List<StemChallengeModel>> getTeacherStemChallengesStream(String category) async* {
     final teacherId = await _getTeacherId();
 
+    print("DEBUG: Fetching STEM from: Teacher_Content/$teacherId/StemChallenges/$category");
+
     yield* _database.ref('Teacher_Content/$teacherId/StemChallenges/$category').onValue.map((event) {
       final data = event.snapshot.value;
-      if (data == null) return [];
 
-      try {
-        final Map<dynamic, dynamic> mapData = data as Map<dynamic, dynamic>;
-        final List<StemChallengeModel> challenges = [];
-
-        mapData.forEach((key, value) {
-          final challengeMap = Map<String, dynamic>.from(value as Map);
-          challenges.add(StemChallengeModel.fromMap(key.toString(), challengeMap));
-        });
-
-        return challenges;
-      } catch (e) {
-        print("Error parsing teacher STEM challenges: $e");
+      if (data == null) {
+        print("DEBUG: No data found at this path.");
         return [];
       }
+
+      final List<StemChallengeModel> challenges = [];
+
+      if (data is Map) {
+        data.forEach((key, value) {
+          try {
+            // 1. Validate it's a Map
+            if (value is Map) {
+              final challengeMap = Map<String, dynamic>.from(value);
+
+              // 2. Ensure ID exists
+              challengeMap['id'] = key.toString();
+
+              // 3. Parse safely
+              challenges.add(StemChallengeModel.fromMap(key.toString(), challengeMap));
+            }
+          } catch (e) {
+            print("⚠️ Skipped invalid STEM challenge ($key): $e");
+          }
+        });
+      }
+
+      print("DEBUG: Successfully parsed ${challenges.length} challenges.");
+      return challenges;
     });
   }
 
@@ -205,7 +220,6 @@ class FirebaseTeacherDatabase {
   }
 
   Future<void> updateVideo(VideoModel video) async {
-    if (video.id == null) throw Exception("Video ID missing");
     try {
       final teacherId = await _getTeacherId();
       final path = 'Teacher_Content/$teacherId/Multimedia/Videos/${video.id}';
@@ -265,7 +279,6 @@ class FirebaseTeacherDatabase {
   }
 
   Future<void> updateStory(StoryModel story) async {
-    if (story.id == null) throw Exception("Story ID missing");
     try {
       final teacherId = await _getTeacherId();
       final path = 'Teacher_Content/$teacherId/Multimedia/Stories/${story.id}';

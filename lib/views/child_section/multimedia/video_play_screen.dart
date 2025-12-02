@@ -1,27 +1,23 @@
 import 'package:chewie/chewie.dart';
-import 'package:eco_venture/services/shared_preferences_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:collection/collection.dart';
+
+import '../../../models/video_model.dart'; // Import Model
+import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/child_view_model/multimedia_content/video_story_provider.dart';
 
-
 class VideoPlayerScreen extends ConsumerStatefulWidget {
-  final String videoId;
-  final String videoUrl;
-  final String title;
-  final String duration;
-  final int views;
+  // Accept the full VideoModel to ensure we have createdBy/adminId
+  final VideoModel videoData;
 
   const VideoPlayerScreen({
     super.key,
-    required this.videoId,
-    required this.videoUrl,
-    required this.title,
-    required this.duration,
-    required this.views,
+    required this.videoData,
   });
 
   @override
@@ -31,50 +27,62 @@ class VideoPlayerScreen extends ConsumerStatefulWidget {
 class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   late VideoPlayerController _videoController;
   ChewieController? _chewieController;
+  bool _isInitialized = false;
   bool _viewAdded = false;
-
-  String localUserId = "";
+  String _localUserId = "";
 
   @override
   void initState() {
     super.initState();
-    _loadUserId(); // Load userId from SharedPreferences
-    ref.read(videoViewModelProvider.notifier).fetchVideos();
+    _loadUser();
     _initPlayer();
   }
 
-  Future<void> _loadUserId() async {
-    localUserId = await SharedPreferencesHelper.instance.getUserId() ?? "";
-    setState(() {});
+  Future<void> _loadUser() async {
+    _localUserId = await SharedPreferencesHelper.instance.getUserId() ?? "";
+    if (mounted) setState(() {});
   }
 
   Future<void> _initPlayer() async {
-    _videoController = VideoPlayerController.network(widget.videoUrl);
+    _videoController = VideoPlayerController.networkUrl(Uri.parse(widget.videoData.videoUrl));
 
-    await _videoController.initialize();
+    try {
+      await _videoController.initialize();
 
-    if (!_viewAdded) {
-      ref.read(videoViewModelProvider.notifier)
-          .incrementView(widget.videoId);
-      _viewAdded = true;
+      _chewieController = ChewieController(
+        videoPlayerController: _videoController,
+        autoPlay: true,
+        looping: false,
+        aspectRatio: _videoController.value.aspectRatio,
+        errorBuilder: (context, errorMessage) {
+          return Center(child: Text(errorMessage, style: const TextStyle(color: Colors.white)));
+        },
+        materialProgressColors: ChewieProgressColors(
+          playedColor: Colors.red,
+          handleColor: Colors.red,
+          backgroundColor: Colors.grey,
+          bufferedColor: Colors.white24,
+        ),
+      );
+
+      setState(() {
+        _isInitialized = true;
+      });
+
+      // FIX: Pass the full object
+      if (!_viewAdded) {
+        ref.read(videoViewModelProvider.notifier).incrementView(widget.videoData);
+        _viewAdded = true;
+      }
+    } catch (e) {
+      print("Error initializing video: $e");
     }
-
-    _chewieController = ChewieController(
-      videoPlayerController: _videoController,
-      autoPlay: true,
-      looping: false,
-      allowFullScreen: true,
-      allowMuting: true,
-      aspectRatio: _videoController.value.aspectRatio,
-    );
-
-    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    _chewieController?.dispose();
     _videoController.dispose();
+    _chewieController?.dispose();
     super.dispose();
   }
 
@@ -82,120 +90,148 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   Widget build(BuildContext context) {
     final videoState = ref.watch(videoViewModelProvider);
 
-    final video = videoState.videos.firstWhereOrNull((v) => v.id == widget.videoId);
+    // Get fresh data from state
+    final video = videoState.videos?.firstWhereOrNull((v) => v.id == widget.videoData.id) ?? widget.videoData;
 
-    final likeColor = (video?.userLikes[localUserId] == true)
-        ? Colors.blue
-        : Colors.grey[700]!;
+    // Determine active colors
+    final isLiked = video.userLikes[_localUserId] == true;
+    final isDisliked = video.userLikes[_localUserId] == false;
 
-    final dislikeColor = (video?.userLikes[localUserId] == false)
-        ? Colors.red
-        : Colors.grey[700]!;
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E0E15),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // --- VIDEO PLAYER AREA ---
+            Stack(
+              children: [
+                Container(
+                  height: 30.h,
+                  width: 100.w,
+                  color: Colors.black,
+                  child: _isInitialized && _chewieController != null
+                      ? Chewie(controller: _chewieController!)
+                      : const Center(child: CircularProgressIndicator(color: Colors.red)),
+                ),
+                Positioned(
+                  top: 10,
+                  left: 10,
+                  child: GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Container(
+                      padding: EdgeInsets.all(2.w),
+                      decoration: BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+                      child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if(!didPop){
-          context.goNamed('multiMediaContent');
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-             leading: GestureDetector(
-                   onTap: () {
-                     context.goNamed('multiMediaContent');
-                   },
-                 child: Icon(Icons.arrow_back_ios,)),
-            title: Text(widget.title)),
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              SizedBox(
-                height: 220,
-                child: _videoController.value.isInitialized
-                    ? Chewie(controller: _chewieController!)
-                    : const Center(child: CircularProgressIndicator()),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.all(16),
+            // --- INFO ---
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(5.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.title,
-                        style: const TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
+                    Text(
+                      video.title,
+                      style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                    ),
+                    SizedBox(height: 1.h),
 
                     Row(
                       children: [
-                        Text(widget.duration, style: const TextStyle(color: Colors.grey)),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.remove_red_eye, size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text("${video?.views ?? widget.views}",
-                            style: const TextStyle(color: Colors.grey)),
+                        Text("${video.views} views", style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13.sp)),
+                        SizedBox(width: 2.w),
+                        const Icon(Icons.circle, size: 5, color: Colors.grey),
+                        SizedBox(width: 2.w),
+                        Text(video.duration, style: GoogleFonts.poppins(color: Colors.grey, fontSize: 13.sp)),
                       ],
                     ),
-                    const SizedBox(height: 16),
 
+                    SizedBox(height: 3.h),
+
+                    // --- ACTIONS ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        _action(Icons.thumb_up, "${video?.likes ?? 0}", () {
-
-
-                          if (localUserId.isEmpty) {
-
-                            return;
-                          }
-
-                          ref.read(videoViewModelProvider.notifier)
-                              .toggleVideoLikeDislike(
-                            videoId: widget.videoId,
-                            userId: localUserId,
-                            isLiking: true,
-                          );
-                        }, iconColor: likeColor),
-
-                        _action(Icons.thumb_down, "${video?.dislikes ?? 0}", () {
-
-                          if (localUserId.isEmpty) {
-                            return;
-                          }
-
-                          ref.read(videoViewModelProvider.notifier)
-                              .toggleVideoLikeDislike(
-                            videoId: widget.videoId,
-                            userId: localUserId,
-                            isLiking: false,
-                          );
-                        }, iconColor: dislikeColor),
-
-                        _action(Icons.share, "Share", () {}),
-                        _action(Icons.bookmark_add, "Save", () {}),
+                        _buildActionBtn(
+                          icon: isLiked ? Icons.thumb_up_alt : Icons.thumb_up_off_alt,
+                          label: "${video.likes}",
+                          isActive: isLiked,
+                          activeColor: Colors.blue,
+                          onTap: () {
+                            if (_localUserId.isEmpty) return;
+                            // FIX: Pass full object
+                            ref.read(videoViewModelProvider.notifier).toggleVideoLikeDislike(
+                                video: video, userId: _localUserId, isLiking: true
+                            );
+                          },
+                        ),
+                        _buildActionBtn(
+                          icon: isDisliked ? Icons.thumb_down_alt : Icons.thumb_down_off_alt,
+                          label: "${video.dislikes}",
+                          isActive: isDisliked,
+                          activeColor: Colors.red,
+                          onTap: () {
+                            if (_localUserId.isEmpty) return;
+                            // FIX: Pass full object
+                            ref.read(videoViewModelProvider.notifier).toggleVideoLikeDislike(
+                                video: video, userId: _localUserId, isLiking: false
+                            );
+                          },
+                        ),
+                        _buildActionBtn(
+                          icon: Icons.share_rounded,
+                          label: "Share",
+                          isActive: false,
+                          onTap: () {},
+                        ),
+                        _buildActionBtn(
+                          icon: Icons.bookmark_border_rounded,
+                          label: "Save",
+                          isActive: false,
+                          onTap: () {},
+                        ),
                       ],
-                    )
+                    ),
+
+                    SizedBox(height: 3.h),
+                    Divider(color: Colors.white10),
+                    SizedBox(height: 2.h),
+
+                    Text("Description", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15.sp)),
+                    SizedBox(height: 1.h),
+                    Text(
+                      video.description.isNotEmpty ? video.description : "No description available.",
+                      style: GoogleFonts.poppins(color: Colors.white70, fontSize: 13.sp, height: 1.5),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _action(IconData icon, String label, VoidCallback onTap,
-      {Color? iconColor}) {
-    return GestureDetector(
+  Widget _buildActionBtn({required IconData icon, required String label, required bool isActive, Color activeColor = Colors.blue, required VoidCallback onTap}) {
+    return InkWell(
       onTap: onTap,
-      child: Column(
-        children: [
-          Icon(icon, color: iconColor ?? Colors.grey),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-        ],
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
+        child: Column(
+          children: [
+            Icon(icon, color: isActive ? activeColor : Colors.white, size: 22.sp),
+            SizedBox(height: 0.5.h),
+            Text(label, style: GoogleFonts.poppins(color: isActive ? activeColor : Colors.white70, fontSize: 11.sp)),
+          ],
+        ),
       ),
     );
   }

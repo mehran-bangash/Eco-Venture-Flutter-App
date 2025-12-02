@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/stem_submission_model.dart';
-import '../../../repositories/child_stem_challenges_repository.dart';
+import '../../../repositories/child_stem_challenge_repository.dart';
 import '../../../services/cloudinary_service.dart';
 import 'child_stem_challenges_state.dart';
 
@@ -10,8 +10,9 @@ class ChildStemChallengesViewModel extends StateNotifier<ChildStemChallengesStat
   final ChildStemChallengesRepository _repository;
   final CloudinaryService _cloudinaryService;
 
-  StreamSubscription? _challengesSubscription;
-  StreamSubscription? _submissionsSubscription;
+  StreamSubscription? _adminSub;
+  StreamSubscription? _teacherSub;
+  StreamSubscription? _submissionsSub;
 
   ChildStemChallengesViewModel(this._repository, this._cloudinaryService)
       : super(ChildStemChallengesState()) {
@@ -19,43 +20,49 @@ class ChildStemChallengesViewModel extends StateNotifier<ChildStemChallengesStat
   }
 
   void loadChallenges(String category) {
-    _challengesSubscription?.cancel();
-    state = state.copyWith(isLoading: true);
-    _challengesSubscription = _repository.getChallengesStream(category).listen(
-          (challenges) => state = state.copyWith(isLoading: false, challenges: challenges),
-      onError: (e) => state = state.copyWith(isLoading: false, errorMessage: e.toString()),
+    _adminSub?.cancel();
+    _teacherSub?.cancel();
+
+    _adminSub = _repository.getAdminChallenges(category).listen(
+          (data) => state = state.copyWith(adminChallenges: data),
+      onError: (e) => print("Admin STEM Error: $e"),
+    );
+
+    _teacherSub = _repository.getTeacherChallenges(category).listen(
+          (data) => state = state.copyWith(teacherChallenges: data),
+      onError: (e) => print("Teacher STEM Error: $e"),
     );
   }
 
   void _loadSubmissionHistory() {
-    _submissionsSubscription = _repository.getSubmissionsStream().listen(
+    _submissionsSub = _repository.getSubmissionsStream().listen(
           (historyMap) => state = state.copyWith(submissions: historyMap),
       onError: (e) => print("Error loading history: $e"),
     );
   }
 
-  // --- CHANGE 2: Accept List<File> ---
+  // --- FIX: Accept List<File> ---
   Future<void> submitChallengeWithProof({
     required StemSubmissionModel submission,
-    required List<File> proofImages, // Changed from single File
+    required List<File> proofImages, // Updated to List
   }) async {
     state = state.copyWith(isLoading: true);
 
     try {
-      // Step A: Upload MULTIPLE Images
+      // 1. Upload Multiple Images
       final List<String> imageUrls = await _cloudinaryService.uploadMultipleTaskImages(proofImages);
 
       if (imageUrls.isEmpty) {
-        throw Exception("Failed to upload images. Please try again.");
+        throw Exception("Failed to upload proof images. Please try again.");
       }
 
-      // Step B: Update Model with URL List
+      // 2. Update Model with URL List
       final finalSubmission = submission.copyWith(
-        proofImageUrls: imageUrls, // Updated field
+        proofImageUrls: imageUrls,
         status: 'pending',
       );
 
-      // Step C: Save
+      // 3. Save
       await _repository.submitChallenge(finalSubmission);
 
       state = state.copyWith(isLoading: false, isSuccess: true);
@@ -64,12 +71,15 @@ class ChildStemChallengesViewModel extends StateNotifier<ChildStemChallengesStat
     }
   }
 
-  void resetSuccess() => state = state.copyWith(isSuccess: false);
+  void resetSuccess() {
+    state = state.copyWith(isSuccess: false);
+  }
 
   @override
   void dispose() {
-    _challengesSubscription?.cancel();
-    _submissionsSubscription?.cancel();
+    _adminSub?.cancel();
+    _teacherSub?.cancel();
+    _submissionsSub?.cancel();
     super.dispose();
   }
 }

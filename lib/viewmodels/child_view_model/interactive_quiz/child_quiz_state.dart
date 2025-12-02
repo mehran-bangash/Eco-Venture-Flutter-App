@@ -1,35 +1,49 @@
+
+
 import '../../../models/child_progress_model.dart';
 import '../../../models/quiz_topic_model.dart';
-
 
 class ChildQuizState {
   final bool isLoading;
   final String? errorMessage;
-  final List<QuizTopicModel> topics; // Holds Topics now
-  final Map<String, ChildQuizProgressModel> progress; // Key: "TopicID_LevelOrder"
-  final List<String> categoryNames;
+
+  // --- SEPARATE DATA LISTS ---
+  final List<QuizTopicModel> adminTopics;
+  final List<QuizTopicModel> teacherTopics;
+
+  // --- SEPARATE CATEGORY LISTS ---
+  final List<String> adminCategories;
+  final List<String> teacherCategories;
+
+  final Map<String, ChildQuizProgressModel> progress;
 
   ChildQuizState({
     this.isLoading = false,
     this.errorMessage,
-    this.topics = const [],
+    this.adminTopics = const [],
+    this.teacherTopics = const [],
+    this.adminCategories = const [],
+    this.teacherCategories = const [],
     this.progress = const {},
-    this.categoryNames = const [],
   });
 
   ChildQuizState copyWith({
     bool? isLoading,
     String? errorMessage,
-    List<QuizTopicModel>? topics,
+    List<QuizTopicModel>? adminTopics,
+    List<QuizTopicModel>? teacherTopics,
+    List<String>? adminCategories,
+    List<String>? teacherCategories,
     Map<String, ChildQuizProgressModel>? progress,
-    List<String>? categoryNames,
   }) {
     return ChildQuizState(
       isLoading: isLoading ?? this.isLoading,
       errorMessage: errorMessage,
-      topics: topics ?? this.topics,
+      adminTopics: adminTopics ?? this.adminTopics,
+      teacherTopics: teacherTopics ?? this.teacherTopics,
+      adminCategories: adminCategories ?? this.adminCategories,
+      teacherCategories: teacherCategories ?? this.teacherCategories,
       progress: progress ?? this.progress,
-      categoryNames: categoryNames ?? this.categoryNames,
     );
   }
 }

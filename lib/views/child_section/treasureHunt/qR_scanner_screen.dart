@@ -1,20 +1,31 @@
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:go_router/go_router.dart'; //  important
+import 'package:go_router/go_router.dart';
+import '../../../models/qr_hunt_read_model.dart';
+import '../../../viewmodels/child_view_model/qr_hunt/child_qr_hunt_provider.dart';
 
-class QRScannerScreen extends StatefulWidget {
-  const QRScannerScreen({super.key});
+class QRScannerScreen extends ConsumerStatefulWidget {
+  final QrHuntReadModel hunt;
+
+  const QRScannerScreen({super.key, required this.hunt});
 
   @override
-  State<QRScannerScreen> createState() => _QRScannerScreenState();
+  ConsumerState<QRScannerScreen> createState() => _QRScannerScreenState();
 }
 
-class _QRScannerScreenState extends State<QRScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController();
-  bool _isScanned = false;
+class _QRScannerScreenState extends ConsumerState<QRScannerScreen> {
+  final MobileScannerController _controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.normal, // Prevents ultra-fast duplicate scans
+    facing: CameraFacing.back,
+    torchEnabled: false,
+  );
+
+  bool _isProcessing = false;
+  bool _isCoolingDown = false; // FIX: Cooldown flag
 
   @override
   void dispose() {
@@ -23,123 +34,123 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
-    if (_isScanned) return;
+    // Block if already processing OR in cooldown period (e.g. just showed error)
+    if (_isProcessing || _isCoolingDown) return;
+
     final barcode = capture.barcodes.first;
     if (barcode.rawValue == null) return;
 
-    setState(() => _isScanned = true);
-    await _controller.stop();
+    setState(() => _isProcessing = true);
 
-    //  Show success dialog safely
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          "QR Scanned Successfully!",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Text("Code: ${barcode.rawValue}"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-
-    //  Use GoRouter navigation (safe, no crash)
-    if (confirmed == true && mounted) {
-      context.goNamed('qrSuccessScreen',extra: 5); // rewardCoins = 5
-    }
+    // Validate
+    await ref.read(childQrHuntViewModelProvider.notifier).validateScan(barcode.rawValue!, widget.hunt);
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(childQrHuntViewModelProvider);
+
+    ref.listen(childQrHuntViewModelProvider, (prev, next) {
+      // Success Case
+      if (next.scanSuccess) {
+        _controller.stop();
+        ref.read(childQrHuntViewModelProvider.notifier).resetFlags();
+        if (mounted) context.replaceNamed('qrSuccessScreen', extra: 10);
+      }
+
+      // Error Case (Wrong Code)
+      if (next.errorMessage != null && !_isCoolingDown) {
+        // 1. Show SnackBar
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(next.errorMessage!),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 2)
+            )
+        );
+
+        // 2. Start Cooldown
+        setState(() {
+          _isCoolingDown = true; // Block new scans
+          _isProcessing = false; // Reset processing
+        });
+
+        // 3. Clear Error from State immediately so we don't loop
+        ref.read(childQrHuntViewModelProvider.notifier).resetFlags();
+
+        // 4. Unlock after 3 seconds
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() => _isCoolingDown = false);
+          }
+        });
+      }
+    });
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E0E15),
       body: SafeArea(
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Live Camera Preview
             MobileScanner(
               controller: _controller,
               onDetect: _onDetect,
               fit: BoxFit.cover,
             ),
 
-            // Dark Overlay
             ColorFiltered(
-              colorFilter: const ColorFilter.mode(
-                Colors.black45,
-                BlendMode.darken,
-              ),
+              colorFilter: const ColorFilter.mode(Colors.black45, BlendMode.darken),
               child: Container(),
             ),
 
-            // Scan Frame Glow
+            // Scan Frame
             Container(
-              width: 70.w,
-              height: 40.h,
+              width: 70.w, height: 40.h,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.deepPurpleAccent.withValues(alpha: 0.8),
-                  width: 4,
+                  // Visual Feedback: Turn RED if cooling down (Error state)
+                    color: _isCoolingDown ? Colors.red : Colors.deepPurpleAccent.withOpacity(0.8),
+                    width: 4
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.deepPurpleAccent.withValues(alpha: 0.6),
-                    blurRadius: 18,
-                    spreadRadius: 1,
-                  ),
+                      color: _isCoolingDown ? Colors.red.withOpacity(0.4) : Colors.deepPurpleAccent.withOpacity(0.6),
+                      blurRadius: 18
+                  )
                 ],
               ),
             ),
 
-            // Title
             Positioned(
               top: 4.h,
               child: Text(
-                "Scan the Treasure Clue",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 18.sp,
-                  letterSpacing: 0.5,
-                ),
+                  _isCoolingDown ? "Wrong Code... Wait" : "Scan the Clue Code",
+                  style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18.sp)
               ),
             ),
 
-            // Flash Toggle
+            if (_isProcessing && !_isCoolingDown)
+              const Center(child: CircularProgressIndicator(color: Colors.white)),
+
             Positioned(
               bottom: 4.h,
               child: ElevatedButton.icon(
                 onPressed: () => _controller.toggleTorch(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurpleAccent,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 8.w,
-                    vertical: 1.2.h,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurpleAccent, padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 1.h)),
                 icon: const Icon(Icons.flash_on, color: Colors.white),
-                label: Text(
-                  "Toggle Flash",
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15.sp,
-                  ),
-                ),
+                label: Text("Flash", style: GoogleFonts.poppins(color: Colors.white, fontSize: 15.sp)),
               ),
             ),
+
+            Positioned(
+              top: 2.h, left: 4.w,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => context.pop(),
+              ),
+            )
           ],
         ),
       ),

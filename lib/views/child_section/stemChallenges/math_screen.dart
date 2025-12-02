@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../viewmodels/child_view_model/stem_challgengs/child_stem_challenges_view_model_provider.dart';
 import 'widgets/challenge_card.dart';
+import '../../../../models/stem_challenge_read_model.dart';
 
 class MathScreen extends ConsumerStatefulWidget {
   const MathScreen({super.key});
@@ -16,24 +17,19 @@ class MathScreen extends ConsumerStatefulWidget {
 class _MathScreenState extends ConsumerState<MathScreen>
     with SingleTickerProviderStateMixin {
 
-  // Animation variables
   late AnimationController _controller;
   late Animation<double> _progressAnimation;
 
-  // Constant for the category we are fetching
-  // MUST match the Admin dropdown value exactly
+  // Exact Firebase Key
   final String _category = 'Mathematics';
 
   @override
   void initState() {
     super.initState();
-
-    // 1. Fetch Data on Init
     Future.microtask(() {
       ref.read(childStemChallengesViewModelProvider.notifier).loadChallenges(_category);
     });
 
-    // Animation Setup
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -50,16 +46,19 @@ class _MathScreenState extends ConsumerState<MathScreen>
 
   @override
   Widget build(BuildContext context) {
-    // 2. Watch the ViewModel State
     final stemState = ref.watch(childStemChallengesViewModelProvider);
-    final challenges = stemState.challenges;
+
+    // Split Lists
+    final adminList = stemState.adminChallenges;
+    final teacherList = stemState.teacherChallenges;
     final submissions = stemState.submissions;
 
-    // 3. Calculate Real-Time Stats
+    // Calculate Stats (Combined)
     int totalScore = 0;
     int completedCount = 0;
+    final allChallenges = [...adminList, ...teacherList];
 
-    for (var challenge in challenges) {
+    for (var challenge in allChallenges) {
       final sub = submissions[challenge.id];
       if (sub != null && sub.status == 'approved') {
         totalScore += sub.pointsAwarded;
@@ -67,7 +66,7 @@ class _MathScreenState extends ConsumerState<MathScreen>
       }
     }
 
-    double progressValue = challenges.isEmpty ? 0.0 : (completedCount / challenges.length);
+    double progressValue = allChallenges.isEmpty ? 0.0 : (completedCount / allChallenges.length);
 
     _progressAnimation = Tween<double>(begin: 0, end: progressValue).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
@@ -76,14 +75,14 @@ class _MathScreenState extends ConsumerState<MathScreen>
 
     return PopScope(
       canPop: false,
-       onPopInvokedWithResult: (didPop, result) {
-         if(!didPop){
-           context.goNamed("bottomNavChild");
-         }
-       },
+      onPopInvokedWithResult: (didPop, result) {
+        if(!didPop){
+          context.goNamed('bottomNavChild');
+        }
+      },
       child: Scaffold(
         body: Container(
-          // Math / Logic Gradient (Deep Indigo/Purple)
+          // Math Gradient (Deep Indigo/Purple)
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
@@ -114,9 +113,8 @@ class _MathScreenState extends ConsumerState<MathScreen>
                       borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.deepPurple.withValues(alpha: 0.4),
+                          color: Colors.deepPurple.withOpacity(0.4),
                           blurRadius: 18,
-                          spreadRadius: 1,
                           offset: const Offset(0, 5),
                         ),
                       ],
@@ -126,18 +124,17 @@ class _MathScreenState extends ConsumerState<MathScreen>
                       children: [
                         Row(
                           children: [
-
+                            InkWell(
+                              onTap: () => context.pop(),
+                              child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 24),
+                            ),
                             SizedBox(width: 2.w),
                             const Icon(Icons.calculate_rounded, color: Colors.white, size: 34),
                             SizedBox(width: 3.w),
                             Expanded(
                               child: Text(
                                 "Math Magic",
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 18.sp,
-                                ),
+                                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18.sp),
                               ),
                             ),
                           ],
@@ -153,10 +150,8 @@ class _MathScreenState extends ConsumerState<MathScreen>
                               child: LinearProgressIndicator(
                                 value: _progressAnimation.value,
                                 minHeight: 1.4.h,
-                                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                                valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF69F0AE), // Light Green accent
-                                ),
+                                backgroundColor: Colors.white.withOpacity(0.2),
+                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF69F0AE)),
                               ),
                             );
                           },
@@ -166,11 +161,7 @@ class _MathScreenState extends ConsumerState<MathScreen>
                           alignment: Alignment.centerRight,
                           child: Text(
                             "${(progressValue * 100).toInt()}% Completed",
-                            style: GoogleFonts.poppins(
-                              color: Colors.white70,
-                              fontWeight: FontWeight.w500,
-                              fontSize: 14.sp,
-                            ),
+                            style: GoogleFonts.poppins(color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 14.sp),
                           ),
                         ),
                       ],
@@ -183,16 +174,9 @@ class _MathScreenState extends ConsumerState<MathScreen>
                   Container(
                     padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.8.h),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: Colors.white.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(15),
                       border: Border.all(color: Colors.white24, width: 1.2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.deepPurple.withValues(alpha: 0.3),
-                          blurRadius: 15,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -201,11 +185,7 @@ class _MathScreenState extends ConsumerState<MathScreen>
                         SizedBox(width: 2.w),
                         Text(
                           "Total Score: $totalScore",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16.sp,
-                          ),
+                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16.sp),
                         ),
                       ],
                     ),
@@ -213,64 +193,67 @@ class _MathScreenState extends ConsumerState<MathScreen>
 
                   SizedBox(height: 3.h),
 
-                  // --- Challenge Grid ---
-                  if (stemState.isLoading)
-                    const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
-                  else if (challenges.isEmpty)
-                    Center(
-                      child: Text(
-                        "No Math challenges yet!",
-                        style: GoogleFonts.poppins(color: Colors.white70, fontSize: 16.sp),
-                      ),
-                    )
-                  else
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 4.w,
-                        mainAxisSpacing: 3.h,
-                        childAspectRatio: 0.7,
-                      ),
-                      itemCount: challenges.length,
-                      itemBuilder: (context, index) {
-                        final challenge = challenges[index];
-                        final submission = submissions[challenge.id];
+                  // --- 1. GLOBAL CHALLENGES ---
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 2.h),
+                    child: Text("Global Challenges 🌍", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ),
+                  _buildGrid(adminList, submissions),
 
-                        String? statusText;
-                        Color? statusColor;
-
-                        if (submission != null) {
-                          if (submission.status == 'pending') {
-                            statusText = "Reviewing";
-                            statusColor = Colors.orange.shade900;
-                          } else if (submission.status == 'approved') {
-                            statusText = "Solved";
-                            statusColor = Colors.green.shade700;
-                          }
-                        }
-
-                        return ChallengeCard(
-                          onTap: () => context.goNamed('mathInstructionScreen', extra: challenge),
-                          title: challenge.title,
-                          imageUrl: challenge.imageUrl ?? "assets/images/math_placeholder.png",
-                          difficulty: challenge.difficulty,
-                          rewardPoints: challenge.points,
-                          backgroundGradient: const [Color(0xFF4527A0), Color(0xFF7E57C2)],
-                          buttonGradient: const [Color(0xFFB388FF), Color(0xFF651FFF)],
-                          // Pass Status Here
-                          statusText: statusText,
-                          statusColor: statusColor,
-                        );
-                      },
+                  // --- 2. CLASSROOM CHALLENGES ---
+                  if (teacherList.isNotEmpty) ...[
+                    SizedBox(height: 4.h),
+                    Divider(color: Colors.white24),
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 2.h),
+                      child: Text("My Classroom 🏫", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.bold, color: Colors.amberAccent)),
                     ),
+                    _buildGrid(teacherList, submissions),
+                  ]
                 ],
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildGrid(List<StemChallengeReadModel> list, Map<String, dynamic> submissions) {
+    if (list.isEmpty) return Center(child: Text("No challenges available.", style: TextStyle(color: Colors.white54)));
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 4.w, mainAxisSpacing: 3.h, childAspectRatio: 0.7),
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final challenge = list[index];
+        final submission = submissions[challenge.id];
+
+        String statusText = "";
+        Color statusColor = Colors.transparent;
+        if (submission != null) {
+          if (submission.status == 'pending') { statusText = "Pending"; statusColor = Colors.orange; }
+          else if (submission.status == 'approved') { statusText = "Done"; statusColor = Colors.green; }
+        }
+
+        return Stack(
+          children: [
+            ChallengeCard(
+              onTap: () => context.goNamed('mathInstructionScreen', extra: challenge),
+              title: challenge.title,
+              imageUrl: challenge.imageUrl ?? "assets/images/math_placeholder.png",
+              difficulty: challenge.difficulty,
+              rewardPoints: challenge.points,
+              backgroundGradient: const [Color(0xFF4527A0), Color(0xFF7E57C2)],
+              buttonGradient: const [Color(0xFFB388FF), Color(0xFF651FFF)],
+            ),
+            if (statusText.isNotEmpty)
+              Positioned(top: 8, right: 8, child: Container(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(12)), child: Text(statusText, style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold)))),
+          ],
+        );
+      },
     );
   }
 }

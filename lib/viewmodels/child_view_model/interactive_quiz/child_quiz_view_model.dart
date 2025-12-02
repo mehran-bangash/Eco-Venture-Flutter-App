@@ -1,72 +1,78 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/child_progress_model.dart';
-import '../../../repositories/child_quiz_repositories.dart';
+import '../../../repositories/child_quiz_repository.dart';
 import 'child_quiz_state.dart';
 
 class ChildQuizViewModel extends StateNotifier<ChildQuizState> {
   final ChildQuizRepository _repository;
 
-  StreamSubscription? _topicSubscription;
-  StreamSubscription? _progressSubscription;
-  StreamSubscription? _categoriesSubscription;
+  // Independent Subscriptions
+  StreamSubscription? _adminTopicSub;
+  StreamSubscription? _teacherTopicSub;
+
+  StreamSubscription? _adminCatSub;
+  StreamSubscription? _teacherCatSub;
+  StreamSubscription? _progressSub;
 
   ChildQuizViewModel(this._repository) : super(ChildQuizState()) {
     _loadUserProgress();
     _loadCategories();
   }
 
-  // Load Category List
+  // --- LOAD CATEGORIES (Both Admin & Teacher) ---
   void _loadCategories() {
-    _categoriesSubscription = _repository.getCategoriesStream().listen((cats) {
-      state = state.copyWith(categoryNames: cats);
+    // Admin Cats
+    _adminCatSub = _repository.getAdminCategories().listen((cats) {
+      state = state.copyWith(adminCategories: cats);
+    });
+
+    // Teacher Cats
+    _teacherCatSub = _repository.getTeacherCategories().listen((cats) {
+      state = state.copyWith(teacherCategories: cats);
     });
   }
 
-  // 1. Load TOPICS for a Category
-  void loadTopics(String category) {
-    _topicSubscription?.cancel();
-    state = state.copyWith(isLoading: true);
+  // --- LOAD TOPICS (Controlled separately by UI Dropdowns) ---
 
-    _topicSubscription = _repository.getTopicsStream(category).listen(
-          (topics) {
-        state = state.copyWith(
-          isLoading: false,
-          topics: topics,
-        );
-      },
-      onError: (error) {
-        state = state.copyWith(isLoading: false, errorMessage: error.toString());
-      },
-    );
+  void loadAdminTopics(String category) {
+    _adminTopicSub?.cancel();
+    // Don't set global isLoading = true here to avoid flickering the whole screen
+    // Just listen for new data
+    _adminTopicSub = _repository.getAdminTopics(category).listen((topics) {
+      state = state.copyWith(adminTopics: topics);
+    });
   }
 
-  // 2. Load Progress (Unlock Logic)
+  void loadTeacherTopics(String category) {
+    _teacherTopicSub?.cancel();
+    _teacherTopicSub = _repository.getTeacherTopics(category).listen((topics) {
+      state = state.copyWith(teacherTopics: topics);
+    });
+  }
+
+  // --- PROGRESS ---
   void _loadUserProgress() {
-    _progressSubscription = _repository.getProgressStream().listen(
-          (progressMap) {
-        state = state.copyWith(progress: progressMap);
-      },
-      onError: (error) {
-        print("Error loading progress: $error");
-      },
-    );
+    _progressSub = _repository.getProgressStream().listen((progressMap) {
+      state = state.copyWith(progress: progressMap);
+    });
   }
 
-  // 3. Save Level Result
   Future<void> saveLevelResult(ChildQuizProgressModel result) async {
     try {
       await _repository.saveLevelResult(result);
     } catch (e) {
-      state = state.copyWith(errorMessage: "Failed to save progress: $e");
+      state = state.copyWith(errorMessage: "Failed to save: $e");
     }
   }
 
   @override
   void dispose() {
-    _topicSubscription?.cancel();
-    _progressSubscription?.cancel();
-    _categoriesSubscription?.cancel();
+    _adminTopicSub?.cancel();
+    _teacherTopicSub?.cancel();
+    _adminCatSub?.cancel();
+    _teacherCatSub?.cancel();
+    _progressSub?.cancel();
     super.dispose();
   }
 }

@@ -9,6 +9,10 @@ class StemChallengeReadModel {
   final List<String> materials;
   final List<String> steps;
 
+  // NEW FIELDS FOR DUAL FETCH
+  final String createdBy; // 'admin' or 'teacher'
+  final String creatorId;
+
   StemChallengeReadModel({
     required this.id,
     required this.adminId,
@@ -19,6 +23,8 @@ class StemChallengeReadModel {
     this.imageUrl,
     required this.materials,
     required this.steps,
+    this.createdBy = 'admin',
+    this.creatorId = '',
   });
 
   factory StemChallengeReadModel.fromMap(String id, Map<String, dynamic> map) {
@@ -32,10 +38,12 @@ class StemChallengeReadModel {
       imageUrl: map['imageUrl'],
       materials: List<String>.from(map['materials'] ?? []),
       steps: List<String>.from(map['steps'] ?? []),
+      createdBy: map['created_by'] ?? 'admin',
+      creatorId: map['creator_id'] ?? '',
     );
   }
 
-  // Added CopyWith Method
+  // Added copyWith method
   StemChallengeReadModel copyWith({
     String? id,
     String? adminId,
@@ -46,6 +54,8 @@ class StemChallengeReadModel {
     String? imageUrl,
     List<String>? materials,
     List<String>? steps,
+    String? createdBy,
+    String? creatorId,
   }) {
     return StemChallengeReadModel(
       id: id ?? this.id,
@@ -57,6 +67,8 @@ class StemChallengeReadModel {
       imageUrl: imageUrl ?? this.imageUrl,
       materials: materials ?? this.materials,
       steps: steps ?? this.steps,
+      createdBy: createdBy ?? this.createdBy,
+      creatorId: creatorId ?? this.creatorId,
     );
   }
 }

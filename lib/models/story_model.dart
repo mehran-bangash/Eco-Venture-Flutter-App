@@ -20,18 +20,19 @@ class StoryModel {
   final String id;
   final String adminId;
   final String title;
-  final String description; // Added
-  final String? thumbnailUrl; // Made nullable
+  final String description;
+  final String? thumbnailUrl;
   final List<StoryPage> pages;
-  final DateTime uploadedAt; // Added
+  final DateTime uploadedAt;
   final int likes;
   final int dislikes;
   final int views;
+  final String createdBy;
   final Map<String, bool> userLikes;
 
   StoryModel({
-    this.id = '',
-    this.adminId = '',
+    required this.id,
+    required this.adminId,
     required this.title,
     required this.description,
     this.thumbnailUrl,
@@ -40,9 +41,29 @@ class StoryModel {
     this.likes = 0,
     this.dislikes = 0,
     this.views = 0,
+    this.createdBy = 'admin',
     Map<String, bool>? userLikes,
   }) : userLikes = userLikes ?? {};
 
+  // --- 1. TO MAP (Required for Firebase Write) ---
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'adminId': adminId,
+      'title': title,
+      'description': description,
+      'thumbnailUrl': thumbnailUrl,
+      'pages': pages.map((e) => e.toMap()).toList(),
+      'uploadedAt': uploadedAt.toIso8601String(),
+      'likes': likes,
+      'dislikes': dislikes,
+      'views': views,
+      'created_by': createdBy,
+      'userLikes': userLikes,
+    };
+  }
+
+  // --- 2. FROM MAP ---
   factory StoryModel.fromMap(Map<String, dynamic> map) {
     final pagesList = (map['pages'] as List<dynamic>?)
         ?.map((e) => StoryPage.fromMap(Map<String, dynamic>.from(e)))
@@ -60,26 +81,12 @@ class StoryModel {
       likes: (map['likes'] as num? ?? 0).toInt(),
       dislikes: (map['dislikes'] as num? ?? 0).toInt(),
       views: (map['views'] as num? ?? 0).toInt(),
+      createdBy: map['created_by'] ?? 'admin',
       userLikes: Map<String, bool>.from(map['userLikes'] ?? {}),
     );
   }
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'adminId': adminId,
-      'title': title,
-      'description': description,
-      'thumbnailUrl': thumbnailUrl,
-      'pages': pages.map((e) => e.toMap()).toList(),
-      'uploadedAt': uploadedAt.toIso8601String(),
-      'likes': likes,
-      'dislikes': dislikes,
-      'views': views,
-      'userLikes': userLikes,
-    };
-  }
-
+  // --- 3. COPY WITH ---
   StoryModel copyWith({
     String? id,
     String? adminId,
@@ -91,6 +98,7 @@ class StoryModel {
     int? likes,
     int? dislikes,
     int? views,
+    String? createdBy,
     Map<String, bool>? userLikes,
   }) {
     return StoryModel(
@@ -104,6 +112,7 @@ class StoryModel {
       likes: likes ?? this.likes,
       dislikes: dislikes ?? this.dislikes,
       views: views ?? this.views,
+      createdBy: createdBy ?? this.createdBy,
       userLikes: userLikes ?? this.userLikes,
     );
   }

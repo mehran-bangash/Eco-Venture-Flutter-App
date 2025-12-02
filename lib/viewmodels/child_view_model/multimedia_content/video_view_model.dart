@@ -1,85 +1,57 @@
+
+import 'dart:async';
 import 'package:eco_venture/viewmodels/child_view_model/multimedia_content/video_state.dart';
 import 'package:state_notifier/state_notifier.dart';
 
 import '../../../models/video_model.dart';
 import '../../../repositories/video_StoryRepo.dart';
+
 class VideoViewModel extends StateNotifier<VideoState> {
-  final VideoStoryRepo _repo;
+  final VideoStoryRepository _repo;
+  StreamSubscription? _sub;
 
   VideoViewModel(this._repo) : super(VideoState());
 
-  /// Fetch public videos as List<VideoModel>
-  Future<void> fetchVideos() async {
-    state = state.copyWith(isLoading: true, error: null);
-    try {
-      final List<VideoModel> videos = await _repo.getPublicVideos();
-      state = state.copyWith(isLoading: false, videos: videos);
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString());
-    }
+  void fetchVideos() {
+    state = state.copyWith(isLoading: true);
+    _sub?.cancel();
+    _sub = _repo.getVideos().listen(
+          (data) => state = state.copyWith(isLoading: false, videos: data),
+      onError: (e) => state = state.copyWith(isLoading: false, error: e.toString()),
+    );
   }
 
-  /// Increment view count
-  Future<void> incrementView(String videoId) async {
-    try {
-      await _repo.incrementVideoView(videoId);
-    } catch (e) {
-      print("Error incrementing view: $e");
-    }
+  Future<void> incrementView(VideoModel video) async {
+    final newViews = video.views + 1;
+    // Persist to DB
+    await _repo.updateVideoInteraction(
+        video.id, video.adminId, video.createdBy, {'views': newViews}
+    );
   }
-  // In your VideoViewModel class (video_view_model.dart)
-  Future<void> toggleVideoLikeDislike({
-    required String videoId,
-    required String userId,
-    required bool isLiking,
-  }) async {
 
-    final originalVideos = state.videos;
+  Future<void> toggleVideoLikeDislike({required VideoModel video, required String userId, required bool isLiking}) async {
+    final userLikes = Map<String, bool>.from(video.userLikes);
 
-    final updatedVideos = state.videos.map((video) {
-      if (video.id == videoId) {
+    if (userLikes[userId] == isLiking) {
+      userLikes.remove(userId); // Toggle off
+    } else {
+      userLikes[userId] = isLiking;
+    }
 
-        final updatedLikesMap = Map<String, bool>.from(video.userLikes ?? {});
-        final bool? currentVote = updatedLikesMap[userId];
+    int likes = userLikes.values.where((v) => v == true).length;
+    int dislikes = userLikes.values.where((v) => v == false).length;
 
-        if (isLiking) {
-          if (currentVote == true) {
-            updatedLikesMap.remove(userId);
-          } else {
-            updatedLikesMap[userId] = true;
-          }
-        } else {
-          if (currentVote == false) {
-            updatedLikesMap.remove(userId);
-          } else {
-            updatedLikesMap[userId] = false;
-          }
+    // Persist
+    await _repo.updateVideoInteraction(
+        video.id, video.adminId, video.createdBy,
+        {
+          'likes': likes,
+          'dislikes': dislikes,
+          'userLikes': userLikes
         }
-
-        final likeCount = updatedLikesMap.values.where((v) => v == true).length;
-        final dislikeCount = updatedLikesMap.values.where((v) => v == false).length;
-
-        return video.copyWith(
-          likes: likeCount,
-          dislikes: dislikeCount,
-          userLikes: updatedLikesMap,
-        );
-      }
-      return video;
-    }).toList();
-
-    state = state.copyWith(videos: updatedVideos);
-
-    try {
-      await _repo.toggleVideoLikeDislike(
-        videoId: videoId,
-        userId: userId,
-        isLiking: isLiking,
-      );
-    } catch (e) {
-      print("DB Failed: $e");
-      state = state.copyWith(videos: originalVideos);
-    }
+    );
   }
 
+  @override
+  void dispose() { _sub?.cancel(); super.dispose(); }
 }

@@ -339,7 +339,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
           Expanded(
             child: GestureDetector(
               onTap: () {
-                context.goNamed("progressDashboardScreen");
+                context.goNamed("childProgressDashboardScreen");
               },
               child: _frostedCard(
                 child: _floatingWrapper(

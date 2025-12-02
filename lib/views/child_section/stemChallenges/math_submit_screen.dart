@@ -158,7 +158,7 @@ class _MathSubmitScreenState extends ConsumerState<MathSubmitScreen> {
                       child: Row(
                         children: [
                           IconButton(
-                            onPressed: () => context.pop(),
+                            onPressed: () =>  context.goNamed('stemChallenges'),
                             icon: const Icon(
                               Icons.arrow_back_ios_new,
                               color: Colors.white,

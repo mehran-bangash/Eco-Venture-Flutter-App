@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/stem_challenge_read_model.dart';
 import '../models/stem_submission_model.dart';
 import '../services/shared_preferences_helper.dart';
@@ -7,72 +9,90 @@ import '../services/shared_preferences_helper.dart';
 class ChildStemChallengesService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // ==================================================
-  // 1. FETCHING DATA (View Logic)
-  // ==================================================
+  // --- HELPER: FIND TEACHER ID (Using SharedPrefs UID) ---
+  Future<String?> _getTeacherId() async {
+    try {
+      // 1. Get Current User
+      final user = await SharedPreferencesHelper.instance.getUserId();
 
-  /// Fetches the list of STEM challenges for a specific category from the Public node.
-  /// Logic: Reads from 'Public/StemChallenges/{category}'
-  Stream<List<StemChallengeReadModel>> getPublicStemChallengesStream(String category) {
-    // If category is 'All', we might need to fetch all categories and flatten them.
-    // For simplicity in this structure, we often query by specific category.
-    // If 'All' is passed, we might need a different approach or client-side merging.
-    // Here is the logic for a specific category path:
+      if (user == null) {
+        print("DEBUG: No User Logged In (Prefs). Cannot fetch Teacher ID.");
+        return null;
+      }
 
-    Query query;
-    if (category == 'All') {
-      // Note: Querying root 'Public/StemChallenges' might return a map of categories
-      query = _database.ref('Public/StemChallenges');
-    } else {
-      query = _database.ref('Public/StemChallenges/$category');
-    }
+      // 2. Fetch Document directly from Firestore
+      final doc = await _firestore.collection('users').doc(user).get();
 
-    return query.onValue.map((event) {
-      final data = event.snapshot.value;
-      if (data == null) return [];
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
 
-      try {
-        final List<StemChallengeReadModel> challenges = [];
-        final Map<dynamic, dynamic> mapData = data as Map<dynamic, dynamic>;
-
-        if (category == 'All') {
-          // Structure: { Science: {id1: data}, Tech: {id2: data} }
-          mapData.forEach((catKey, catData) {
-            final innerMap = catData as Map<dynamic, dynamic>;
-            innerMap.forEach((key, value) {
-              final challengeMap = Map<String, dynamic>.from(value as Map);
-              challenges.add(StemChallengeReadModel.fromMap(key.toString(), challengeMap));
-            });
-          });
-        } else {
-          // Structure: { id1: data, id2: data }
-          mapData.forEach((key, value) {
-            final challengeMap = Map<String, dynamic>.from(value as Map);
-            challenges.add(StemChallengeReadModel.fromMap(key.toString(), challengeMap));
-          });
+        // 3. Check for 'teacher_id'
+        if (data.containsKey('teacher_id') && data['teacher_id'] != null) {
+          final String teacherId = data['teacher_id'];
+          // Cache it locally for faster future access
+          await SharedPreferencesHelper.instance.saveChildTeacherId(teacherId);
+          return teacherId;
         }
+      }
+    } catch (e) {
+      print("ERROR fetching teacher ID from Firestore: $e");
+    }
+    return null;
+  }
 
-        return challenges;
-      } catch (e) {
-        print("Error parsing public STEM challenges: $e");
-        return [];
+  // 1. FETCH ADMIN CHALLENGES
+  Stream<List<StemChallengeReadModel>> getAdminChallengesStream(String category) {
+    return _database.ref('Public/StemChallenges/$category').onValue.map((event) {
+      return _parseChallenges(event.snapshot.value);
+    }).handleError((e) {
+      print("Admin Stream Error: $e");
+      return <StemChallengeReadModel>[];
+    });
+  }
+
+  // 2. FETCH TEACHER CHALLENGES
+  Stream<List<StemChallengeReadModel>> getTeacherChallengesStream(String category) {
+    return Stream.fromFuture(_getTeacherId()).asyncExpand((teacherId) {
+      if (teacherId != null && teacherId.isNotEmpty) {
+        print("DEBUG: Fetching Teacher STEM from: Teacher_Content/$teacherId/StemChallenges/$category");
+        return _database.ref('Teacher_Content/$teacherId/StemChallenges/$category').onValue.map((event) {
+          return _parseChallenges(event.snapshot.value);
+        });
+      } else {
+        return Stream.value([]);
       }
     });
   }
 
-  // ==================================================
-  // 2. SUBMISSION & REVIEW (Task Logic)
-  // ==================================================
+  // Helper Parser
+  List<StemChallengeReadModel> _parseChallenges(dynamic data) {
+    if (data == null) return [];
+    try {
+      final List<StemChallengeReadModel> challenges = [];
+      if (data is Map) {
+        data.forEach((key, value) {
+          final map = Map<String, dynamic>.from(value as Map);
+          challenges.add(StemChallengeReadModel.fromMap(key.toString(), map));
+        });
+      }
+      return challenges;
+    } catch (e) {
+      print("Error parsing STEM challenges: $e");
+      return [];
+    }
+  }
 
-  /// Submits a student's work for a specific challenge.
-  /// Logic: Writes to 'student_stem_submissions/{student_id}/{challenge_id}'
-  /// Status starts as 'pending'.
+  // ... (Keep submitChallenge & getStudentSubmissionsStream unchanged) ...
+  // (Just paste the existing submission logic here from previous version)
+
   Future<void> submitChallenge(StemSubmissionModel submission) async {
+    // ... (Reuse previous logic)
     try {
       // 1. Get Valid Student ID
       String? studentId = await SharedPreferencesHelper.instance.getUserId();
-      studentId ??= _auth.currentUser?.uid;
+      if (studentId == null) studentId = _auth.currentUser?.uid;
 
       if (studentId == null) throw Exception("Student not logged in");
 
@@ -98,11 +118,10 @@ class ChildStemChallengesService {
     }
   }
 
-  /// Fetches the student's history of submissions (to show Pending/Approved badges).
-  /// Returns a Map: { challengeId : StemSubmissionModel }
   Stream<Map<String, StemSubmissionModel>> getStudentSubmissionsStream() async* {
+    // ... (Reuse previous logic)
     String? studentId = await SharedPreferencesHelper.instance.getUserId();
-    studentId ??= _auth.currentUser?.uid;
+    if (studentId == null) studentId = _auth.currentUser?.uid;
 
     if (studentId == null) {
       yield {};

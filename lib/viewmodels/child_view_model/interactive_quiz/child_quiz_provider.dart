@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../repositories/child_quiz_repositories.dart';
+import '../../../repositories/child_quiz_repository.dart';
 import '../../../services/child_quiz_service.dart';
 import 'child_quiz_view_model.dart';
 import 'child_quiz_state.dart';

@@ -9,7 +9,7 @@ import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dar
 import 'package:eco_venture/views/child_section/naturePhotoJournal/learn_with_ai.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_description_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_photo_explore_screen.dart';
-import 'package:eco_venture/views/child_section/progress_dashboard_screen.dart';
+import 'package:eco_venture/views/child_section/child_progress_dashboard.dart';
 import 'package:eco_venture/views/child_section/report_issue_screen.dart';
 import 'package:eco_venture/views/child_section/report_safety_screen.dart';
 import 'package:eco_venture/views/child_section/settings/child_settings.dart';
@@ -27,11 +27,12 @@ import 'package:eco_venture/views/child_section/stemChallenges/science_submit_sc
 import 'package:eco_venture/views/child_section/stemChallenges/technology_instruction_screen.dart';
 import 'package:eco_venture/views/child_section/stemChallenges/technology_screen.dart';
 import 'package:eco_venture/views/child_section/stemChallenges/technology_submit_screen.dart';
-import 'package:eco_venture/views/child_section/treasureHunt/clue_locked_screen.dart';
+import 'package:eco_venture/views/child_section/treasureHunt/qr_hunt_play_screen.dart';
 import 'package:eco_venture/views/child_section/treasureHunt/qR_scanner_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/child_progress_model.dart';
+import '../../models/qr_hunt_read_model.dart';
 import '../../models/story_model.dart';
 import '../../models/video_model.dart';
 import '../../navigation/bottom_nav_child.dart';
@@ -67,9 +68,9 @@ class ChildRouter {
         ],
       ),
        GoRoute(
-           path: 'progress-dashboard-screen',
-           name: 'progressDashboardScreen',
-           builder: (context, state) => const ProgressDashboardScreen(),
+           path: RouteNames.childProgressDashboardScreen,
+           name: 'childProgressDashboardScreen',
+           builder: (context, state) => const ChildProgressDashboard(),
 
        ),
        GoRoute(
@@ -107,14 +108,20 @@ class ChildRouter {
             builder: (context, state) => const TreasureHuntScreen(),
             routes: [
               GoRoute(
-                path: 'clue-locked-screen',
-                name: 'clueLockedScreen',
-                builder: (context, state) => const ClueLockedScreen(),
+                path: 'qr-hunt-play-screen',
+                name: 'qrHuntPlayScreen',
+                builder: (context, state) {
+                   final huntData=state.extra as QrHuntReadModel;
+                  return   QrHuntPlayScreen(hunt:huntData,);
+                },
                 routes: [
                   GoRoute(
                     path: 'qr-scanner-screen',
                     name: 'qrScannerScreen',
-                    builder: (context, state) => const QRScannerScreen(),
+                    builder: (context, state) {
+                      final huntData=state.extra as QrHuntReadModel;
+                      return QRScannerScreen(hunt: huntData);
+                    },
                     routes: [
                       GoRoute(
                         path: 'qr-success-screen',
@@ -145,15 +152,8 @@ class ChildRouter {
                     path: 'video-play-screen',
                     name: 'videoPlayScreen',
                     builder: (context, state) {
-                      final video = state.extra as VideoModel;
-
-                      return VideoPlayerScreen(
-                        videoId: video.id,         // required now
-                        videoUrl: video.videoUrl,
-                        title: video.title,
-                        duration: video.duration,
-                        views: video.views,
-                      );
+                      final video = state.extra as VideoModel; // Cast to Model
+                      return VideoPlayerScreen(videoData: video);
                     },
                   ),
 

@@ -5,18 +5,15 @@ import 'package:eco_venture/viewmodels/child_view_model/multimedia_content/video
 import 'package:eco_venture/viewmodels/child_view_model/multimedia_content/video_view_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../repositories/video_StoryRepo.dart';
-import '../../../services/Database_video_story.dart';
+import '../../../services/video_story_service.dart';
+final videoStoryServiceProvider = Provider((ref) => VideoStoryService());
 
-final videoViewModelProvider =
-StateNotifierProvider<VideoViewModel, VideoState>(
-      (ref) => VideoViewModel(ref.watch(videoStoryRepoProvider)),
-);
+final videoStoryRepositoryProvider = Provider((ref) => VideoStoryRepository(ref.watch(videoStoryServiceProvider)));
 
-final storyViewModelProvider =
-StateNotifierProvider<StoryViewModel, StoryState>(
-      (ref) => StoryViewModel(ref.watch(videoStoryRepoProvider)),
-);
+final videoViewModelProvider = StateNotifierProvider<VideoViewModel, VideoState>((ref) {
+  return VideoViewModel(ref.watch(videoStoryRepositoryProvider));
+});
 
-final videoStoryRepoProvider = Provider.autoDispose<VideoStoryRepo>((ref) {
-  return VideoStoryRepo(DatabaseVideoStory());
+final storyViewModelProvider = StateNotifierProvider<StoryViewModel, StoryState>((ref) {
+  return StoryViewModel(ref.watch(videoStoryRepositoryProvider));
 });

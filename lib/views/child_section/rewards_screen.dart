@@ -1,20 +1,26 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-class RewardsScreen extends StatefulWidget {
+// Provider
+import '../../../viewmodels/child_view_model/rewards/child_rewards_provider.dart';
+import '../../../viewmodels/child_view_model/rewards/child_rewards_view_model.dart';
+import '../../viewmodels/child_view_model/rewards/child_rewards_state.dart';
+
+class RewardsScreen extends ConsumerStatefulWidget {
   const RewardsScreen({super.key});
 
   @override
-  State<RewardsScreen> createState() => _RewardsScreenState();
+  ConsumerState<RewardsScreen> createState() => _RewardsScreenState();
 }
 
-class _RewardsScreenState extends State<RewardsScreen>
-    with TickerProviderStateMixin{
+class _RewardsScreenState extends ConsumerState<RewardsScreen>
+    with TickerProviderStateMixin {
+
   late final AnimationController _masterController;
-  // late final Animation<double> _floatAnimation;
   late final Animation<Color?> _gradientAnimation;
   late final Animation<double> _shineAnimation;
 
@@ -24,17 +30,14 @@ class _RewardsScreenState extends State<RewardsScreen>
   void initState() {
     super.initState();
 
+    // REMOVED: Manual call to loadRealRewardsData() to fix undefined method error.
+    // The ViewModel should handle initialization internally or via the provider creation.
+    // If you need to refresh, ensure the method exists in ViewModel or use ref.refresh(provider).
+
     _masterController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
-
-    // _floatAnimation = Tween<double>(begin: -0.03, end: 0.03).animate(
-    //   CurvedAnimation(
-    //     parent: _masterController,
-    //     curve: Curves.easeInOutSine,
-    //   ),
-    // );
 
     _shineAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
@@ -51,31 +54,88 @@ class _RewardsScreenState extends State<RewardsScreen>
       curve: Curves.easeInOut,
     ));
 
-    // Initialize badge animations with cascading delay
-    for (int i = 0; i < 12; i++) {
+    for (int i = 0; i < 6; i++) {
       final badgeController = AnimationController(
         vsync: this,
-        duration: const Duration(milliseconds: 1200),
+        duration: const Duration(milliseconds: 800),
       );
       _badgeControllers.add(badgeController);
-
       Future.delayed(Duration(milliseconds: 200 + i * 100), () {
         if (mounted) badgeController.forward();
       });
     }
   }
+  void _showBadgeDialog(BuildContext context, String badgeName) {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // Must tap button
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Glow
+            Container(
+              width: 300, height: 300,
+              decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.amber.withOpacity(0.5),
+                  boxShadow: [BoxShadow(color: Colors.amber, blurRadius: 50, spreadRadius: 10)]
+              ),
+            ),
+            // Card
+            Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.amber, width: 3)
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.workspace_premium, color: Colors.amber, size: 60),
+                  SizedBox(height: 10),
+                  Text("CONGRATULATIONS!", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.orange)),
+                  SizedBox(height: 10),
+                  Text("You earned the badge:", style: GoogleFonts.poppins(color: Colors.black54)),
+                  Text(badgeName, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.purple)),
+                  SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    child: Text("Awesome!", style: TextStyle(color: Colors.white)),
+                  )
+                ],
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {
     _masterController.dispose();
-    for (var controller in _badgeControllers) {
-      controller.dispose();
+    for (var c in _badgeControllers) {
+      c.dispose();
     }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(childRewardsViewModelProvider);
+    ref.listen(childRewardsViewModelProvider, (previous, next) {
+      if (next.newEarnedBadge != null) {
+        // Show Celebration Dialog
+        _showBadgeDialog(context, next.newEarnedBadge!);
+        // Clear state so it doesn't show again on rebuild
+        ref.read(childRewardsViewModelProvider.notifier).clearNotification();
+      }
+    });
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -98,7 +158,7 @@ class _RewardsScreenState extends State<RewardsScreen>
                       radius: 2.0,
                       colors: [
                         _gradientAnimation.value!,
-                        _gradientAnimation.value!.withValues(alpha:0.7),
+                        _gradientAnimation.value!.withOpacity(0.7),
                         const Color(0xFF0f172a),
                       ],
                       stops: const [0.0, 0.6, 1.0],
@@ -106,13 +166,11 @@ class _RewardsScreenState extends State<RewardsScreen>
                   ),
                 ),
 
-                // Animated Geometric Patterns
                 CustomPaint(
                   painter: GeometricPatternPainter(time: t),
                   size: Size(100.w, 100.h),
                 ),
 
-                // Main Content
                 SafeArea(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
@@ -122,15 +180,18 @@ class _RewardsScreenState extends State<RewardsScreen>
                         children: [
                           _buildPremiumAppBar(),
                           SizedBox(height: 3.h),
-                          _buildAchievementHero(t),
+
+                          _buildAchievementHero(t, state),
                           SizedBox(height: 4.h),
-                          _buildStatsDashboard(t),
+
+                          _buildStatsDashboard(t, state),
                           SizedBox(height: 4.h),
-                          _buildLevelProgression(t),
+
+                          _buildLevelProgression(t, state),
                           SizedBox(height: 4.h),
-                          _buildBadgeCollection(),
-                          SizedBox(height: 4.h),
-                          _buildRewardCategories(t),
+
+                          // Passes REAL state to the builder
+                          _buildRewardCategories(t, state),
                           SizedBox(height: 6.h),
                         ],
                       ),
@@ -148,264 +209,112 @@ class _RewardsScreenState extends State<RewardsScreen>
   Widget _buildPremiumAppBar() {
     return Row(
       children: [
-        // Back Button with Premium Design
-        Container(
-          width: 12.w,
-          height: 12.w,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withValues(alpha: 0.2),
-                Colors.white.withValues(alpha: 0.1),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        GestureDetector(
+          onTap: () => context.goNamed('bottomNavChild'),
+          child: Container(
+            width: 12.w, height: 12.w,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.1)]),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
             ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18.sp),
-            onPressed: () => context.goNamed('bottomNavChild'),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18.sp),
           ),
         ),
-
         const Spacer(),
-
-        // Premium Title
         Container(
           padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.purpleAccent.withValues(alpha: 0.3),
-                Colors.blueAccent.withValues(alpha: 0.2),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            gradient: LinearGradient(colors: [Colors.purpleAccent.withOpacity(0.3), Colors.blueAccent.withOpacity(0.2)]),
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
           ),
           child: Row(
             children: [
               Icon(Icons.workspace_premium_rounded, color: Colors.amber.shade300, size: 20.sp),
               SizedBox(width: 2.w),
-              Text(
-                "Achievements",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                ),
-              ),
+              Text("Achievements", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
             ],
           ),
         ),
-
         const Spacer(),
-
-        // Premium Profile Avatar
         Container(
-          width: 12.w,
-          height: 12.w,
+          width: 12.w, height: 12.w,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [Colors.cyan.shade400, Colors.blue.shade600],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withValues(alpha: 0.4),
-                blurRadius: 15,
-                offset: const Offset(0, 6),
-              ),
-            ],
-            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
+            gradient: LinearGradient(colors: [Colors.cyan.shade400, Colors.blue.shade600]),
+            boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 6))],
+            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
           ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/avatar.png',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Icon(Icons.person, color: Colors.white, size: 16.sp),
-            ),
-          ),
+          child: const Icon(Icons.person, color: Colors.white),
         ),
       ],
     );
   }
 
-  Widget _buildAchievementHero(double t) {
+  Widget _buildAchievementHero(double t, ChildRewardsState state) {
     return Transform.translate(
-      offset: Offset(0, 15 * math.sin(t * 2 * math.pi)),
+      offset: Offset(0, 10 * math.sin(t * 2 * math.pi)),
       child: Column(
         children: [
-          // Animated Trophy Container
           Container(
-            width: 25.w,
-            height: 25.w,
+            width: 25.w, height: 25.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Colors.amber.shade400, Colors.orange.shade400],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withValues(alpha: 0.6),
-                  blurRadius: 30,
-                  spreadRadius: 8,
-                ),
-              ],
+              gradient: LinearGradient(colors: [Colors.amber.shade400, Colors.orange.shade400]),
+              boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.6), blurRadius: 30, spreadRadius: 8)],
             ),
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Shine Effect
-                AnimatedBuilder(
-                  animation: _shineAnimation,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: _shineAnimation.value * 2 * math.pi,
-                      child: Container(
-                        width: 25.w,
-                        height: 25.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              Colors.white.withValues(alpha: 0.4),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.7],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                Transform.rotate(
+                  angle: _shineAnimation.value * 2 * math.pi,
+                  child: Container(
+                    width: 25.w, height: 25.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(colors: [Colors.white.withOpacity(0.4), Colors.transparent], stops: const [0.0, 0.7]),
+                    ),
+                  ),
                 ),
                 Icon(Icons.emoji_events_rounded, color: Colors.white, size: 32.sp),
               ],
             ),
           ),
           SizedBox(height: 3.h),
-
-          // Premium Title Text
-          ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [Colors.amber.shade300, Colors.orange.shade300],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ).createShader(bounds),
-            child: Text(
-              "Champion Explorer!",
-              style: GoogleFonts.poppins(
-                fontSize: 28.sp,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ),
+          Text("Level ${state.currentLevel} Explorer!", style: GoogleFonts.poppins(fontSize: 24.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1.0)),
           SizedBox(height: 1.h),
-
-          // Subtitle with Premium Design
           Container(
             padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: Text(
-              "Keep exploring to unlock more amazing rewards!",
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                letterSpacing: 0.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withOpacity(0.2))),
+            child: Text("Keep exploring to unlock more amazing rewards!", style: GoogleFonts.poppins(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatsDashboard(double t) {
+  Widget _buildStatsDashboard(double t, ChildRewardsState state) {
     return Container(
       width: 100.w,
       padding: EdgeInsets.all(5.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withValues(alpha: 0.15),
-            Colors.white.withValues(alpha: 0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: LinearGradient(colors: [Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.05)]),
         borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 25,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 25, offset: const Offset(0, 12))],
       ),
       child: Column(
         children: [
-          Text(
-            "Your Progress Dashboard",
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-            ),
-          ),
+          Text("Your Progress", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700)),
           SizedBox(height: 3.h),
-
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildDashboardStat(
-                icon: Icons.star_rate_rounded,
-                value: "1,250",
-                label: "Stars",
-                color: Colors.amber.shade400,
-                t: t,
-                delay: 0.0,
-              ),
-              _buildDashboardStat(
-                icon: Icons.monetization_on_rounded,
-                value: "8,400",
-                label: "Coins",
-                color: Colors.yellow.shade400,
-                t: t,
-                delay: 0.3,
-              ),
-              _buildDashboardStat(
-                icon: Icons.workspace_premium_rounded,
-                value: "12",
-                label: "Badges",
-                color: Colors.cyan.shade400,
-                t: t,
-                delay: 0.6,
-              ),
+              _buildDashboardStat(icon: Icons.monetization_on_rounded, value: "${state.totalPoints}", label: "Coins", color: Colors.yellow.shade400, t: t, delay: 0.0),
+              _buildDashboardStat(icon: Icons.workspace_premium_rounded, value: "${state.badgesEarned}", label: "Badges", color: Colors.cyan.shade400, t: t, delay: 0.3),
+              _buildDashboardStat(icon: Icons.trending_up_rounded, value: "${state.currentLevel}", label: "Level", color: Colors.green.shade400, t: t, delay: 0.6),
             ],
           ),
         ],
@@ -413,91 +322,34 @@ class _RewardsScreenState extends State<RewardsScreen>
     );
   }
 
-  Widget _buildDashboardStat({
-    required IconData icon,
-    required String value,
-    required String label,
-    required Color color,
-    required double t,
-    required double delay,
-  }) {
-    final pulse = 1.0 + 0.1 * math.sin((t + delay) * 4 * math.pi);
-
+  Widget _buildDashboardStat({required IconData icon, required String value, required String label, required Color color, required double t, required double delay}) {
+    final pulse = 1.0 + 0.05 * math.sin((t + delay) * 4 * math.pi);
     return Transform.scale(
       scale: pulse,
       child: Column(
         children: [
           Container(
-            width: 18.w,
-            height: 18.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [
-                  color.withValues(alpha: 0.8),
-                  color.withValues(alpha: 0.4),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.4),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Icon(icon, color: Colors.white, size: 22.sp),
+            width: 16.w, height: 16.w,
+            decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [color.withOpacity(0.8), color.withOpacity(0.4)]), boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 6))]),
+            child: Icon(icon, color: Colors.white, size: 20.sp),
           ),
           SizedBox(height: 1.h),
-          Text(
-            value,
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-          SizedBox(height: 0.5.h),
-          Text(
-            label,
-            style: GoogleFonts.poppins(
-              color: Colors.white70,
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(value, style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w800)),
+          Text(label, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11.sp, fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
 
-  Widget _buildLevelProgression(double t) {
-    final glow = 0.5 + 0.5 * math.sin(t * 6 * math.pi);
-
+  Widget _buildLevelProgression(double t, ChildRewardsState state) {
     return Container(
       width: 100.w,
       padding: EdgeInsets.all(5.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.purpleAccent.withValues(alpha: 0.3),
-            Colors.blueAccent.withValues(alpha: 0.2),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: LinearGradient(colors: [Colors.purpleAccent.withOpacity(0.3), Colors.blueAccent.withOpacity(0.2)]),
         borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.purple.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -505,229 +357,72 @@ class _RewardsScreenState extends State<RewardsScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Explorer Level 3",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.8.h),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.green.shade400, Colors.blue.shade400],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Text(
-                  "80% Complete",
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
+              Text("XP Progress", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700)),
+              Text("${(state.xpProgress * 100).toInt()}%", style: GoogleFonts.poppins(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w700)),
             ],
           ),
           SizedBox(height: 2.h),
-
-          // Premium Progress Bar
           Stack(
             children: [
-              // Background Track
-              Container(
-                height: 2.5.h,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-              ),
-
-              // Progress Fill with Glow
+              Container(height: 2.h, decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(15))),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 800),
-                height: 2.5.h,
-                width: 85.w * 0.8,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.cyan.shade400,
-                      Colors.blue.shade400,
-                    ],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.cyan.withValues(alpha: 0.6 * glow),
-                      blurRadius: 12,
-                      spreadRadius: 3,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Progress Indicators
-              Positioned(
-                left: 20.w,
-                child: Container(
-                  width: 4,
-                  height: 2.5.h,
-                  color: Colors.white.withValues(alpha: 0.5),
-                ),
-              ),
-              Positioned(
-                left: 40.w,
-                child: Container(
-                  width: 4,
-                  height: 2.5.h,
-                  color: Colors.white.withValues(alpha: 0.5),
-                ),
-              ),
-              Positioned(
-                left: 60.w,
-                child: Container(
-                  width: 4,
-                  height: 2.5.h,
-                  color: Colors.white.withValues(alpha: 0.5),
-                ),
+                height: 2.h,
+                width: 85.w * state.xpProgress,
+                decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.cyan.shade400, Colors.blue.shade400]), borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.cyan.withOpacity(0.6), blurRadius: 10)]),
               ),
             ],
-          ),
-          SizedBox(height: 1.5.h),
-
-          Text(
-            "Only 20% more to reach Level 4!",
-            style: GoogleFonts.poppins(
-              color: Colors.white70,
-              fontSize: 13.sp,
-              fontWeight: FontWeight.w500,
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBadgeCollection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 2.w),
-          child: Text(
-            "Badge Collection",
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ),
-        SizedBox(height: 2.h),
+  // --- UPDATED: NOW USES REAL DATA ---
+  Widget _buildRewardCategories(double t, ChildRewardsState state) {
+    // Logic: Check if badge exists in recentAchievements
+    bool hasQuizBadge = state.recentAchievements.any((a) => a['title'] == 'Quiz Novice');
+    bool hasStemBadge = state.recentAchievements.any((a) => a['title'] == 'STEM Explorer');
+    bool hasQrBadge = state.recentAchievements.any((a) => a['title'] == 'Treasure Hunter');
+    // If we don't have a specific badge string yet, fallback to point check or similar logic from ViewModel
+    // Or if the user has > 0 points, give 'In Progress' credit visually
 
-        SizedBox(
-          height: 25.w,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: 12,
-            itemBuilder: (context, index) {
-              final controller = _badgeControllers[index];
-              final colors = [
-                [Colors.amber, Colors.orange],
-                [Colors.blue, Colors.cyan],
-                [Colors.green, Colors.lightGreen],
-                [Colors.purple, Colors.pink],
-                [Colors.red, Colors.orange],
-                [Colors.teal, Colors.cyan],
-                [Colors.indigo, Colors.purple],
-                [Colors.lime, Colors.green],
-                [Colors.deepOrange, Colors.red],
-                [Colors.blueGrey, Colors.grey],
-                [Colors.deepPurple, Colors.purple],
-                [Colors.brown, Colors.orange],
-              ];
+    // FIX: Ensure visual progress is shown even if badge not fully earned
+    // If not earned but points exist, show some progress
+    double quizProg = hasQuizBadge ? 1.0 : (state.totalPoints > 0 ? 0.4 : 0.0);
+    double stemProg = hasStemBadge ? 1.0 : (state.totalPoints > 50 ? 0.3 : 0.0);
 
-              return AnimatedBuilder(
-                animation: controller,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, (1 - controller.value) * 50),
-                    child: Transform.scale(
-                      scale: 0.7 + 0.3 * controller.value,
-                      child: Container(
-                        width: 20.w,
-                        margin: EdgeInsets.only(right: 3.w),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: colors[index % colors.length],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: colors[index % colors.length][0].withValues(alpha: 0.5),
-                              blurRadius: 15,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 2),
-                        ),
-                        child: Icon(
-                          Icons.workspace_premium_rounded,
-                          color: Colors.white,
-                          size: 28.sp,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRewardCategories(double t) {
     final List<Map<String, dynamic>> categories = [
       {
-        'title': 'Nature Explorer',
-        'icon': Icons.forest_rounded,
-        'progress': 0.8,
-        'color': Colors.green,
-        'stars': '45'
-      },
-      {
-        'title': 'Science Whiz',
-        'icon': Icons.science_rounded,
-        'progress': 0.6,
-        'color': Colors.blue,
-        'stars': '32'
-      },
-      {
-        'title': 'Game Master',
-        'icon': Icons.sports_esports_rounded,
-        'progress': 0.9,
-        'color': Colors.orange,
-        'stars': '78'
-      },
-      {
-        'title': 'Quiz Champion',
+        'title': 'Quiz Master',
         'icon': Icons.quiz_rounded,
-        'progress': 0.7,
+        'progress': quizProg,
         'color': Colors.purple,
-        'stars': '56'
+        'stars': hasQuizBadge ? 'Earned!' : 'In Progress'
       },
+      {
+        'title': 'STEM Star',
+        'icon': Icons.science_rounded,
+        'progress': stemProg,
+        'color': Colors.blue,
+        'stars': hasStemBadge ? 'Earned!' : 'In Progress'
+      },
+      {
+        'title': 'Media Whiz',
+        'icon': Icons.play_circle_filled_rounded,
+        'progress': 0.6, // Mock progress for video as example
+        'color': Colors.redAccent,
+        'stars': 'In Progress'
+      },
+      {
+        'title': 'Treasure Hunter',
+        'icon': Icons.qr_code_scanner_rounded,
+        'progress': hasQrBadge ? 1.0 : 0.2,
+        'color': Colors.green,
+        'stars': hasQrBadge ? 'Earned!' : 'In Progress'
+      },
+      {'title': 'Nature Explorer', 'icon': Icons.forest_rounded, 'progress': 0.0, 'color': Colors.orange, 'stars': 'Soon', 'locked': true},
+      {'title': 'Game Pro', 'icon': Icons.sports_esports_rounded, 'progress': 0.0, 'color': Colors.pink, 'stars': 'Soon', 'locked': true},
     ];
 
     return Column(
@@ -735,155 +430,75 @@ class _RewardsScreenState extends State<RewardsScreen>
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 2.w),
-          child: Text(
-            "Reward Categories",
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-            ),
-          ),
+          child: Text("Your Badges", style: GoogleFonts.poppins(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w700)),
         ),
         SizedBox(height: 2.h),
 
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 4.w,
-            mainAxisSpacing: 3.h,
-            childAspectRatio: 1.2,
-          ),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 4.w, mainAxisSpacing: 3.h, childAspectRatio: 1.1),
           itemCount: categories.length,
           itemBuilder: (context, index) {
-            final category = categories[index];
-            final color = category['color'] as Color;
-            final pulse = 1.0 + 0.05 * math.sin(t * 4 * math.pi + index);
+            final cat = categories[index];
+            final bool isLocked = cat['locked'] ?? false;
+            final color = isLocked ? Colors.grey : cat['color'] as Color;
+            final controller = (index < _badgeControllers.length) ? _badgeControllers[index] : _badgeControllers.last;
 
-            return Transform.scale(
-              scale: pulse,
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      color.withValues(alpha: 0.8),
-                      color.withValues(alpha: 0.4),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(25),
-                  boxShadow: [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.4),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
+            return AnimatedBuilder(
+              animation: controller,
+              builder: (context, child) {
+                return Transform.scale(
+                  scale: 0.9 + 0.1 * controller.value,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [color.withOpacity(0.8), color.withOpacity(0.4)]),
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 6))],
                     ),
-                  ],
-                ),
-                child: Stack(
-                  children: [
-                    // Background Pattern
-                    Positioned(
-                      top: -20,
-                      right: -20,
-                      child: Container(
-                        width: 60.w,
-                        height: 60.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: 0.1),
-                        ),
-                      ),
-                    ),
-
-                    // Content
-                    Padding(
-                      padding: EdgeInsets.all(4.w),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 14.w,
-                            height: 14.w,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              category['icon'] as IconData,
-                              color: Colors.white,
-                              size: 20.sp,
-                            ),
-                          ),
-                          SizedBox(height: 1.h),
-
-                          Text(
-                            category['title'] as String,
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w700,
-                              height: 1.2,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          const Spacer(),
-
-                          // Progress
-                          Container(
-                            height: 0.8.h,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Stack(
-                              children: [
-                                AnimatedContainer(
-                                  duration: const Duration(milliseconds: 800),
-                                  width: (100.w - 16.w) * (category['progress'] as double),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.white,
-                                        Colors.white.withValues(alpha: 0.8),
-                                      ],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          SizedBox(height: 1.h),
-
-                          Row(
+                    child: Stack(
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(4.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.star_rounded, color: Colors.amber, size: 14.sp),
-                              SizedBox(width: 1.w),
+                              Container(
+                                padding: EdgeInsets.all(2.w),
+                                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                                child: Icon(isLocked ? Icons.lock : cat['icon'], color: Colors.white, size: 20.sp),
+                              ),
+                              const Spacer(),
+                              Text(cat['title'], style: GoogleFonts.poppins(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w700)),
                               Text(
-                                '${category['stars']} Stars',
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                  isLocked ? "Coming Soon" : cat['stars'],
+                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10.sp)
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                        if (isLocked)
+                          Container(decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), borderRadius: BorderRadius.circular(25))),
+
+                        // Progress Bar Visual
+                        if (!isLocked)
+                          Positioned(
+                            bottom: 2.h, left: 4.w, right: 4.w,
+                            child: Container(
+                              height: 4,
+                              decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: cat['progress'],
+                                child: Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2))),
+                              ),
+                            ),
+                          )
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             );
           },
         ),
@@ -894,56 +509,23 @@ class _RewardsScreenState extends State<RewardsScreen>
 
 class GeometricPatternPainter extends CustomPainter {
   final double time;
-
   GeometricPatternPainter({required this.time});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
-      ..style = PaintingStyle.fill;
-
+    final paint = Paint()..color = Colors.white.withOpacity(0.05)..style = PaintingStyle.fill;
     final random = math.Random(42);
 
-    // Draw geometric patterns
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 10; i++) {
       final x = size.width * random.nextDouble();
       final y = size.height * random.nextDouble();
-      final sizeFactor = 20 + random.nextDouble() * 40;
-      final rotation = time * 2 + i;
+      final radius = 20 + random.nextDouble() * 30;
+      final dx = math.sin(time + i) * 20;
+      final dy = math.cos(time + i) * 20;
 
-      final path = Path();
-
-      if (i % 3 == 0) {
-        // Draw triangles
-        path.moveTo(x, y - sizeFactor);
-        path.lineTo(x - sizeFactor, y + sizeFactor);
-        path.lineTo(x + sizeFactor, y + sizeFactor);
-        path.close();
-      } else if (i % 3 == 1) {
-        // Draw diamonds
-        path.moveTo(x, y - sizeFactor);
-        path.lineTo(x + sizeFactor, y);
-        path.lineTo(x, y + sizeFactor);
-        path.lineTo(x - sizeFactor, y);
-        path.close();
-      } else {
-        // Draw circles
-        canvas.drawCircle(Offset(x, y), sizeFactor / 2, paint);
-        continue;
-      }
-
-      // Rotate and draw the shape
-      final matrix = Matrix4.identity()
-        ..translate(x, y)
-        ..rotateZ(rotation)
-        ..translate(-x, -y);
-      path.transform(matrix.storage);
-
-      canvas.drawPath(path, paint);
+      canvas.drawCircle(Offset(x + dx, y + dy), radius, paint);
     }
   }
-
   @override
   bool shouldRepaint(covariant GeometricPatternPainter oldDelegate) => true;
 }

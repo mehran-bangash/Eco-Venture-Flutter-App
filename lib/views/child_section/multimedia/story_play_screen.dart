@@ -1,295 +1,207 @@
-import 'package:eco_venture/core/constants/app_colors.dart';
+import 'dart:io'; // FIX: Added import for File
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
-// Import your models, providers, and helpers
 import '../../../models/story_model.dart';
-import '../../../core/helper/speak_story.dart';
 import '../../../viewmodels/child_view_model/multimedia_content/video_story_provider.dart';
 import '../../../services/shared_preferences_helper.dart';
 
+
 class StoryPlayScreen extends ConsumerStatefulWidget {
-  // 1. Accept the StoryModel
   final StoryModel story;
 
-  const StoryPlayScreen({
-    super.key,
-    required this.story,
-  });
+  const StoryPlayScreen({super.key, required this.story});
 
   @override
-  ConsumerState<StoryPlayScreen> createState() => _StoryScreenState();
+  ConsumerState<StoryPlayScreen> createState() => _StoryPlayScreenState();
 }
 
-class _StoryScreenState extends ConsumerState<StoryPlayScreen> {
+class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
   final PageController _pageController = PageController();
+  final FlutterTts _flutterTts = FlutterTts();
+
   int _currentPage = 0;
   bool _isPlaying = false;
-  String? _userId; // To store the user's ID for like/dislike colors
+  String? _userId;
 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
+    _initTts();
+  }
 
-    // When narration finishes automatically
-    flutterTts.setCompletionHandler(() {
-      setState(() => _isPlaying = false);
-    });
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("en-US");
+    await _flutterTts.setPitch(1.0);
 
-    // When narration is stopped manually
-    flutterTts.setCancelHandler(() {
-      setState(() => _isPlaying = false);
+    _flutterTts.setCompletionHandler(() {
+      if(mounted) setState(() => _isPlaying = false);
     });
   }
 
   Future<void> _loadInitialData() async {
-    // 2. Increment view count
-    ref.read(storyViewModelProvider.notifier).incrementView(widget.story.id);
-
-    // Get the user ID for setting button colors
-    final idFromPrefs = await SharedPreferencesHelper.instance.getUserId();
-    if (mounted) {
-      setState(() {
-        _userId = idFromPrefs;
-      });
-    }
+    ref.read(storyViewModelProvider.notifier).incrementView(widget.story);
+    final id = await SharedPreferencesHelper.instance.getUserId();
+    if (mounted) setState(() => _userId = id);
   }
 
   Future<void> _togglePlay(String storyText) async {
     if (_isPlaying) {
-      await flutterTts.stop();
+      await _flutterTts.stop();
       setState(() => _isPlaying = false);
     } else {
-      await speakStory(storyText);
-      setState(() => _isPlaying = true);
+      if (storyText.isNotEmpty) {
+        setState(() => _isPlaying = true);
+        await _flutterTts.speak(storyText);
+      }
     }
   }
 
-  // --- 3. Add Like/Dislike Handlers ---
-  void _onLikeTapped() {
+  void _onLikeTapped(StoryModel currentStory) {
+    if (_userId == null) return;
     ref.read(storyViewModelProvider.notifier).toggleLikeDislike(
-      storyId: widget.story.id,
-      isLiking: true,
+        story: currentStory,
+        isLiking: true,
+        userId: _userId!
     );
   }
 
-  void _onDislikeTapped() {
+  void _onDislikeTapped(StoryModel currentStory) {
+    if (_userId == null) return;
     ref.read(storyViewModelProvider.notifier).toggleLikeDislike(
-      storyId: widget.story.id,
-      isLiking: false,
+        story: currentStory,
+        isLiking: false,
+        userId: _userId!
     );
   }
 
   @override
+  void dispose() {
+    _flutterTts.stop();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Watch the provider to get real-time like/dislike updates
     final storyState = ref.watch(storyViewModelProvider);
 
-    // Find the current story from the state
-    final StoryModel? currentStory = storyState.stories?.firstWhere(
-          (s) => s.id == widget.story.id,
-      orElse: () => widget.story, // Fallback to the initial story
+    // Get Live Data
+    final StoryModel? currentStory = storyState.stories?.cast<StoryModel?>().firstWhere(
+          (s) => s?.id == widget.story.id,
+      orElse: () => widget.story,
     );
 
-    // Get the dynamic pages from the story
     final pages = currentStory?.pages ?? widget.story.pages;
     final bool isLastPage = _currentPage == pages.length - 1;
 
-    // Determine button colors
-    final likeColor = (currentStory?.userLikes[_userId] == true)
-        ? Colors.blue
-        : Colors.grey[700]!;
-    final dislikeColor = (currentStory?.userLikes[_userId] == false)
-        ? Colors.red
-        : Colors.grey[700]!;
+    final likeColor = (currentStory?.userLikes[_userId] == true) ? Colors.blue : Colors.grey;
+    final dislikeColor = (currentStory?.userLikes[_userId] == false) ? Colors.red : Colors.grey;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if(!didPop){
-          context.goNamed('multiMediaContent');
-        }
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.whiteBackGroundCard,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 1,
-          title: Text(
-            widget.story.title, // Use real title
-            style: TextStyle(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black87),
-            onPressed: () {
-              flutterTts.stop(); // Stop speaking on back
-              context.goNamed('multiMediaContent');
-            },
-          ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F7FE),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+          onPressed: () { _flutterTts.stop(); context.pop(); },
         ),
-        body: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: pages.length, // Use real page count
-                onPageChanged: (index) {
-                  flutterTts.stop(); // Stop speech on page swipe
-                  setState(() {
-                    _currentPage = index;
-                    _isPlaying = false;
-                  });
-                },
-                itemBuilder: (context, index) {
-                  final page = pages[index]; // Use real page data
-                  return SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        Container(
-                          margin: EdgeInsets.all(4.w),
-                          height: 35.h,
-                          width: 90.w,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(3.w),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black12,
-                                blurRadius: 6,
-                                offset: const Offset(2, 2),
-                              )
-                            ],
-                            image: DecorationImage(
-                              image: NetworkImage(page.imageUrl), // Use real image
-                              fit: BoxFit.cover,
-                            ),
-                          ),
+        title: Text(widget.story.title, style: GoogleFonts.poppins(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 17.sp)),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: pages.length,
+              onPageChanged: (index) {
+                _flutterTts.stop();
+                setState(() { _currentPage = index; _isPlaying = false; });
+              },
+              itemBuilder: (context, index) {
+                final page = pages[index];
+                return SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      Container(
+                        margin: EdgeInsets.all(5.w),
+                        height: 35.h,
+                        width: 100.w,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                          image: (page.imageUrl.isNotEmpty)
+                              ? DecorationImage(image: NetworkImage(page.imageUrl), fit: BoxFit.cover)
+                              : null,
+                          color: Colors.grey.shade200,
                         ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 6.w),
+                        child: Text(page.text, textAlign: TextAlign.center, style: GoogleFonts.poppins(fontSize: 16.sp, height: 1.6)),
+                      ),
+
+                      // --- FIXED: Show Like/Dislike ON THE PAGE if it's the last one ---
+                      if (index == pages.length - 1)
                         Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 5.w),
-                          child: Text(
-                            page.text, // Use real text
-                            style: GoogleFonts.poppins(
-                              fontSize: 17.sp,
-                              height: 1.5,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w600
-                            ),
-                            textAlign: TextAlign.justify,
+                          padding: EdgeInsets.only(top: 4.h),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              _buildActionButton(Icons.thumb_up, "${currentStory?.likes}", likeColor, () => _onLikeTapped(currentStory!)),
+                              SizedBox(width: 8.w),
+                              _buildActionButton(Icons.thumb_down, "${currentStory?.dislikes}", dislikeColor, () => _onDislikeTapped(currentStory!)),
+                            ],
                           ),
                         ),
-                        SizedBox(height: 4.h),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
 
-            // --- 4. Conditional Like/Dislike Section ---
-            if (isLastPage)
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 4.w),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -2))
-                    ]
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      "Did you enjoy this story?",
-                      style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 2.h),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildAction(
-                            Icons.thumb_up,
-                            "${currentStory?.likes ?? 0}",
-                            _onLikeTapped,
-                            iconColor: likeColor
-                        ),
-                        _buildAction(
-                            Icons.thumb_down,
-                            "${currentStory?.dislikes ?? 0}",
-                            _onDislikeTapped,
-                            iconColor: dislikeColor
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              )
-            else
-            // Show Dots Indicator if NOT the last page
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  pages.length,
-                      (index) => Container(
-                    margin: EdgeInsets.symmetric(horizontal: 1.w),
-                    width: _currentPage == index ? 3.w : 2.w,
-                    height: _currentPage == index ? 3.w : 2.w,
-                    decoration: BoxDecoration(
-                      color: _currentPage == index
-                          ? Colors.blue
-                          : Colors.blue.withOpacity(0.3), // Fixed withOpacity
-                      shape: BoxShape.circle,
-                    ),
+                      SizedBox(height: 10.h), // Spacer for FAB
+                    ],
                   ),
-                ),
-              ),
-            SizedBox(height: 2.h),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Colors.blue,
-          onPressed: () {
-            // Speak the text of the *current* page
-            if (pages.isNotEmpty) {
-              final storyText = pages[_currentPage].text;
-              _togglePlay(storyText);
-            }
-          },
-          child: Icon(
-            _isPlaying ? Icons.stop : Icons.play_arrow,
-            size: 32,
-            color: Colors.white,
+                );
+              },
+            ),
           ),
-        ),
+
+          // Page Indicators
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(pages.length, (i) => Container(
+              margin: EdgeInsets.all(1.w),
+              width: 2.w, height: 2.w,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: _currentPage == i ? Colors.blue : Colors.grey.shade300),
+            )),
+          ),
+          SizedBox(height: 2.h),
+        ],
+      ),
+
+      // --- FIXED: FAB IS ALWAYS VISIBLE ---
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          if (pages.isNotEmpty) _togglePlay(pages[_currentPage].text);
+        },
+        backgroundColor: _isPlaying ? Colors.redAccent : const Color(0xFF8E2DE2),
+        icon: Icon(_isPlaying ? Icons.stop : Icons.volume_up, color: Colors.white),
+        label: Text(_isPlaying ? "Stop" : "Read", style: TextStyle(color: Colors.white)),
       ),
     );
   }
 
-  // --- 5. Add Action Button Builder ---
-  Widget _buildAction(IconData icon, String label, VoidCallback onTap,
-      {Color? iconColor}) {
+  Widget _buildActionButton(IconData icon, String label, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
         children: [
-          Icon(icon, color: iconColor ?? Colors.grey[700], size: 28.sp),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
-            ),
-          ),
+          Icon(icon, color: color, size: 28.sp),
+          Text(label, style: GoogleFonts.poppins(color: color, fontWeight: FontWeight.bold))
         ],
       ),
     );
