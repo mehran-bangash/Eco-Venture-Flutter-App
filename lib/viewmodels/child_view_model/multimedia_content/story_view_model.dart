@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:eco_venture/viewmodels/child_view_model/multimedia_content/story_state.dart';
 import 'package:state_notifier/state_notifier.dart';
@@ -16,19 +15,36 @@ class StoryViewModel extends StateNotifier<StoryState> {
     state = state.copyWith(isLoading: true);
     _sub?.cancel();
     _sub = _repo.getStories().listen(
-          (data) => state = state.copyWith(isLoading: false, stories: data),
-      onError: (e) => state = state.copyWith(isLoading: false, error: e.toString()),
+      (data) => state = state.copyWith(isLoading: false, stories: data),
+      onError: (e) =>
+          state = state.copyWith(isLoading: false, error: e.toString()),
     );
   }
 
   Future<void> incrementView(StoryModel story) async {
     final newViews = story.views + 1;
     await _repo.updateStoryInteraction(
-        story.id, story.adminId, story.createdBy, {'views': newViews}
+      story.id,
+      story.adminId,
+      story.createdBy,
+      {'views': newViews},
+    );
+
+    // 2. Log to User History (Fixed Call)
+    await _repo.logActivity(
+      id: story.id,
+      title: story.title,
+      type: "Story",
+      category:
+          "Reading", // Stories usually don't have categories in model, defaulting to 'Reading'
     );
   }
 
-  Future<void> toggleLikeDislike({required StoryModel story, required String userId, required bool isLiking}) async {
+  Future<void> toggleLikeDislike({
+    required StoryModel story,
+    required String userId,
+    required bool isLiking,
+  }) async {
     final userLikes = Map<String, bool>.from(story.userLikes);
 
     if (userLikes[userId] == isLiking) {
@@ -41,15 +57,16 @@ class StoryViewModel extends StateNotifier<StoryState> {
     int dislikes = userLikes.values.where((v) => v == false).length;
 
     await _repo.updateStoryInteraction(
-        story.id, story.adminId, story.createdBy,
-        {
-          'likes': likes,
-          'dislikes': dislikes,
-          'userLikes': userLikes
-        }
+      story.id,
+      story.adminId,
+      story.createdBy,
+      {'likes': likes, 'dislikes': dislikes, 'userLikes': userLikes},
     );
   }
 
   @override
-  void dispose() { _sub?.cancel(); super.dispose(); }
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 }

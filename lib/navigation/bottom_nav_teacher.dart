@@ -1,11 +1,10 @@
+import 'package:eco_venture/views/teacher_section/settings/teacher_settings.dart';
 import 'package:eco_venture/views/teacher_section/teacher_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import '../views/child_section/ai_chat_screen.dart';
 import '../views/child_section/report_safety_screen.dart';
-import '../views/child_section/settings/child_settings.dart';
 
  class BottomNavTeacher extends StatefulWidget {
    const BottomNavTeacher({super.key});
@@ -21,9 +20,8 @@ import '../views/child_section/settings/child_settings.dart';
 
   final _screens = [
     const TeacherHomeScreen(),
-    const AiChatScreen(),
     const ReportSafetyScreen(),
-    const ChildSettings(),
+    const TeacherSettings(),
   ];
 
   late final PageController _pageController;
@@ -98,9 +96,8 @@ import '../views/child_section/settings/child_settings.dart';
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildNavItem(Icons.home_rounded, "Home", 0),
-                  _buildNavItem(Icons.smart_toy_rounded, "ChatBot", 1),
-                  _buildNavItem(Icons.shield_rounded, "Safety", 2),
-                  _buildNavItem(Icons.settings_rounded, "Settings", 3),
+                  _buildNavItem(Icons.shield_rounded, "Safety", 1),
+                  _buildNavItem(Icons.settings_rounded, "Settings", 2),
                 ],
               ),
             ),

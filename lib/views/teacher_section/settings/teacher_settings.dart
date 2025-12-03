@@ -6,20 +6,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-
 import '../../../core/utils/utils.dart';
 import '../../../core/widgets/settings_tile.dart';
 import '../../../viewmodels/auth/auth_provider.dart';
 
-
-class ChildSettings extends ConsumerStatefulWidget {
-  const ChildSettings({super.key});
+class TeacherSettings extends StatefulWidget {
+  const TeacherSettings({super.key});
 
   @override
-  ConsumerState<ChildSettings> createState() => _ChildSettingsState();
+  State<TeacherSettings> createState() => _TeacherSettingsState();
 }
 
-class _ChildSettingsState extends ConsumerState<ChildSettings>
+class _TeacherSettingsState extends State<TeacherSettings>
     with TickerProviderStateMixin {
   late AnimationController _profileImageController;
   late Animation<double> _profileImagePulse;
@@ -62,13 +60,12 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
   @override
   Widget build(BuildContext context) {
     return PopScope(
-    canPop: false, // prevents auto pop
-    onPopInvokedWithResult: (didPop, result) {
-      if (!didPop) {
-        // This runs when system back button is pressed
-        context.goNamed('bottomNavChild');
-      }
-    },
+      canPop: false, // prevents auto pop
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.goNamed('bottomNavTeacher');
+        }
+      },
       child: Scaffold(
         body: CustomScrollView(
           slivers: [
@@ -154,7 +151,7 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                   SizedBox(height: 2.h),
                   GestureDetector(
                     onTap: () {
-                      context.goNamed('childProfile');
+                      context.goNamed('teacherProfile');
                     },
                     child: SettingsTile(
                       title: "Profile",
@@ -168,7 +165,10 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                           color: Colors.blueGrey.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(Icons.arrow_forward_ios, color: Colors.blue),
+                        child: Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.blue,
+                        ),
                       ),
                     ),
                   ),

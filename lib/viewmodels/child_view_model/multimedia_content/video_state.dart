@@ -2,9 +2,10 @@ import '../../../models/video_model.dart';
 
 class VideoState {
   final bool isLoading;
-  final List<VideoModel>? videos;
+  final List<VideoModel> videos;
   final String? error;
-  VideoState({this.isLoading = false, this.videos, this.error});
+  VideoState({this.isLoading = false, this.videos = const [], this.error});
+
   VideoState copyWith({
     bool? isLoading,
     List<VideoModel>? videos,

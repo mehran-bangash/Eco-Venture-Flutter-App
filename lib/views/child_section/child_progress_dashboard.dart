@@ -1,48 +1,35 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fl_chart/fl_chart.dart';
+import '../../viewmodels/child_view_model/child_progress_dashboard/child_progress_provider.dart';
+import '../../viewmodels/child_view_model/child_progress_dashboard/child_progress_state.dart';
 
-class ChildProgressDashboard extends StatefulWidget {
+class ChildProgressDashboard extends ConsumerStatefulWidget {
   const ChildProgressDashboard({super.key});
 
   @override
-  State<ChildProgressDashboard> createState() => _ChildProgressDashboardState();
+  ConsumerState<ChildProgressDashboard> createState() => _ChildProgressDashboardState();
 }
 
-class _ChildProgressDashboardState extends State<ChildProgressDashboard>
+class _ChildProgressDashboardState extends ConsumerState<ChildProgressDashboard>
     with TickerProviderStateMixin {
 
   late final AnimationController _masterController;
   late final Animation<double> _fadeAnimation;
   late final Animation<Offset> _slideAnimation;
   late final Animation<Color?> _bgAnimation;
-  late final AnimationController _shimmerController; // NEW: For shimmer effect
-
-  // Mock Data
-  final List<Map<String, dynamic>> _recentActivities = [
-    {'title': 'Solar System Quiz', 'type': 'Quiz', 'score': '100%', 'time': '2 hrs ago', 'color': const Color(0xFF9C27B0)},
-    {'title': 'Water Filter Build', 'type': 'STEM', 'score': 'Approved', 'time': 'Yesterday', 'color': const Color(0xFF2196F3)},
-    {'title': 'Math Level 2', 'type': 'Quiz', 'score': '80%', 'time': '2 days ago', 'color': const Color(0xFF009688)},
-    {'title': 'Garden Hunt', 'type': 'QR', 'score': 'Completed', 'time': '3 days ago', 'color': const Color(0xFFFF9800)},
-  ];
-
-  final Map<String, double> _skills = {
-    'Science': 0.85,
-    'Math': 0.60,
-    'Logic': 0.75,
-    'Creativity': 0.92
-  };
+  late final AnimationController _shimmerController;
 
   @override
   void initState() {
     super.initState();
     _masterController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 10),
+      duration: const Duration(seconds: 15),
     )..repeat(reverse: true);
 
     _shimmerController = AnimationController(
@@ -71,94 +58,99 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if(!didPop){
-          context.goNamed('bottomNavChild');
-        }
-      },
-      child: AnimatedBuilder(
-          animation: Listenable.merge([_masterController, _shimmerController]),
-          builder: (context, child) {
-            return Scaffold(
-              backgroundColor: _bgAnimation.value,
-              body: Stack(
-                children: [
-                  // 1. Animated Background Gradient
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          Color.lerp(const Color(0xFF0F2027), const Color(0xFF203A43), _masterController.value)!,
-                          const Color(0xFF2C5364),
-                          const Color(0xFF24243E),
-                        ],
-                      ),
+    // 1. Watch Real Data
+    final state = ref.watch(childProgressViewModelProvider);
+
+    return AnimatedBuilder(
+        animation: Listenable.merge([_masterController, _shimmerController]),
+        builder: (context, child) {
+          return Scaffold(
+            backgroundColor: _bgAnimation.value,
+            body: Stack(
+              children: [
+                // 1. Animated Background Gradient
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color.lerp(const Color(0xFF0F2027), const Color(0xFF203A43), _masterController.value)!,
+                        const Color(0xFF2C5364),
+                        const Color(0xFF24243E),
+                      ],
                     ),
                   ),
+                ),
 
-                  // 2. Background Patterns
-                  const _AnimatedBackground(),
+                const _AnimatedBackground(),
 
-                  // 3. Main Content
-                  SafeArea(
-                    child: FadeTransition(
-                      opacity: const AlwaysStoppedAnimation(1.0),
-                      child: SlideTransition(
-                        position: _slideAnimation,
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildHeader(),
-                              SizedBox(height: 4.h),
+                // 2. Main Content
+                SafeArea(
+                  child: FadeTransition(
+                    opacity: const AlwaysStoppedAnimation(1.0),
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildHeader(state),
+                            SizedBox(height: 4.h),
 
-                              _buildWeeklyStreak(),
-                              SizedBox(height: 4.h),
+                            _buildWeeklyStreak(state),
+                            SizedBox(height: 4.h),
 
-                              _buildSkillRadar(),
-                              SizedBox(height: 4.h),
+                            _buildSkillRadar(state),
+                            SizedBox(height: 4.h),
 
-                              Text(
-                                  "Your Journey",
-                                  style: GoogleFonts.poppins(
-                                      fontSize: 22.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                      shadows: [const Shadow(color: Colors.black45, blurRadius: 5)]
+                            Text(
+                                "Your Journey",
+                                style: GoogleFonts.poppins(
+                                    fontSize: 22.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    shadows: [const Shadow(color: Colors.black45, blurRadius: 5)]
+                                )
+                            ),
+                            SizedBox(height: 2.h),
+
+                            if (state.isLoading)
+                              const Center(child: CircularProgressIndicator(color: Colors.white))
+                            else if (state.timeline.isEmpty)
+                              Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(2.h),
+                                    child: Text("No activity yet. Start exploring!", style: GoogleFonts.poppins(color: Colors.white60, fontSize: 14.sp)),
                                   )
-                              ),
-                              SizedBox(height: 2.h),
-                              _buildTimelineList(),
+                              )
+                            else
+                              _buildTimelineList(state.timeline),
 
-                              SizedBox(height: 8.h),
-                            ],
-                          ),
+                            SizedBox(height: 8.h),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                ],
-              ),
-            );
-          }
-      ),
+                ),
+              ],
+            ),
+          );
+        }
     );
   }
 
-  // --- HEADER (FIXED OVERFLOW) ---
-  Widget _buildHeader() {
+  // --- HEADER ---
+  Widget _buildHeader(ChildProgressState state) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         IconButton(
-          onPressed: () =>context.goNamed('bottomNavChild'),
+          onPressed: () => context.pop(),
           icon: Container(
             padding: EdgeInsets.all(2.5.w),
             decoration: BoxDecoration(
@@ -169,7 +161,6 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
             child: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 18.sp),
           ),
         ),
-        // Wrapped in Expanded to prevent overflow
         Expanded(
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 2.w),
@@ -177,14 +168,14 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Hello, Explorer!",
-                  style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.white70, fontWeight: FontWeight.w600),
+                  "Total XP: ${state.totalPoints}",
+                  style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.cyanAccent, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
                 Text(
-                  "Level Up!",
-                  style: GoogleFonts.poppins(fontSize: 25.sp, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2),
+                  "Level ${state.currentLevel}",
+                  style: GoogleFonts.poppins(fontSize: 26.sp, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.2),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                 ),
@@ -192,43 +183,38 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
             ),
           ),
         ),
-        // Level Indicator with Shimmer
+        // Level Indicator
         Stack(
           alignment: Alignment.center,
           children: [
-            Container(
+            SizedBox(
               width: 20.w, height: 20.w,
+              child: CircularProgressIndicator(
+                value: state.xpProgress, // Real Progress
+                backgroundColor: Colors.white10,
+                valueColor: const AlwaysStoppedAnimation(Colors.cyanAccent),
+                strokeWidth: 6,
+              ),
+            ),
+            Container(
+              width: 16.w, height: 16.w,
               decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: const LinearGradient(colors: [Color(0xFF00E5FF), Color(0xFF2979FF)], begin: Alignment.topLeft, end: Alignment.bottomRight),
                   boxShadow: [
                     BoxShadow(color: const Color(0xFF2979FF).withOpacity(0.6), blurRadius: 20, spreadRadius: 2),
-                    BoxShadow(color: Colors.white.withOpacity(0.5), blurRadius: 5, offset: const Offset(-2, -2))
                   ],
                   border: Border.all(color: Colors.white.withOpacity(0.3), width: 2)
               ),
-            ),
-            // Shimmer Effect Overlay
-            IgnorePointer(
-              child: Container(
-                width: 20.w, height: 20.w,
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                        begin: Alignment(-1.0 + _shimmerController.value * 2, -0.5),
-                        end: Alignment(0.0 + _shimmerController.value * 2, 0.5),
-                        colors: [Colors.transparent, Colors.white.withOpacity(0.4), Colors.transparent],
-                        stops: const [0.4, 0.5, 0.6]
-                    )
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("LVL", style: GoogleFonts.poppins(fontSize: 10.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+                    Text("${state.currentLevel}", style: GoogleFonts.poppins(fontSize: 20.sp, fontWeight: FontWeight.w900, color: Colors.white, height: 1.0)),
+                  ],
                 ),
               ),
-            ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text("LVL", style: GoogleFonts.poppins(fontSize: 10.sp, fontWeight: FontWeight.bold, color: Colors.white)),
-                Text("3", style: GoogleFonts.poppins(fontSize: 22.sp, fontWeight: FontWeight.w900, color: Colors.white, height: 1.0)),
-              ],
             ),
           ],
         )
@@ -236,8 +222,12 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
     );
   }
 
-  // --- WEEKLY STREAK ---
-  Widget _buildWeeklyStreak() {
+  // --- WEEKLY STREAK (FIXED DAY LOGIC) ---
+  Widget _buildWeeklyStreak(ChildProgressState state) {
+    final bool hasStreak = state.dayStreak > 0;
+    // Calculate current day index (Mon=0, Tue=1, ..., Sun=6)
+    final int currentDayIndex = DateTime.now().weekday - 1;
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
@@ -254,49 +244,54 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween, // Better spacing handling
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 24.sp),
+                      Icon(Icons.local_fire_department_rounded, color: hasStreak ? Colors.orangeAccent : Colors.grey, size: 24.sp),
                       SizedBox(width: 2.w),
-                      Text("4 Day Streak!", style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white)),
+                      Text(
+                          hasStreak ? "${state.dayStreak} Day Streak!" : "Start a Streak!",
+                          style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.w800, color: Colors.white)
+                      ),
                     ],
                   ),
-                  Text("+50 XP", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.orangeAccent))
+                  // Clarified Text
+                  Text("Streak Bonus", style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.bold, color: Colors.orangeAccent))
                 ],
               ),
               SizedBox(height: 2.5.h),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: List.generate(7, (index) {
-                  bool isActive = index < 4;
-                  // Add staggered animation for streak items
-                  double offset = math.sin((_masterController.value * 2 * math.pi) + (index * 0.5)) * 2;
+                  // Highlight: If this day is TODAY or BEFORE today (and streak exists)
+                  // Simple logic: If streak > 0, highlight up to today
+                  bool isActive = hasStreak && index <= currentDayIndex;
+                  bool isToday = index == currentDayIndex;
 
-                  return Transform.translate(
-                    offset: Offset(0, isActive ? offset : 0),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 11.w, height: 11.w,
-                          decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: isActive
-                                  ? const LinearGradient(colors: [Colors.orange, Colors.deepOrangeAccent])
-                                  : null,
-                              color: isActive ? null : Colors.white.withOpacity(0.1),
-                              boxShadow: isActive ? [BoxShadow(color: Colors.orange.withOpacity(0.6), blurRadius: 10, spreadRadius: 1)] : [],
-                              border: Border.all(color: isActive ? Colors.white.withOpacity(0.6) : Colors.white24)
-                          ),
-                          child: Center(
-                            child: isActive
-                                ? Icon(Icons.check_rounded, color: Colors.white, size: 20.sp)
-                                : Text(["M", "T", "W", "T", "F", "S", "S"][index], style: GoogleFonts.poppins(color: Colors.white60, fontSize: 15.sp, fontWeight: FontWeight.bold)),
-                          ),
+                  return Column(
+                    children: [
+                      Container(
+                        width: 11.w, height: 11.w,
+                        decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: isActive
+                                ? const LinearGradient(colors: [Colors.orange, Colors.deepOrangeAccent])
+                                : null,
+                            color: isActive ? null : Colors.white.withOpacity(0.1),
+                            boxShadow: isActive ? [BoxShadow(color: Colors.orange.withOpacity(0.6), blurRadius: 10, spreadRadius: 1)] : [],
+                            border: Border.all(
+                                color: isToday ? Colors.white : (isActive ? Colors.white.withOpacity(0.6) : Colors.white24),
+                                width: isToday ? 2 : 1
+                            )
                         ),
-                      ],
-                    ),
+                        child: Center(
+                          child: isActive
+                              ? Icon(Icons.check_rounded, color: Colors.white, size: 20.sp)
+                              : Text(["M", "T", "W", "T", "F", "S", "S"][index], style: GoogleFonts.poppins(color: Colors.white60, fontSize: 15.sp, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
                   );
                 }),
               )
@@ -307,13 +302,21 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
     );
   }
 
-  // --- SKILL MASTERY (Floating Animation Added) ---
-  Widget _buildSkillRadar() {
+  // --- SKILL MASTERY (RENAMED TO MATCH MODULES) ---
+  Widget _buildSkillRadar(ChildProgressState state) {
+    // Using exact module names now
+    final Map<String, double> mappedSkills = {
+      'Science': state.skillStats['Science'] ?? 0.0,
+      'Math': state.skillStats['Math'] ?? 0.0,
+      'QR Hunt': state.skillStats['Logic'] ?? 0.0, // Replaced 'Logic' label visually
+      'STEM': state.skillStats['Creativity'] ?? 0.0 // Replaced 'Creativity' label visually
+    };
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-            "Skill Power",
+            "Module Mastery",
             style: GoogleFonts.poppins(
                 fontSize: 22.sp,
                 fontWeight: FontWeight.bold,
@@ -329,60 +332,54 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
           crossAxisSpacing: 4.w,
           mainAxisSpacing: 2.5.h,
           childAspectRatio: 1.4,
-          children: _skills.entries.map((entry) {
+          children: mappedSkills.entries.map((entry) {
             Color skillColor = _getSkillColor(entry.key);
-            // Add gentle floating animation to cards
-            double float = math.sin((_masterController.value * 2 * math.pi) + entry.key.length) * 3;
-
-            return Transform.translate(
-              offset: Offset(0, float),
-              child: Container(
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                        colors: [Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.08)],
-                        begin: Alignment.topLeft, end: Alignment.bottomRight
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
-                    boxShadow: [const BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5))]
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox(
-                          height: 16.w, width: 16.w,
-                          child: CircularProgressIndicator(
-                            value: entry.value,
-                            backgroundColor: Colors.white12,
-                            valueColor: AlwaysStoppedAnimation(skillColor),
-                            strokeWidth: 8,
-                            strokeCap: StrokeCap.round,
-                          ),
+            return Container(
+              padding: EdgeInsets.all(4.w),
+              decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                      colors: [Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.08)],
+                      begin: Alignment.topLeft, end: Alignment.bottomRight
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  boxShadow: [const BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 5))]
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        height: 16.w, width: 16.w,
+                        child: CircularProgressIndicator(
+                          value: entry.value,
+                          backgroundColor: Colors.white12,
+                          valueColor: AlwaysStoppedAnimation(skillColor),
+                          strokeWidth: 8,
+                          strokeCap: StrokeCap.round,
                         ),
-                        Text("${(entry.value * 100).toInt()}%", style: GoogleFonts.poppins(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold))
+                      ),
+                      Text("${(entry.value * 100).toInt()}%", style: GoogleFonts.poppins(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.bold))
+                    ],
+                  ),
+                  SizedBox(width: 3.5.w),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          entry.key,
+                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15.sp),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text("Progress", style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12.sp)),
                       ],
                     ),
-                    SizedBox(width: 3.5.w),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            entry.key,
-                            style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15.sp), // Adjusted size
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text("Mastery", style: GoogleFonts.poppins(color: Colors.white60, fontSize: 12.sp)), // Adjusted size
-                        ],
-                      ),
-                    )
-                  ],
-                ),
+                  )
+                ],
               ),
             );
           }).toList(),
@@ -395,20 +392,22 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
     switch (skill) {
       case 'Science': return Colors.cyanAccent;
       case 'Math': return Colors.greenAccent;
-      case 'Logic': return Colors.purpleAccent;
-      default: return Colors.amberAccent;
+      case 'QR Hunt': return Colors.purpleAccent; // Logic color
+      default: return Colors.amberAccent; // STEM/Creativity color
     }
   }
 
   // --- TIMELINE LIST ---
-  Widget _buildTimelineList() {
+  Widget _buildTimelineList(List<Map<String, dynamic>> timeline) {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: _recentActivities.length,
+      itemCount: timeline.length,
       itemBuilder: (context, index) {
-        final activity = _recentActivities[index];
-        final bool isLast = index == _recentActivities.length - 1;
+        final activity = timeline[index];
+        final bool isLast = index == timeline.length - 1;
+
+        final Color itemColor = activity['color'] as Color;
 
         return IntrinsicHeight(
           child: Row(
@@ -419,10 +418,10 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
                   Container(
                     width: 6.w, height: 6.w,
                     decoration: BoxDecoration(
-                        color: activity['color'],
+                        color: itemColor,
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 2.5),
-                        boxShadow: [BoxShadow(color: (activity['color'] as Color).withOpacity(0.6), blurRadius: 12, spreadRadius: 2)]
+                        boxShadow: [BoxShadow(color: itemColor.withOpacity(0.6), blurRadius: 12, spreadRadius: 2)]
                     ),
                   ),
                   if (!isLast)
@@ -443,7 +442,6 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Wrapped in Expanded to prevent overflow inside card
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,8 +466,8 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
                       SizedBox(width: 2.w),
                       Container(
                         padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.6.h),
-                        decoration: BoxDecoration(color: (activity['color'] as Color).withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-                        child: Text(activity['score'], style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w800, color: activity['color'])),
+                        decoration: BoxDecoration(color: itemColor.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                        child: Text(activity['type'], style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w800, color: itemColor)),
                       )
                     ],
                   ),
@@ -483,7 +481,7 @@ class _ChildProgressDashboardState extends State<ChildProgressDashboard>
   }
 }
 
-// --- BACKGROUND PAINTER ---
+// --- ANIMATED BACKGROUND PAINTER ---
 class _AnimatedBackground extends StatefulWidget {
   const _AnimatedBackground();
   @override

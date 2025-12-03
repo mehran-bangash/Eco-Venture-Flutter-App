@@ -8,8 +8,11 @@ import 'package:eco_venture/views/teacher_section/multi_media_content_Module/tea
 import 'package:eco_venture/views/teacher_section/multi_media_content_Module/teacher_multimedia_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/multi_media_content_Module/teacher_story_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/multi_media_content_Module/teacher_video_dahboard.dart';
+import 'package:eco_venture/views/teacher_section/profile/teacher_edit_profile_screen.dart';
+import 'package:eco_venture/views/teacher_section/profile/teacher_profile_screen.dart';
 import 'package:eco_venture/views/teacher_section/quiz_module/teacher_add_quiz_screen.dart';
 import 'package:eco_venture/views/teacher_section/quiz_module/teacher_quiz_dashboard.dart';
+import 'package:eco_venture/views/teacher_section/settings/teacher_settings.dart';
 import 'package:eco_venture/views/teacher_section/stem_challenges_module/teacher_edit_stem_challenge_screen.dart';
 import 'package:eco_venture/views/teacher_section/stem_challenges_module/teacher_stem_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/teacher_home_screen.dart';
@@ -38,14 +41,19 @@ class TeacherRouter {
     routes: [
       // Teacher Profile
       GoRoute(
-        path: 'teacher-profile',
-        name: 'teacherProfile',
-        builder: (context, state) => const ChildProfile(),
+        path: RouteNames.teacherSettings,
+        name: 'teacherSettings',
+        builder: (context, state) => const TeacherSettings(),
         routes: [
           GoRoute(
-            path: 'edit-profile',
+            path: RouteNames.teacherProfile,
+            name: 'teacherProfile',
+            builder: (context, state) => const TeacherProfileScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.teacherEditProfile,
             name: 'teacherEditProfile',
-            builder: (context, state) => const EditProfileScreen(),
+            builder: (context, state) => const TeacherEditProfileScreen(),
           ),
         ],
       ),
@@ -79,12 +87,6 @@ class TeacherRouter {
       ),
 
       // Teacher Settings
-      GoRoute(
-        path: 'teacher-settings',
-        name: 'teacherSettings',
-        builder: (context, state) => const ChildSettings(),
-      ),
-
       // Teacher Home + Add Student
       GoRoute(
         path: RouteNames.teacherHome,

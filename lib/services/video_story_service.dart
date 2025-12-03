@@ -44,6 +44,40 @@ class VideoStoryService {
   }
 
   // ================= VIDEOS (DUAL FETCH) =================
+  Future<void> logMultimediaActivity({
+    required String contentId,
+    required String title,
+    required String type, // "Video" or "Story"
+    required String category
+  }) async {
+    try {
+      // 1. Get Child ID
+      String? childId = _auth.currentUser?.uid;
+      childId ??= await SharedPreferencesHelper.instance.getUserId();
+      if (childId == null) return;
+
+      // 2. Create Log Entry
+      final newLogKey = _database.ref().push().key!;
+      final timestamp = DateTime.now().toIso8601String();
+
+      final logData = {
+        'contentId': contentId,
+        'title': title,
+        'type': type,
+        'category': category,
+        'timestamp': timestamp,
+      };
+
+      // 3. Save to "child_activity_log"
+      // Path: child_activity_log/{childId}/{logId}
+      await _database.ref('child_activity_log/$childId/$newLogKey').set(logData);
+
+      print("DEBUG: Logged $type activity: $title");
+
+    } catch (e) {
+      print("Error logging activity: $e");
+    }
+  }
 
   Stream<List<VideoModel>> getVideosStream() {
     // 1. Admin Stream

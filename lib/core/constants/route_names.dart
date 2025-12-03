@@ -20,7 +20,8 @@ class RouteNames {
   static const reportSafetyScreen = '/child/report-safety-screen';
   static const reportIssueScreen =
       '/child/report-safety-screen/report-issue-screen';
-  static const childProgressDashboardScreen = '/child/child-progress-dashboard-screen';
+  static const childProgressDashboardScreen =
+      '/child/child-progress-dashboard-screen';
   static const rewardScreen = '/child/reward-screen';
 
   // nested inside child Section multiMediaContent
@@ -85,17 +86,15 @@ class RouteNames {
 
   static const teacherHome = '/teacher/home';
   static const addStudentScreen = '/teacher/home/add-student-screen';
-  static const studentDetailScreen='/teacher/home/student-detail-screen';
-  static const classReportScreen='/teacher/home/class-report-screen';
+  static const studentDetailScreen = '/teacher/home/student-detail-screen';
+  static const classReportScreen = '/teacher/home/class-report-screen';
 
-// Teacher Profile Section
-  static const teacherProfile = '/teacher/teacher-profile';
-  static const teacherEditProfile =
-      '/teacher/teacher-profile/edit-profile';
+  // Teacher Profile Section
   static const teacherSettings = '/teacher/teacher-settings';
-  static const teacherAiChatScreen = '/teacher/ai-chat-screen';
-  static const teacherReportSafetyScreen =
-      '/teacher/report-safety-screen';
+  static const teacherProfile = '/teacher/teacher-settings/teacher-profile';
+  static const teacherEditProfile =
+      '/teacher/teacher-settings/teacher-edit-profile';
+  static const teacherReportSafetyScreen = '/teacher/report-safety-screen';
   static const teacherReportIssueScreen =
       '/teacher/report-safety-screen/report-issue-screen';
   static const teacherProgressDashboardScreen =
@@ -103,33 +102,41 @@ class RouteNames {
   static const teacherRewardScreen = '/teacher/reward-screen';
 
   // Teacher Quiz Module
-  static const teacherQuizDashboard='/teacher/home/teacher-quiz-dashboard';
-  static const teacherAddQuizScreen='/teacher/home/teacher-quiz-dashboard/teacher-add-quiz-screen';
-  static const teacherEditQuizScreen='/teacher/home/teacher-quiz-dashboard/teacher-edit-quiz-screen';
+  static const teacherQuizDashboard = '/teacher/home/teacher-quiz-dashboard';
+  static const teacherAddQuizScreen =
+      '/teacher/home/teacher-quiz-dashboard/teacher-add-quiz-screen';
+  static const teacherEditQuizScreen =
+      '/teacher/home/teacher-quiz-dashboard/teacher-edit-quiz-screen';
 
   // Teacher STEM Challenges Module
-  static const teacherStemChallengeDashboard='/teacher/home/teacher-stem-challenge-dashboard';
-  static const  teacherAddStemChallengeScreen='/teacher/home/teacher-stem-challenge-dashboard/teacher-add-stem-challenge-screen';
-  static const  teacherEditStemChallengeScreen='/teacher/home/teacher-stem-challenge-dashboard/teacher-edit-stem-challenge-screen';
+  static const teacherStemChallengeDashboard =
+      '/teacher/home/teacher-stem-challenge-dashboard';
+  static const teacherAddStemChallengeScreen =
+      '/teacher/home/teacher-stem-challenge-dashboard/teacher-add-stem-challenge-screen';
+  static const teacherEditStemChallengeScreen =
+      '/teacher/home/teacher-stem-challenge-dashboard/teacher-edit-stem-challenge-screen';
 
-   //Teacher MultiMediaContent
-   static const teacherMultimediaDashboard='/teacher/home/teacher-multimedia-dashboard';
-   static const teacherVideoDashboard='/teacher/home/teacher-multimedia-dashboard/teacher-video-dashboard';
-   static const teacherAddVideoScreen='/teacher/home/teacher-multimedia-dashboard/teacher-video-dashboard/teacher-add-video-screen';
-   static const teacherEditVideoScreen='/teacher/home/teacher-multimedia-dashboard/teacher-video-dashboard/teacher-edit-video-screen';
-   static const teacherStoryDashboard='/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard';
-   static const teacherAddStoryScreen='/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard/teacher-add-story-screen';
-   static const teacherEditStoryScreen='/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard/teacher-edit-story-screen';
+  //Teacher MultiMediaContent
+  static const teacherMultimediaDashboard =
+      '/teacher/home/teacher-multimedia-dashboard';
+  static const teacherVideoDashboard =
+      '/teacher/home/teacher-multimedia-dashboard/teacher-video-dashboard';
+  static const teacherAddVideoScreen =
+      '/teacher/home/teacher-multimedia-dashboard/teacher-video-dashboard/teacher-add-video-screen';
+  static const teacherEditVideoScreen =
+      '/teacher/home/teacher-multimedia-dashboard/teacher-video-dashboard/teacher-edit-video-screen';
+  static const teacherStoryDashboard =
+      '/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard';
+  static const teacherAddStoryScreen =
+      '/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard/teacher-add-story-screen';
+  static const teacherEditStoryScreen =
+      '/teacher/home/teacher-multimedia-dashboard/teacher-story-dashboard/teacher-edit-story-screen';
 
-   //Treasure Hunt
-   static const teacherTreasureHuntDashboard='/teacher/home/teacher-treasure-hunt';
-   static const teacherAddTreasureHuntScreen='/teacher/home/teacher-treasure-hunt/add';
-  static const teacherEditTreasureHuntScreen='/teacher/home/teacher-treasure-hunt/edit';
-
-
-
-
-
-
-
+  //Treasure Hunt
+  static const teacherTreasureHuntDashboard =
+      '/teacher/home/teacher-treasure-hunt';
+  static const teacherAddTreasureHuntScreen =
+      '/teacher/home/teacher-treasure-hunt/add';
+  static const teacherEditTreasureHuntScreen =
+      '/teacher/home/teacher-treasure-hunt/edit';
 }
