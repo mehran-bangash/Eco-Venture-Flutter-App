@@ -30,27 +30,37 @@ class ChildProgressViewModel extends StateNotifier<ChildProgressState> {
       int level = (points / 200).floor() + 1;
       double progress = (points % 200) / 200;
 
-      // 2. Skill Logic
+      // 2. Skill Logic (IMPROVED)
       Map<String, double> normalizedSkills = {};
+      // Target: Complete 5 tasks to fill the bar (Easier gratification)
+      const double targetTasks = 5.0;
+
       rawSkills.forEach((key, count) {
-        normalizedSkills[key] = (count / 10).clamp(0.1, 1.0);
+        if (count == 0) {
+          normalizedSkills[key] = 0.02; // Empty state (tiny sliver)
+        } else {
+          // If count is 1, 1/5 = 0.2 (20% filled - visible!)
+          normalizedSkills[key] = (count / targetTasks).clamp(0.2, 1.0);
+        }
       });
 
       // 3. Timeline Formatting
       List<Map<String, dynamic>> formattedTimeline = rawTimeline.take(10).map((item) {
-        final DateTime date = item['date'];
-        Color color = Colors.blue;
-        String type = item['type'];
+        final DateTime date = item['date'] != null
+            ? (item['date'] is DateTime ? item['date'] : DateTime.tryParse(item['date'].toString()) ?? DateTime.now())
+            : DateTime.now();
 
-        // FIX: Map Types to Colors explicitly
-        if (type == 'Quiz') color = Colors.purple;
-        else if (type == 'STEM') color = Colors.blue;
-        else if (type == 'QR Hunt') color = Colors.green;
-        else if (type == 'Video') color = Colors.redAccent; // Video Color
-        else if (type == 'Story') color = Colors.orange;    // Story Color
+        Color color = Colors.blue;
+        String type = item['type'] ?? 'Unknown';
+
+        if (type == 'Quiz') color = const Color(0xFF9C27B0);
+        else if (type == 'STEM') color = const Color(0xFF2196F3);
+        else if (type == 'QR Hunt') color = const Color(0xFF4CAF50);
+        else if (type == 'Video') color = const Color(0xFFE53935);
+        else if (type == 'Story') color = const Color(0xFFFF9800);
 
         return {
-          'title': item['title'],
+          'title': item['title'] ?? 'Activity',
           'type': type,
           'time': timeago.format(date),
           'score': '+XP',
@@ -58,9 +68,8 @@ class ChildProgressViewModel extends StateNotifier<ChildProgressState> {
         };
       }).toList();
 
-      // 4. Streak Calculation
-      int streak = 0;
-      if (rawTimeline.isNotEmpty) streak = 1;
+      // 4. Streak
+      int streak = rawTimeline.isNotEmpty ? 1 : 0;
 
       state = state.copyWith(
         isLoading: false,
@@ -72,7 +81,7 @@ class ChildProgressViewModel extends StateNotifier<ChildProgressState> {
         dayStreak: streak,
       );
     }, onError: (e) {
-      print("Progress VM Error: $e");
+      print("Progress Stream Error: $e");
       state = state.copyWith(isLoading: false);
     });
   }

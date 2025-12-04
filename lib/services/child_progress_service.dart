@@ -9,6 +9,7 @@ class ChildProgressService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // --- MAIN AGGREGATION STREAM ---
   Stream<Map<String, dynamic>> getProgressStream() {
     return _auth.authStateChanges().asyncExpand((user) async* {
       String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
@@ -16,46 +17,53 @@ class ChildProgressService {
       if (uid == null) {
         yield {};
       } else {
-        // Define streams
-        final quizStream = _database.ref('child_quiz_progress/$uid').onValue;
-        final stemStream = _database.ref('student_stem_submissions/$uid').onValue;
-        final qrStream = _database.ref('child_qr_progress/$uid').onValue;
-        // 4. Multimedia Stream
-        final mediaStream = _database.ref('child_activity_log/$uid').onValue;
+        print("DEBUG: Progress Service Listening for UID: $uid");
 
-        // Merge All Streams (using .cast to avoid type errors)
+        // 1. CAST STREAMS TO NULLABLE TYPES
+        final Stream<DatabaseEvent?> quizStream = _database.ref('child_quiz_progress/$uid').onValue.cast<DatabaseEvent?>();
+        final Stream<DatabaseEvent?> stemStream = _database.ref('student_stem_submissions/$uid').onValue.cast<DatabaseEvent?>();
+        final Stream<DatabaseEvent?> qrStream = _database.ref('child_qr_progress/$uid').onValue.cast<DatabaseEvent?>();
+        final Stream<DatabaseEvent?> mediaStream = _database.ref('child_activity_log/$uid').onValue.cast<DatabaseEvent?>();
+
+        // 2. MERGE SAFELY
         yield* Rx.combineLatest4(
-            quizStream.cast<DatabaseEvent?>().startWith(null),
-            stemStream.cast<DatabaseEvent?>().startWith(null),
-            qrStream.cast<DatabaseEvent?>().startWith(null),
-            mediaStream.cast<DatabaseEvent?>().startWith(null),
+            quizStream.startWith(null),
+            stemStream.startWith(null),
+            qrStream.startWith(null),
+            mediaStream.startWith(null),
                 (DatabaseEvent? quizEvent, DatabaseEvent? stemEvent, DatabaseEvent? qrEvent, DatabaseEvent? mediaEvent) {
 
+              // Extract values safely
               final quizData = quizEvent?.snapshot.value;
               final stemData = stemEvent?.snapshot.value;
               final qrData = qrEvent?.snapshot.value;
               final mediaData = mediaEvent?.snapshot.value;
 
-              // --- DEBUG PRINT ---
-              if (mediaData != null) {
-                print("✅ FOUND MULTIMEDIA HISTORY: $mediaData");
-              } else {
-                print("⚠️ Multimedia History is NULL/Empty");
-              }
-
-              return _aggregateData(quizData, stemData, qrData, mediaData);
+              return _aggregateData(
+                  quizData,
+                  stemData,
+                  qrData,
+                  mediaData
+              );
             }
         );
       }
     });
   }
 
+  // --- DATA PARSER & AGGREGATOR ---
   Map<String, dynamic> _aggregateData(dynamic quizData, dynamic stemData, dynamic qrData, dynamic mediaData) {
     int totalPoints = 0;
     List<Map<String, dynamic>> timeline = [];
-    Map<String, int> skillCounts = {'Science': 0, 'Math': 0, 'Logic': 0, 'Creativity': 0};
 
-    // ... (Quiz, STEM, QR logic remains same) ...
+    // INITIALIZE ALL SKILLS TO 0 SO THEY ALWAYS APPEAR IN UI
+    Map<String, int> skillCounts = {
+      'Science': 0,
+      'Math': 0,
+      'Logic': 0,
+      'Creativity': 0
+    };
+
     // 1. PROCESS QUIZZES
     if (quizData is Map) {
       _processRecursiveQuiz(quizData, (data) {
@@ -97,20 +105,13 @@ class ChildProgressService {
 
     // 4. PROCESS MULTIMEDIA HISTORY
     if (mediaData != null) {
-      // Helper to process single item
       void processItem(dynamic item) {
         if (item is Map) {
           final map = Map<String, dynamic>.from(item);
           totalPoints += 5; // XP
-
           String typeLabel = map['type'] == 'Video' ? 'Video' : 'Story';
-
-          _addToTimeline(
-              timeline,
-              "Viewed: ${map['title']}",
-              typeLabel,
-              map['timestamp']
-          );
+          _addToTimeline(timeline, "Viewed: ${map['title']}", typeLabel, map['timestamp']);
+          // Multimedia contributes to general knowledge/Creativity usually
           _updateSkills(skillCounts, map['category'] ?? 'Creativity');
         }
       }
@@ -124,6 +125,7 @@ class ChildProgressService {
       }
     }
 
+    // Sort Timeline
     timeline.sort((a, b) => b['date'].compareTo(a['date']));
 
     return {
@@ -153,15 +155,29 @@ class ChildProgressService {
     }
   }
 
+  // --- LOGIC FOR SKILL MAPPING ---
   void _updateSkills(Map<String, int> skills, String category) {
-    if (category.contains('Science') || category.contains('Ecosystem')) {
+    final catLower = category.toLowerCase();
+
+    // 1. SCIENCE
+    if (catLower.contains('science') || catLower.contains('ecosystem') || catLower.contains('plant') || catLower.contains('animal')) {
       skills['Science'] = (skills['Science']! + 1);
-    } else if (category.contains('Math')) {
+    }
+    // 2. MATH
+    else if (catLower.contains('math') || catLower.contains('number')) {
       skills['Math'] = (skills['Math']! + 1);
-    } else if (category.contains('Technology') || category.contains('Engineering')) {
+    }
+    // 3. CREATIVITY (Includes Engineering & Technology)
+    else if (catLower.contains('technology') || catLower.contains('engineering') || catLower.contains('stem') || catLower.contains('art')) {
       skills['Creativity'] = (skills['Creativity']! + 1);
-    } else {
+    }
+    // 4. LOGIC (Includes QR Hunts)
+    else if (catLower.contains('logic') || catLower.contains('puzzle') || catLower.contains('hunt')) {
       skills['Logic'] = (skills['Logic']! + 1);
+    }
+    else {
+      // Fallback
+      skills['Creativity'] = (skills['Creativity']! + 1);
     }
   }
 }

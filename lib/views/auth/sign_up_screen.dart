@@ -317,7 +317,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                           if (_formKey.currentState!.validate()) {
                                             final selectedRole =
                                             await SharedPreferencesHelper.instance.getUserRole();
-                                            await SharedPreferencesHelper.instance.saveUserPhoneNumber(_phoneController.toString());
+                                            await SharedPreferencesHelper.instance.saveUserPhoneNumber(_phoneController.text);
                                             if (selectedRole == null) {
                                               //  Stop process here
                                               ScaffoldMessenger.of(context).showSnackBar(
@@ -341,7 +341,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                                     context.goNamed('bottomNavTeacher');
                                                     break;
                                                   case 'parent':
-                                                    context.go(RouteNames.parentHome);
+                                                    context.goNamed('parentChildSection');
                                                     break;
                                                 }
                                               },

@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'package:rxdart/rxdart.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/child_progress_model.dart';
 import '../models/quiz_topic_model.dart';
-
 import '../services/shared_preferences_helper.dart';
 
 class ChildQuizService {
@@ -16,24 +14,31 @@ class ChildQuizService {
   // --- HELPER: FIND TEACHER ID ---
   Future<String?> _getTeacherId() async {
     try {
-      // 1. Try Local Storage
-      String? teacherId = await SharedPreferencesHelper.instance.getChildTeacherId();
-      if (teacherId != null && teacherId.isNotEmpty) return teacherId;
+      // 1. Get Current User
+      final user = await SharedPreferencesHelper.instance.getUserId();
 
-      // 2. Check Firebase Auth & Firestore
-      final user = _auth.currentUser;
-      if (user != null) {
-        final doc = await _firestore.collection('users').doc(user.uid).get();
-        if (doc.exists && doc.data() != null) {
-          final data = doc.data()!;
-          if (data.containsKey('teacher_id')) {
-            teacherId = data['teacher_id'];
-            await SharedPreferencesHelper.instance.saveChildTeacherId(teacherId!);
-            return teacherId;
-          }
+      if (user == null) {
+        print("DEBUG: No User Logged In (Prefs). Cannot fetch Teacher ID.");
+        return null;
+      }
+
+      // 2. Fetch Document directly from Firestore
+      final doc = await _firestore.collection('users').doc(user).get();
+
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+
+        // 3. Check for 'teacher_id'
+        if (data.containsKey('teacher_id') && data['teacher_id'] != null) {
+          final String teacherId = data['teacher_id'];
+          // Cache it locally for faster future access
+          await SharedPreferencesHelper.instance.saveChildTeacherId(teacherId);
+          return teacherId;
         }
       }
-    } catch (e) { print("Error fetching teacher ID: $e"); }
+    } catch (e) {
+      print("ERROR fetching teacher ID from Firestore: $e");
+    }
     return null;
   }
 

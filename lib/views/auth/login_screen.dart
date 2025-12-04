@@ -299,7 +299,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                                           context.goNamed('bottomNavTeacher');
                                                           break;
                                                         case 'parent':
-                                                          context.goNamed('parentHome');
+                                                          context.goNamed('parentChildSection');
                                                           break;
                                                       }
                                                     },
@@ -449,7 +449,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                                         context.goNamed('teacherNavTeacher');
                                                         break;
                                                       case 'parent':
-                                                        context.goNamed('parentHome');
+                                                        context.goNamed('parentChildSection');
                                                         break;
                                                     }
                                                   },

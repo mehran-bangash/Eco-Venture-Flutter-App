@@ -1,17 +1,22 @@
 import 'dart:ui'; // Required for BackdropFilter
+import 'package:eco_venture/models/user_model.dart';
+import 'package:eco_venture/viewmodels/teacher_home/teacher_home_provider.dart';
+import 'package:eco_venture/viewmodels/teacher_home/teacher_home_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
-class TeacherHomeScreen extends StatefulWidget {
+class TeacherHomeScreen extends ConsumerStatefulWidget {
   const TeacherHomeScreen({super.key});
 
   @override
-  State<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
+  ConsumerState<TeacherHomeScreen> createState() => _TeacherHomeScreenState();
 }
 
-class _TeacherHomeScreenState extends State<TeacherHomeScreen>
+class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
     with TickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -21,14 +26,6 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
   final String teacherName = "Mr. Ali";
   final String className = "Adventure Class 4B";
 
-  // Mock Students
-  final List<Map<String, String>> _students = [
-    {'name': 'Hamza', 'avatar': 'assets/images/boy_1.png'},
-    {'name': 'Zain', 'avatar': 'assets/images/boy_2.png'},
-    {'name': 'Ali', 'avatar': 'assets/images/boy_3.png'},
-    {'name': 'Mavia', 'avatar': 'assets/images/boy_1.png'},
-    {'name': 'Add New', 'avatar': 'add_icon'},
-  ];
 
   @override
   void initState() {
@@ -218,66 +215,156 @@ class _TeacherHomeScreenState extends State<TeacherHomeScreen>
   }
 
   Widget _buildStudentList() {
-    return SizedBox(
-      height: 16.h, // Taller container
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: _students.length,
-        separatorBuilder: (_, __) => SizedBox(width: 4.w),
-        itemBuilder: (context, index) {
-          final student = _students[index];
-          final isAddButton = student['avatar'] == 'add_icon';
+    // Use a Consumer to listen to the ViewModel provider
+    return Consumer(
+      builder: (context, ref, child) {
+        final teacherHomeState = ref.watch(teacherHomeViewModelProvider);
 
-          return Column(
-            children: [
-              InkWell(
-                onTap: () {
-                  if (isAddButton) {
-                    context.pushNamed('addStudentScreen');
-                  } else {
-                    context.pushNamed('studentDetailScreen', extra: student);
-                  }
-                },
-                child: Container(
+        // Handle loading state with a shimmer effect
+        if (teacherHomeState.isLoading) {
+          return _buildStudentListShimmer();
+        }
+
+        // Handle error state
+        if (teacherHomeState.errorMessage != null) {
+          return Center(child: Text(teacherHomeState.errorMessage!));
+        }
+
+        // Handle success state (data is loaded)
+        return SizedBox(
+          height: 16.h, // Taller container
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: teacherHomeState.students.length + 1, // Add 1 for the "Add New" button
+            separatorBuilder: (_, __) => SizedBox(width: 4.w),
+            itemBuilder: (context, index) {
+              // Check if it's the last item, which is the "Add New" button
+              if (index == teacherHomeState.students.length) {
+                return _buildAddStudentButton();
+              }
+
+              // Otherwise, build the student item
+              final student = teacherHomeState.students[index];
+              return _buildStudentItem(student);
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStudentItem(UserModel student) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () {
+            context.pushNamed('studentDetailScreen', extra: student.toMap());
+          },
+          child: Container(
+            width: 20.w,
+            height: 20.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              border: Border.all(color: Colors.white, width: 3),
+              boxShadow: [
+                BoxShadow(color: Colors.blueGrey.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4))
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(2.0), // Inner gap
+              child: CircleAvatar(
+                backgroundColor: Colors.grey.shade100,
+                backgroundImage: student.imgUrl != null && student.imgUrl!.isNotEmpty
+                    ? NetworkImage(student.imgUrl!)
+                    : const AssetImage('assets/images/boy_1.png') as ImageProvider, // Fallback
+                onBackgroundImageError: (_, __) => Icon(Icons.person, size: 20.sp),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: 1.5.h),
+        Text(
+          student.displayName,
+          style: GoogleFonts.poppins(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade800,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddStudentButton() {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () {
+            context.pushNamed('addStudentScreen');
+          },
+          child: Container(
+            width: 20.w,
+            height: 20.w,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF4E54C8),
+              boxShadow: [
+                BoxShadow(color: Colors.blueGrey.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4))
+              ],
+            ),
+            child: Icon(Icons.add, color: Colors.white, size: 24.sp),
+          ),
+        ),
+        SizedBox(height: 1.5.h),
+        Text(
+          'Add New',
+          style: GoogleFonts.poppins(
+            fontSize: 13.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey.shade800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStudentListShimmer() {
+    return SizedBox(
+      height: 16.h,
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey[300]!,
+        highlightColor: Colors.grey[100]!,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: 5,
+          separatorBuilder: (_, __) => SizedBox(width: 4.w),
+          itemBuilder: (context, index) {
+            return Column(
+              children: [
+                Container(
                   width: 20.w,
                   height: 20.w,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: isAddButton ? const Color(0xFF4E54C8) : Colors.white,
-                    border: isAddButton
-                        ? null
-                        : Border.all(color: Colors.white, width: 3),
-                    boxShadow: [
-                      BoxShadow(color: Colors.blueGrey.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 4))
-                    ],
-                  ),
-                  child: isAddButton
-                      ? Icon(Icons.add, color: Colors.white, size: 24.sp)
-                      : Padding(
-                    padding: const EdgeInsets.all(2.0), // Inner gap
-                    child: CircleAvatar(
-                      backgroundColor: Colors.grey.shade100,
-                      backgroundImage: AssetImage(student['avatar']!),
-                      onBackgroundImageError: (_,__) => Icon(Icons.person, size: 20.sp),
-                    ),
+                    color: Colors.white,
                   ),
                 ),
-              ),
-              SizedBox(height: 1.5.h),
-              Text(
-                student['name']!,
-                style: GoogleFonts.poppins(
-                  fontSize: 13.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey.shade800,
+                SizedBox(height: 1.5.h),
+                Container(
+                  height: 12,
+                  width: 60,
+                  color: Colors.white,
                 ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
+
 
   Widget _buildClassReportCard() {
     return InkWell(

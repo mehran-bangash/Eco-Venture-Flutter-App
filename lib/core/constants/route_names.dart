@@ -8,9 +8,15 @@ class RouteNames {
   //child section
   static const bottomNavChild = '/child';
   static const bottomNavTeacher = '/teacher';
+  static const parentChildSection='/parent';
+  static const bottomNavParent='/parent/bottom-nav-parent';
+
+
   // Role-based homes
   static const childHome = '/child/home';
   static const parentHome = '/parent/home';
+  static const teacherHome = '/teacher/home';
+
 
   //  nested inside child
   static const childProfile = '/child/child-profile';
@@ -84,7 +90,7 @@ class RouteNames {
 
   // Teacher Routes
 
-  static const teacherHome = '/teacher/home';
+
   static const addStudentScreen = '/teacher/home/add-student-screen';
   static const studentDetailScreen = '/teacher/home/student-detail-screen';
   static const classReportScreen = '/teacher/home/class-report-screen';
@@ -139,4 +145,31 @@ class RouteNames {
       '/teacher/home/teacher-treasure-hunt/add';
   static const teacherEditTreasureHuntScreen =
       '/teacher/home/teacher-treasure-hunt/edit';
+
+
+
+  // Parent Route
+   static const parentSettings='/parent/bottom-nav-parent/parent-settings';
+   static const parentProfile='/parent/bottom-nav-parent/parent-settings/profile';
+   static const parentEditProfile='/parent/bottom-nav-parent/parent-settings/edit';
+
+  static const parentReportSafetyScreen='/parent/bottom-nav-parent/parent-report-safety';
+  static const parentScreenTimeScreen='/parent/bottom-nav-parent/parent-report-safety/screen-time';
+  static const parentContentFiltersScreen='/parent/bottom-nav-parent/parent-report-safety/content-filters';
+  static const parentReportAlertsScreen='/parent/bottom-nav-parent/parent-report-safety/report-alerts';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }

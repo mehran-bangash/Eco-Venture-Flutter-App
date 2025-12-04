@@ -1,3 +1,4 @@
+import 'package:eco_venture/models/user_model.dart';
 import 'package:eco_venture/navigation/bottom_nav_teacher.dart';
 import 'package:eco_venture/views/teacher_section/add_student_screen.dart';
 import 'package:eco_venture/views/teacher_section/class_report_screen.dart';
@@ -21,14 +22,10 @@ import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_
 import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_treasure_hunt_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/view_student_detail_screen.dart';
 import 'package:go_router/go_router.dart';
-import '../../models/quiz_topic_model.dart';
-import '../../views/child_section/child_progress_dashboard.dart';
+
 import '../../views/child_section/report_issue_screen.dart';
 import '../../views/child_section/report_safety_screen.dart';
 import '../../views/child_section/rewards_screen.dart';
-import '../../views/child_section/settings/child_settings.dart';
-import '../../views/child_section/settings/profile/child_profile_screen.dart';
-import '../../views/child_section/settings/profile/edit_profile_screen.dart';
 import '../../views/teacher_section/quiz_module/teacher_edit_quiz_screen.dart';
 import '../../views/teacher_section/stem_challenges_module/teacher_add_stem_challenge_Screen.dart';
 import '../constants/route_names.dart';
@@ -102,9 +99,10 @@ class TeacherRouter {
             path: RouteNames.studentDetailScreen,
             name: 'studentDetailScreen',
             builder: (context, state) {
-              final Map<String, dynamic> viewStudentData =
-                  (state.extra as Map<String, dynamic>?) ?? {};
-              return StudentDetailScreen(studentData: viewStudentData);
+              // CORRECTED: Create UserModel from the map passed in `state.extra`
+              final studentMap = state.extra as Map<String, dynamic>;
+              final student = UserModel.fromMap(studentMap);
+              return StudentDetailScreen(student: student);
             },
           ),
           GoRoute(
