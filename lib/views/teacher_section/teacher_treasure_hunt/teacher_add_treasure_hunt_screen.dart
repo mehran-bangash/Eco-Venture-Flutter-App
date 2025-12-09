@@ -1,14 +1,11 @@
-import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:printing/printing.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
-import 'package:uuid/uuid.dart'; // Add uuid package or use DateTime for unique ID
 import '../../../../models/qr_hunt_model.dart';
 import '../../../viewmodels/teacher_qr_treasure/teacher_treasure_hunt_provider.dart';
 
@@ -32,6 +29,10 @@ class _TeacherAddTreasureHuntScreenState extends ConsumerState<TeacherAddTreasur
   // Generate a unique ID for this hunt session immediately
   // This ensures QRs match what we save to Firebase later
   final String _tempHuntId = DateTime.now().millisecondsSinceEpoch.toString();
+  // --- TAGS & SENSITIVITY ---
+  final TextEditingController _tagsController = TextEditingController();
+  bool _isSensitive = false;
+
 
   // --- COLORS ---
   final Color _primary = const Color(0xFF00C853);
@@ -51,16 +52,30 @@ class _TeacherAddTreasureHuntScreenState extends ConsumerState<TeacherAddTreasur
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Add at least one clue"), backgroundColor: Colors.red));
       return;
     }
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+// --- SENSITIVITY CONTROL ---
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
+    }
 
     final newHunt = QrHuntModel(
-      // Use the ID we generated for the QRs
       id: _tempHuntId,
       title: _titleController.text.trim(),
       points: int.tryParse(_pointsController.text.trim()) ?? 100,
       difficulty: _difficulty,
       clues: clues,
       createdAt: DateTime.now(),
-      adminId: '', // Service fills this
+      adminId: '',
+      tags: tagsList,
+      isSensitive: _isSensitive,
     );
 
     // Pass 'null' for image file because we aren't uploading a single QR image anymore.
@@ -173,6 +188,27 @@ class _TeacherAddTreasureHuntScreenState extends ConsumerState<TeacherAddTreasur
             SizedBox(height: 2.h),
             _buildLabel("Difficulty"),
             _buildDropdown(),
+            SizedBox(height: 2.h),
+            _buildLabel("Tags (comma-separated)"),
+            _buildTextField(_tagsController, "e.g. outdoor, mystery, night"),
+
+            SizedBox(height: 2.h),
+
+            SwitchListTile(
+              title: Text("Mark as Sensitive Content",
+                  style: GoogleFonts.poppins(
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red.shade400,
+                  )),
+              subtitle: Text(
+                "If enabled, this hunt will be blocked for younger children.",
+                style: GoogleFonts.poppins(fontSize: 12.sp),
+              ),
+              value: _isSensitive,
+              onChanged: (v) => setState(() => _isSensitive = v),
+              activeThumbColor: Colors.red,
+            ),
 
             SizedBox(height: 4.h),
             _buildSectionHeader("Clues Chain"),

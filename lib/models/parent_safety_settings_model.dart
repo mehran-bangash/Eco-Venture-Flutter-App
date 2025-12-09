@@ -4,6 +4,9 @@ class ParentSafetySettingsModel {
   final String bedtimeEnd;   // "07:00"
   final bool enableBreakReminders;
 
+  // NEW: App Pause State
+  final bool isAppPaused;
+
   // Content Filters
   final bool blockScaryContent;
   final bool blockSocialInteraction;
@@ -14,6 +17,7 @@ class ParentSafetySettingsModel {
     this.bedtimeStart = "21:00",
     this.bedtimeEnd = "07:00",
     this.enableBreakReminders = true,
+    this.isAppPaused = false, // Default false
     this.blockScaryContent = true,
     this.blockSocialInteraction = true,
     this.educationalOnlyMode = false,
@@ -25,6 +29,7 @@ class ParentSafetySettingsModel {
       'bedtime_start': bedtimeStart,
       'bedtime_end': bedtimeEnd,
       'enable_break_reminders': enableBreakReminders,
+      'is_app_paused': isAppPaused, // Added
       'block_scary_content': blockScaryContent,
       'block_social_interaction': blockSocialInteraction,
       'educational_only_mode': educationalOnlyMode,
@@ -37,6 +42,7 @@ class ParentSafetySettingsModel {
       bedtimeStart: map['bedtime_start'] ?? "21:00",
       bedtimeEnd: map['bedtime_end'] ?? "07:00",
       enableBreakReminders: map['enable_break_reminders'] ?? true,
+      isAppPaused: map['is_app_paused'] ?? false, // Added
       blockScaryContent: map['block_scary_content'] ?? true,
       blockSocialInteraction: map['block_social_interaction'] ?? true,
       educationalOnlyMode: map['educational_only_mode'] ?? false,
@@ -48,6 +54,7 @@ class ParentSafetySettingsModel {
     String? bedtimeStart,
     String? bedtimeEnd,
     bool? enableBreakReminders,
+    bool? isAppPaused, // Added
     bool? blockScaryContent,
     bool? blockSocialInteraction,
     bool? educationalOnlyMode,
@@ -57,6 +64,7 @@ class ParentSafetySettingsModel {
       bedtimeStart: bedtimeStart ?? this.bedtimeStart,
       bedtimeEnd: bedtimeEnd ?? this.bedtimeEnd,
       enableBreakReminders: enableBreakReminders ?? this.enableBreakReminders,
+      isAppPaused: isAppPaused ?? this.isAppPaused, // Added
       blockScaryContent: blockScaryContent ?? this.blockScaryContent,
       blockSocialInteraction: blockSocialInteraction ?? this.blockSocialInteraction,
       educationalOnlyMode: educationalOnlyMode ?? this.educationalOnlyMode,

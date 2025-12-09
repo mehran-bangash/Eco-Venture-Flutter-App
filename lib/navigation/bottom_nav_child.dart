@@ -1,11 +1,10 @@
 import 'dart:ui';
+import 'package:eco_venture/views/child_section/report_safety/child_safety_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-
 import '../views/child_section/ai_chat_screen.dart';
 import '../views/child_section/child_home_screen.dart';
-import '../views/child_section/report_safety_screen.dart';
 import '../views/child_section/settings/child_settings.dart';
 
 class BottomNavChild extends StatefulWidget {
@@ -22,7 +21,7 @@ class _BottomNavChildState extends State<BottomNavChild>
   final _screens = [
     const ChildHomeScreen(),
     const AiChatScreen(),
-    const ReportSafetyScreen(),
+    const ChildSafetyDashboard(),
     const ChildSettings(),
   ];
 

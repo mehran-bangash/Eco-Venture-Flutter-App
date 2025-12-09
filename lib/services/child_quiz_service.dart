@@ -6,6 +6,10 @@ import '../models/child_progress_model.dart';
 import '../models/quiz_topic_model.dart';
 import '../services/shared_preferences_helper.dart';
 
+import 'package:rxdart/rxdart.dart';
+import '../models/parent_safety_settings_model.dart'; // Import Settings Model
+
+
 class ChildQuizService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -14,42 +18,55 @@ class ChildQuizService {
   // --- HELPER: FIND TEACHER ID ---
   Future<String?> _getTeacherId() async {
     try {
-      // 1. Get Current User
-      final user = await SharedPreferencesHelper.instance.getUserId();
-
-      if (user == null) {
-        print("DEBUG: No User Logged In (Prefs). Cannot fetch Teacher ID.");
-        return null;
-      }
-
-      // 2. Fetch Document directly from Firestore
-      final doc = await _firestore.collection('users').doc(user).get();
-
-      if (doc.exists && doc.data() != null) {
-        final data = doc.data()!;
-
-        // 3. Check for 'teacher_id'
-        if (data.containsKey('teacher_id') && data['teacher_id'] != null) {
-          final String teacherId = data['teacher_id'];
-          // Cache it locally for faster future access
-          await SharedPreferencesHelper.instance.saveChildTeacherId(teacherId);
-          return teacherId;
+      String? teacherId = await SharedPreferencesHelper.instance.getChildTeacherId();
+      if (teacherId != null && teacherId.isNotEmpty) return teacherId;
+      final user = _auth.currentUser;
+      if (user != null) {
+        final doc = await _firestore.collection('users').doc(user.uid).get();
+        if (doc.exists && doc.data() != null && doc.data()!['teacher_id'] != null) {
+          String tid = doc.data()!['teacher_id'];
+          await SharedPreferencesHelper.instance.saveChildTeacherId(tid);
+          return tid;
         }
       }
-    } catch (e) {
-      print("ERROR fetching teacher ID from Firestore: $e");
-    }
+    } catch (e) { print("Error: $e"); }
     return null;
   }
 
+  // --- HELPER: GET SAFETY SETTINGS STREAM ---
+  Stream<ParentSafetySettingsModel> _getSafetySettings() {
+    return _auth.authStateChanges().asyncExpand((user) async* {
+      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      if (uid == null) {
+        yield ParentSafetySettingsModel(); // Default: No restrictions
+      } else {
+        yield* _database.ref('parent_settings/$uid').onValue.map((event) {
+          final data = event.snapshot.value;
+          if (data != null && data is Map) {
+            return ParentSafetySettingsModel.fromMap(Map<String, dynamic>.from(data));
+          }
+          return ParentSafetySettingsModel();
+        });
+      }
+    });
+  }
+
   // ==================================================
-  //  1. ADMIN CONTENT (Public)
+  //  FETCH TOPICS (Filtered)
   // ==================================================
 
+  // 1. ADMIN CONTENT
   Stream<List<QuizTopicModel>> getAdminTopicsStream(String category) {
-    return _database.ref('Public/Quizzes/$category').onValue.map((event) {
+    final dataStream = _database.ref('Public/Quizzes/$category').onValue.map((event) {
       return _parseTopics(event.snapshot.value, category);
     }).handleError((e) => <QuizTopicModel>[]);
+
+    // Combine Data with Safety Rules
+    return Rx.combineLatest2(dataStream, _getSafetySettings(),
+            (List<QuizTopicModel> topics, ParentSafetySettingsModel settings) {
+          return _applyFilters(topics, settings, category);
+        }
+    );
   }
 
   Stream<List<String>> getAdminCategoriesStream() {
@@ -58,19 +75,27 @@ class ChildQuizService {
     });
   }
 
-  // ==================================================
-  //  2. TEACHER CONTENT (Classroom)
-  // ==================================================
-
+  // 2. TEACHER CONTENT
   Stream<List<QuizTopicModel>> getTeacherTopicsStream(String category) {
+    final settingsStream = _getSafetySettings();
+
     return Stream.fromFuture(_getTeacherId()).asyncExpand((teacherId) {
+      Stream<List<QuizTopicModel>> teacherDataStream;
+
       if (teacherId != null && teacherId.isNotEmpty) {
-        return _database.ref('Teacher_Content/$teacherId/Quizzes/$category').onValue.map((event) {
+        teacherDataStream = _database.ref('Teacher_Content/$teacherId/Quizzes/$category').onValue.map((event) {
           return _parseTopics(event.snapshot.value, category);
         }).handleError((e) => <QuizTopicModel>[]);
       } else {
-        return Stream.value([]);
+        teacherDataStream = Stream.value([]);
       }
+
+      // Combine Data with Safety Rules
+      return Rx.combineLatest2(teacherDataStream, settingsStream,
+              (List<QuizTopicModel> topics, ParentSafetySettingsModel settings) {
+            return _applyFilters(topics, settings, category);
+          }
+      );
     });
   }
 
@@ -86,10 +111,27 @@ class ChildQuizService {
     });
   }
 
-  // ==================================================
-  //  HELPERS
-  // ==================================================
+  // --- FILTER LOGIC ---
+  List<QuizTopicModel> _applyFilters(List<QuizTopicModel> topics, ParentSafetySettingsModel settings, String category) {
+    return topics.where((topic) {
+      // 1. Block Scary Content
+      if (settings.blockScaryContent) {
+        if (topic.isSensitive) return false;
+        if (topic.tags.contains('scary') || topic.tags.contains('horror')) return false;
+      }
 
+      // 2. Educational Only Mode
+      if (settings.educationalOnlyMode) {
+        const allowedCategories = ['Science', 'Math', 'Mathematics', 'Ecosystem', 'History', 'Geography', 'Animals', 'Plants'];
+        // Strict Check: Only allow academic categories
+        if (!allowedCategories.contains(category)) return false;
+      }
+
+      return true;
+    }).toList();
+  }
+
+  // --- PARSING HELPERS ---
   List<QuizTopicModel> _parseTopics(dynamic data, String category) {
     if (data == null) return [];
     try {
@@ -110,9 +152,7 @@ class ChildQuizService {
         }
       }
       return topics;
-    } catch (e) {
-      return [];
-    }
+    } catch (e) { return []; }
   }
 
   List<String> _extractKeys(dynamic data) {
@@ -124,50 +164,31 @@ class ChildQuizService {
     return [];
   }
 
-  // ==================================================
-  //  PROGRESS LOGIC (FIXED)
-  // ==================================================
-
-  // 2. FETCH USER PROGRESS
+  // --- PROGRESS LOGIC (Unchanged) ---
   Stream<Map<String, ChildQuizProgressModel>> getChildProgressStream() {
     return _auth.authStateChanges().asyncExpand((user) async* {
       String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
-
-      if (uid == null) {
-        yield {};
-      } else {
-        // Listen to the entire progress node
+      if (uid == null) { yield {}; } else {
         yield* _database.ref('child_quiz_progress/$uid').onValue.map((event) {
           final data = event.snapshot.value;
           final Map<String, ChildQuizProgressModel> progressMap = {};
-
-          if (data != null) {
-            // print("DEBUG: Parsing Progress Data...");
-            _parseRecursiveProgress(data, progressMap);
-          }
-
+          if (data != null) _parseRecursiveProgress(data, progressMap);
           return progressMap;
         });
       }
     });
   }
 
-  // Robust Recursive Parser that handles Lists and Maps
   void _parseRecursiveProgress(dynamic data, Map<String, ChildQuizProgressModel> progressMap) {
     if (data is Map) {
-      // Check if this IS a progress object (Leaf Node)
       if (data.containsKey('level_order') && data.containsKey('topic_id')) {
         _addModelToMap(data, progressMap);
       } else {
-        // Not a leaf, recurse into children
         data.forEach((k, v) => _parseRecursiveProgress(v, progressMap));
       }
     } else if (data is List) {
-      // Handle Arrays (Firebase converts keys "0", "1" to List)
       for (var item in data) {
-        if (item != null) {
-          _parseRecursiveProgress(item, progressMap);
-        }
+        if (item != null) _parseRecursiveProgress(item, progressMap);
       }
     }
   }
@@ -177,39 +198,27 @@ class ChildQuizService {
       if (data is! Map) return;
       final safeData = Map<String, dynamic>.from(data);
       final model = ChildQuizProgressModel.fromMap(safeData);
-
-      // Key Format: "TopicID_LevelOrder"
-      // Example: "-OfII6llw2egstbu9d5__1"
       final key = "${model.topicId}_${model.levelOrder}";
       progressMap[key] = model;
-
-      // print("DEBUG: Found Progress: $key (Passed: ${model.isPassed})");
-    } catch (e) {
-      // print("Skipping invalid entry: $e");
-    }
+    } catch (e) { }
   }
 
-  // 3. SAVE PROGRESS
   Future<void> saveLevelResult(ChildQuizProgressModel progress) async {
     String? childId = await SharedPreferencesHelper.instance.getUserId();
     childId ??= _auth.currentUser?.uid;
     if (childId == null) throw Exception("Child not logged in");
 
     final path = 'child_quiz_progress/$childId/${progress.category}/${progress.topicId}/${progress.levelOrder}';
-
     final snapshot = await _database.ref(path).get();
     final bool passedNow = progress.attemptPercentage >= 60;
 
     if (snapshot.exists && snapshot.value is Map) {
       final existingData = Map<String, dynamic>.from(snapshot.value as Map);
       final existingProgress = ChildQuizProgressModel.fromMap(existingData);
-
       final bool finalPassedStatus = existingProgress.isPassed || passedNow;
-
       final updatedMap = progress.toMap();
       updatedMap['is_passed'] = finalPassedStatus;
       updatedMap['attempts'] = existingProgress.attempts + 1;
-
       await _database.ref(path).update(updatedMap);
     } else {
       final map = progress.toMap();

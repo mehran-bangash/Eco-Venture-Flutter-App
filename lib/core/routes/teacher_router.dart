@@ -1,5 +1,7 @@
 import 'package:eco_venture/models/user_model.dart';
 import 'package:eco_venture/navigation/bottom_nav_teacher.dart';
+import 'package:eco_venture/views/child_section/report_safety/child_report_issue_screen.dart';
+import 'package:eco_venture/views/child_section/report_safety/child_safety_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/add_student_screen.dart';
 import 'package:eco_venture/views/teacher_section/class_report_screen.dart';
 import 'package:eco_venture/views/teacher_section/multi_media_content_Module/teacher_add_story_screen.dart';
@@ -22,9 +24,6 @@ import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_
 import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_treasure_hunt_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/view_student_detail_screen.dart';
 import 'package:go_router/go_router.dart';
-
-import '../../views/child_section/report_issue_screen.dart';
-import '../../views/child_section/report_safety_screen.dart';
 import '../../views/child_section/rewards_screen.dart';
 import '../../views/teacher_section/quiz_module/teacher_edit_quiz_screen.dart';
 import '../../views/teacher_section/stem_challenges_module/teacher_add_stem_challenge_Screen.dart';
@@ -73,12 +72,12 @@ class TeacherRouter {
       GoRoute(
         path: 'report-safety-screen',
         name: "teacherReportSafetyScreen",
-        builder: (context, state) => const ReportSafetyScreen(),
+        builder: (context, state) => const ChildSafetyDashboard(),
         routes: [
           GoRoute(
             path: 'report-issue-screen',
             name: "teacherReportIssueScreen",
-            builder: (context, state) => const ReportIssueScreen(),
+            builder: (context, state) => const ChildReportIssueScreen(),
           ),
         ],
       ),

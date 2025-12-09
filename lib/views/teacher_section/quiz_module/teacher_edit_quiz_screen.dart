@@ -6,7 +6,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../models/quiz_topic_model.dart';
 import '../../../viewmodels/teacher_quiz/teacher_quiz_provider.dart';
-
 class TeacherEditQuizScreen extends ConsumerStatefulWidget {
   // Accepts dynamic to safely handle routing arguments
   final dynamic quizData;
@@ -29,11 +28,17 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
   // --- CONTROLLERS ---
   late TextEditingController _topicNameController;
 
+  // --- ADDED: Tags Controller ---
+  late TextEditingController _tagsController;
+
   // --- STATE ---
   late QuizTopicModel _topic;
   late String _selectedCategory;
   final List<String> _categories = ['Science', 'Maths', 'Animals', 'Ecosystem'];
   late List<QuizLevelModel> _levels;
+
+  // --- ADDED: Sensitivity Flag ---
+  late bool _isSensitive;
 
   @override
   void initState() {
@@ -50,15 +55,23 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
 
     // 2. Initialize State
     _topicNameController = TextEditingController(text: _topic.topicName);
+
+    // --- ADDED: Initialize tags controller ---
+    _tagsController = TextEditingController(text: _topic.tags?.join(', ') ?? '');
+
     _selectedCategory = _categories.contains(_topic.category) ? _topic.category : _categories.first;
 
     // Deep copy levels so we don't mutate original until save
     _levels = List<QuizLevelModel>.from(_topic.levels);
+
+    // --- ADDED: Initialize sensitivity ---
+    _isSensitive = _topic.isSensitive ?? false;
   }
 
   @override
   void dispose() {
     _topicNameController.dispose();
+    _tagsController.dispose(); // ADDED: Dispose tags controller
     super.dispose();
   }
 
@@ -73,11 +86,29 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
       return;
     }
 
+    // --- ADDED: Process tags like in Add Screen ---
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    // --- ADDED: Sensitivity control logic ---
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
+    }
+
     // Create Updated Model (Preserve ID and Creator)
     final updatedTopic = _topic.copyWith(
       category: _selectedCategory,
       topicName: _topicNameController.text.trim(),
       levels: _levels,
+      // --- ADDED: Include tags and sensitivity ---
+      tags: tagsList,
+      isSensitive: _isSensitive,
     );
 
     await ref.read(teacherQuizViewModelProvider.notifier).updateQuiz(updatedTopic);
@@ -174,6 +205,31 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
                       _buildProLabel("Topic Name"),
                       SizedBox(height: 1.h),
                       _buildProTextField(controller: _topicNameController, hint: "e.g. Solar System", icon: Icons.title_rounded),
+
+                      // --- ADDED: Tags Field ---
+                      SizedBox(height: 3.h),
+                      _buildProLabel("Tags (comma-separated)"),
+                      SizedBox(height: 1.h),
+                      _buildProTextField(controller: _tagsController, hint: "e.g. history, war, politics, geography", icon: Icons.tag),
+
+                      // --- ADDED: Sensitivity Switch ---
+                      SizedBox(height: 3.h),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text("Mark as Sensitive Content",
+                            style: GoogleFonts.poppins(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red.shade400,
+                            )),
+                        subtitle: Text(
+                          "If enabled, this quiz will be blocked for younger children.",
+                          style: GoogleFonts.poppins(fontSize: 12.sp),
+                        ),
+                        value: _isSensitive,
+                        onChanged: (v) => setState(() => _isSensitive = v),
+                        activeThumbColor: Colors.red,
+                      ),
                     ],
                   ),
                 ),

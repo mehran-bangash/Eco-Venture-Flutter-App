@@ -8,6 +8,8 @@ class StemChallengeModel {
   final String? imageUrl;
   final List<String> materials;
   final List<String> steps;
+  final bool isSensitive;
+  final List<String> tags;
 
   StemChallengeModel({
     this.id,
@@ -18,6 +20,8 @@ class StemChallengeModel {
     required this.points,
     this.imageUrl,
     required this.materials,
+    this.isSensitive = false,
+    this.tags = const [], // Default empty
     required this.steps,
   });
 
@@ -33,6 +37,8 @@ class StemChallengeModel {
       'imageUrl': imageUrl,
       'materials': materials,
       'steps': steps,
+      'tags': tags, // Save tags
+      'isSensitive': isSensitive,
     };
   }
 
@@ -48,6 +54,8 @@ class StemChallengeModel {
       imageUrl: map['imageUrl'],
       materials: List<String>.from(map['materials'] ?? []),
       steps: List<String>.from(map['steps'] ?? []),
+      isSensitive: map['isSensitive'] ?? false,
+      tags: List<String>.from(map['tags'] ?? []),
     );
   }
 
@@ -61,6 +69,8 @@ class StemChallengeModel {
     int? points,
     String? imageUrl,
     List<String>? materials,
+    List<String>? tags,
+    bool? isSensitive,
     List<String>? steps,
   }) {
     return StemChallengeModel(
@@ -73,6 +83,8 @@ class StemChallengeModel {
       imageUrl: imageUrl ?? this.imageUrl,
       materials: materials ?? this.materials,
       steps: steps ?? this.steps,
+      tags: tags ?? this.tags,
+      isSensitive: isSensitive ?? this.isSensitive,
     );
   }
 }

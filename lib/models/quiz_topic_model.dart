@@ -5,6 +5,8 @@ class QuizTopicModel {
   final String createdBy; // 'teacher'
   final String creatorId; // Teacher UID
   final List<QuizLevelModel> levels;
+  final bool isSensitive;
+  final List<String> tags;
 
   QuizTopicModel({
     this.id,
@@ -12,6 +14,8 @@ class QuizTopicModel {
     required this.topicName,
     this.createdBy = 'teacher',
     this.creatorId = '',
+    this.isSensitive = false,
+    this.tags = const [], // Default empty
     required this.levels,
   });
 
@@ -27,6 +31,8 @@ class QuizTopicModel {
       'creator_id': creatorId,
       'category': category,
       'levels': levelsMap,
+      'tags': tags, // Save tags
+      'isSensitive': isSensitive,
     };
   }
 
@@ -60,6 +66,9 @@ class QuizTopicModel {
       createdBy: map['created_by'] ?? 'teacher',
       creatorId: map['creator_id'] ?? '',
       levels: parsedLevels,
+      // ADDED: Load tags and sensitivity from map
+      tags: List<String>.from(map['tags'] ?? []),
+      isSensitive: map['isSensitive'] ?? false,
     );
   }
 
@@ -70,6 +79,9 @@ class QuizTopicModel {
     String? createdBy,
     String? creatorId,
     List<QuizLevelModel>? levels,
+    // ADDED: Include tags and sensitivity in copyWith
+    bool? isSensitive,
+    List<String>? tags,
   }) {
     return QuizTopicModel(
       id: id ?? this.id,
@@ -78,6 +90,9 @@ class QuizTopicModel {
       createdBy: createdBy ?? this.createdBy,
       creatorId: creatorId ?? this.creatorId,
       levels: levels ?? this.levels,
+      // ADDED: Include tags and sensitivity
+      tags: tags ?? this.tags,
+      isSensitive: isSensitive ?? this.isSensitive,
     );
   }
 }

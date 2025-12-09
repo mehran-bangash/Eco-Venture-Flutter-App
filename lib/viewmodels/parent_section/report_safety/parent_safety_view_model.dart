@@ -112,6 +112,22 @@ class ParentSafetyViewModel extends StateNotifier<ParentSafetyState> {
       fetchLinkedChildren(); // Reload real data
     }
   }
+  Future<void> toggleAppPause(bool isPaused) async {
+    if (state.selectedChildId == null) return;
+
+    final newSettings = state.settings.copyWith(
+      isAppPaused: isPaused,
+    );
+
+    // Optimistic Update
+    state = state.copyWith(settings: newSettings);
+
+    try {
+      await _repository.saveSettings(state.selectedChildId!, newSettings);
+    } catch (e) {
+      state = state.copyWith(errorMessage: "Failed to pause app");
+    }
+  }
 
   @override
   void dispose() {

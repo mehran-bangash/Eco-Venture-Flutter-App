@@ -33,6 +33,9 @@ class _TeacherAddStemChallengeScreenState
   );
   final TextEditingController _materialController = TextEditingController();
 
+  // --- ADDED: Tags Controller ---
+  final TextEditingController _tagsController = TextEditingController();
+
   String _selectedCategory = 'Science';
   final List<String> _categories = [
     'Science',
@@ -49,6 +52,9 @@ class _TeacherAddStemChallengeScreenState
     "Mix baking soda and vinegar",
     "Observe the chemical reaction",
   ];
+
+  // --- ADDED: Sensitivity Flag ---
+  bool _isSensitive = false;
 
   // State for navigation
   bool _shouldPopAfterSave = false;
@@ -134,14 +140,14 @@ class _TeacherAddStemChallengeScreenState
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: [
                                       _buildLabel("Category"),
                                       _buildDropdown(
                                         _categories,
                                         _selectedCategory,
-                                        (v) => setState(
-                                          () => _selectedCategory = v!,
+                                            (v) => setState(
+                                              () => _selectedCategory = v!,
                                         ),
                                       ),
                                     ],
@@ -151,14 +157,14 @@ class _TeacherAddStemChallengeScreenState
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                    CrossAxisAlignment.start,
                                     children: [
                                       _buildLabel("Difficulty"),
                                       _buildDropdown(
                                         _difficultyLevels,
                                         _selectedDifficulty,
-                                        (v) => setState(
-                                          () => _selectedDifficulty = v!,
+                                            (v) => setState(
+                                              () => _selectedDifficulty = v!,
                                         ),
                                       ),
                                     ],
@@ -172,6 +178,33 @@ class _TeacherAddStemChallengeScreenState
                               controller: _pointsController,
                               hint: "50",
                               isNumber: true,
+                            ),
+
+                            // --- ADDED: Tags Field (after points) ---
+                            SizedBox(height: 2.5.h),
+                            _buildLabel("Tags (comma-separated)"),
+                            _buildTextField(
+                              controller: _tagsController,
+                              hint: "e.g. chemicals, outdoor, tools, engineering",
+                            ),
+
+                            // --- ADDED: Sensitivity Switch ---
+                            SizedBox(height: 2.5.h),
+                            SwitchListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text("Mark as Sensitive Content",
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 15.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.red.shade400,
+                                  )),
+                              subtitle: Text(
+                                "If enabled, this challenge will be blocked for younger children.",
+                                style: GoogleFonts.poppins(fontSize: 12.sp),
+                              ),
+                              value: _isSensitive,
+                              onChanged: (v) => setState(() => _isSensitive = v),
+                              activeThumbColor: Colors.red,
                             ),
                           ],
                         ),
@@ -227,9 +260,9 @@ class _TeacherAddStemChallengeScreenState
                                 _buildSectionHeader("Materials"),
                                 _buildAddButton(
                                   "Add Item",
-                                  () => _showAddItemDialog(
+                                      () => _showAddItemDialog(
                                     "Material",
-                                    (val) =>
+                                        (val) =>
                                         setState(() => _materials.add(val)),
                                   ),
                                 ),
@@ -242,11 +275,11 @@ class _TeacherAddStemChallengeScreenState
                               children: _materials
                                   .map(
                                     (m) => _buildChip(
-                                      m,
+                                  m,
                                       () =>
-                                          setState(() => _materials.remove(m)),
-                                    ),
-                                  )
+                                      setState(() => _materials.remove(m)),
+                                ),
+                              )
                                   .toList(),
                             ),
                           ],
@@ -277,16 +310,16 @@ class _TeacherAddStemChallengeScreenState
                                 _buildSectionHeader("Instructions"),
                                 _buildAddButton(
                                   "Add Step",
-                                  () => _showAddItemDialog(
+                                      () => _showAddItemDialog(
                                     "Step Description",
-                                    (val) => setState(() => _steps.add(val)),
+                                        (val) => setState(() => _steps.add(val)),
                                   ),
                                 ),
                               ],
                             ),
                             SizedBox(height: 2.h),
                             ..._steps.asMap().entries.map(
-                              (e) => _buildStepItem(e.key + 1, e.value),
+                                  (e) => _buildStepItem(e.key + 1, e.value),
                             ),
                           ],
                         ),
@@ -328,6 +361,21 @@ class _TeacherAddStemChallengeScreenState
       return;
     }
 
+    // --- ADDED: Process tags like in QR Hunt ---
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    // --- ADDED: Sensitivity control logic ---
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
+    }
+
     // Create Model (ID will be filled by Service)
     final newChallenge = StemChallengeModel(
       title: _titleController.text.trim(),
@@ -337,6 +385,9 @@ class _TeacherAddStemChallengeScreenState
       imageUrl: _challengeImage?.path, // Local path
       materials: _materials,
       steps: _steps,
+      // --- ADDED: Include tags and sensitivity ---
+      tags: tagsList,
+      isSensitive: _isSensitive,
     );
 
     await ref
@@ -349,11 +400,13 @@ class _TeacherAddStemChallengeScreenState
       _titleController.clear();
       _pointsController.text = "50";
       _materialController.clear();
+      _tagsController.clear(); // ADDED: Clear tags
       _selectedCategory = _categories.first;
       _selectedDifficulty = _difficultyLevels.first;
       _challengeImage = null;
       _materials = [];
       _steps = [];
+      _isSensitive = false; // ADDED: Reset sensitivity
     });
   }
 
@@ -463,10 +516,10 @@ class _TeacherAddStemChallengeScreenState
   }
 
   Widget _buildDropdown(
-    List<String> items,
-    String selected,
-    Function(String?) onChanged,
-  ) {
+      List<String> items,
+      String selected,
+      Function(String?) onChanged,
+      ) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
       decoration: BoxDecoration(
@@ -485,17 +538,17 @@ class _TeacherAddStemChallengeScreenState
           items: items
               .map(
                 (e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(
-                    e,
-                    style: GoogleFonts.poppins(
-                      fontSize: 15.sp,
-                      color: _textDark,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+              value: e,
+              child: Text(
+                e,
+                style: GoogleFonts.poppins(
+                  fontSize: 15.sp,
+                  color: _textDark,
+                  fontWeight: FontWeight.w500,
                 ),
-              )
+              ),
+            ),
+          )
               .toList(),
           onChanged: onChanged,
         ),
@@ -526,39 +579,39 @@ class _TeacherAddStemChallengeScreenState
           alignment: Alignment.center,
           decoration: _challengeImage == null
               ? BoxDecoration(
-                  color: _primaryBlue.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(16),
-                )
+            color: _primaryBlue.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+          )
               : null,
           child: _challengeImage != null
               ? ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.file(
-                    _challengeImage!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                  ),
-                )
+            borderRadius: BorderRadius.circular(16),
+            child: Image.file(
+              _challengeImage!,
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+            ),
+          )
               : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.cloud_upload_rounded,
-                      size: 32.sp,
-                      color: _primaryBlue,
-                    ),
-                    SizedBox(height: 1.h),
-                    Text(
-                      "Tap to upload image",
-                      style: GoogleFonts.poppins(
-                        fontSize: 15.sp,
-                        fontWeight: FontWeight.w600,
-                        color: _primaryBlue,
-                      ),
-                    ),
-                  ],
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.cloud_upload_rounded,
+                size: 32.sp,
+                color: _primaryBlue,
+              ),
+              SizedBox(height: 1.h),
+              Text(
+                "Tap to upload image",
+                style: GoogleFonts.poppins(
+                  fontSize: 15.sp,
+                  fontWeight: FontWeight.w600,
+                  color: _primaryBlue,
                 ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -704,9 +757,9 @@ class _TeacherAddStemChallengeScreenState
             onPressed: isLoading
                 ? null
                 : () {
-                    setState(() => _shouldPopAfterSave = true);
-                    _saveChallenge();
-                  },
+              setState(() => _shouldPopAfterSave = true);
+              _saveChallenge();
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: _primaryBlue,
               shape: RoundedRectangleBorder(
@@ -732,9 +785,9 @@ class _TeacherAddStemChallengeScreenState
             onPressed: isLoading
                 ? null
                 : () {
-                    setState(() => _shouldPopAfterSave = false);
-                    _saveChallenge();
-                  },
+              setState(() => _shouldPopAfterSave = false);
+              _saveChallenge();
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: _lightBlue,
               shape: RoundedRectangleBorder(

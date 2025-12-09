@@ -18,10 +18,13 @@ class TeacherEditVideoScreen extends ConsumerStatefulWidget {
 
 class _TeacherEditVideoScreenState
     extends ConsumerState<TeacherEditVideoScreen> {
+  final Color _textDark = const Color(0xFF1B2559);
+  final Color _border = const Color(0xFFE0E0E0);
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController =
       TextEditingController(); // Added
   final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _tagsController = TextEditingController(); // NEW
 
   String _selectedCategory = 'Science';
   final List<String> _categories = ['Science', 'Maths', 'History', 'Ecosystem'];
@@ -30,6 +33,7 @@ class _TeacherEditVideoScreenState
   File? _newThumbnail;
   String? _existingThumbnailUrl;
   String? _existingVideoUrl;
+  bool _isSensitive = false;
 
   @override
   void initState() {
@@ -39,29 +43,49 @@ class _TeacherEditVideoScreenState
     _durationController.text = widget.videoData.duration;
     _existingThumbnailUrl = widget.videoData.thumbnailUrl;
     _existingVideoUrl = widget.videoData.videoUrl;
-
+    _tagsController.text = widget.videoData.tags.join(", ");
+    _isSensitive = widget.videoData.tags.contains('scary');
     if (_categories.contains(widget.videoData.category)) {
       _selectedCategory = widget.videoData.category;
     }
   }
-
   Future<void> _updateVideo() async {
     if (_titleController.text.isEmpty) return;
 
+    // 1️⃣ Create tags list first
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    // 2️⃣ Apply sensitive toggle changes
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
+    }
+
+    // 3️⃣ Now create updatedVideo ✔
     final updatedVideo = widget.videoData.copyWith(
       title: _titleController.text.trim(),
-      description: _descController.text.trim(), // Added
+      description: _descController.text.trim(),
       category: _selectedCategory,
       videoUrl: _newVideoFile?.path ?? _existingVideoUrl,
       thumbnailUrl: _newThumbnail?.path ?? _existingThumbnailUrl,
       duration: _durationController.text,
-      uploadedAt: widget.videoData.uploadedAt, // Preserve Original Time
+      uploadedAt: widget.videoData.uploadedAt,
+      tags: tagsList,            // ✔ now it's valid
+      isSensitive: _isSensitive, // ✔ added
     );
 
+    // 4️⃣ Send to ViewModel
     await ref
         .read(teacherMultimediaViewModelProvider.notifier)
         .updateVideo(updatedVideo);
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -84,10 +108,9 @@ class _TeacherEditVideoScreenState
     if (_newThumbnail != null) {
       thumbnailProvider = FileImage(_newThumbnail!);
     } else if (_existingThumbnailUrl != null &&
-        _existingThumbnailUrl!.isNotEmpty){
+        _existingThumbnailUrl!.isNotEmpty) {
       thumbnailProvider = NetworkImage(_existingThumbnailUrl!);
     }
-
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FE),
@@ -122,8 +145,59 @@ class _TeacherEditVideoScreenState
                   maxLines: 3,
                 ), // Added
                 SizedBox(height: 2.h),
-
-                // ... (Keep rest of UI Logic from previous version) ...
+                Container(
+                  padding: EdgeInsets.all(4.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Tags",
+                        style: GoogleFonts.poppins(
+                          fontSize: 15.sp,
+                          fontWeight: FontWeight.w600,
+                          color: _textDark,
+                        ),
+                      ),
+                      SizedBox(height: 1.h),
+                      TextField(
+                        controller: _tagsController,
+                        decoration: InputDecoration(
+                          hintText: "e.g. animals, space",
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                        ),
+                      ),
+                      SizedBox(height: 2.h),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: Colors.red,
+                        title: Text(
+                          "Contains Sensitive Content?",
+                          style: GoogleFonts.poppins(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w600,
+                            color: _textDark,
+                          ),
+                        ),
+                        subtitle: Text(
+                          "Marks as 'Scary' for parent filters.",
+                          style: GoogleFonts.poppins(
+                            fontSize: 14.sp,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        value: _isSensitive,
+                        onChanged: (val) => setState(() => _isSensitive = val),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 1.5.h,),
 
                 // Thumbnail
                 InkWell(

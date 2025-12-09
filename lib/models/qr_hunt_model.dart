@@ -7,12 +7,13 @@ class QrHuntModel {
   final List<String> clues;
   final String? qrCodeUrl; // URL of generated QR image (optional)
   final DateTime createdAt;
-
+  final List<String> tags;
   // --- TRACKING FIELDS (For Child Progress) ---
   final int cluesFound; // How many clues the child has scanned
   final bool isCompleted;
   final DateTime? startedAt;
   final DateTime? completedAt;
+  final bool isSensitive;
 
   QrHuntModel({
     this.id,
@@ -20,8 +21,10 @@ class QrHuntModel {
     required this.title,
     required this.points,
     required this.difficulty,
+    this.isSensitive=false,
     required this.clues,
     this.qrCodeUrl,
+    this.tags = const [],
     required this.createdAt,
     this.cluesFound = 0,
     this.isCompleted = false,
@@ -43,6 +46,8 @@ class QrHuntModel {
       'isCompleted': isCompleted,
       'startedAt': startedAt?.toIso8601String(),
       'completedAt': completedAt?.toIso8601String(),
+      'tags': tags, // Save tags
+      'isSensitive': isSensitive,
     };
   }
 
@@ -52,6 +57,7 @@ class QrHuntModel {
       adminId: map['adminId'],
       title: map['title'] ?? '',
       points: (map['points'] as num? ?? 0).toInt(),
+      isSensitive: map['isSensitive'] ?? false,
       difficulty: map['difficulty'] ?? 'Easy',
       clues: List<String>.from(map['clues'] ?? []),
       qrCodeUrl: map['qrCodeUrl'],
@@ -60,6 +66,7 @@ class QrHuntModel {
       isCompleted: map['isCompleted'] ?? false,
       startedAt: map['startedAt'] != null ? DateTime.tryParse(map['startedAt']) : null,
       completedAt: map['completedAt'] != null ? DateTime.tryParse(map['completedAt']) : null,
+      tags: List<String>.from(map['tags'] ?? []),
     );
   }
 
@@ -76,6 +83,8 @@ class QrHuntModel {
     bool? isCompleted,
     DateTime? startedAt,
     DateTime? completedAt,
+    List<String>? tags,
+    bool?  isSensitive
   }) {
     return QrHuntModel(
       id: id ?? this.id,
@@ -90,6 +99,8 @@ class QrHuntModel {
       isCompleted: isCompleted ?? this.isCompleted,
       startedAt: startedAt ?? this.startedAt,
       completedAt: completedAt ?? this.completedAt,
+        isSensitive: isSensitive ?? this.isSensitive,
+        tags: tags ?? this.tags
     );
   }
 }

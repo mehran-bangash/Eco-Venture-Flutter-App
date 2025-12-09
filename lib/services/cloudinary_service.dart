@@ -15,6 +15,7 @@ class CloudinaryService {
   final String teacherStemPreset = "eco_teacher_stem_challenge";
   final String teacherMultimediaPreset = "eco_teacher_multimedia_content";
   final String teacherQrHuntPreset = "eco_teacher_treasure_hunt";
+  final String reportPreset = "eco_child_reports";
 
 
   /// Core: Upload image to Cloudinary
@@ -159,6 +160,9 @@ class CloudinaryService {
   }
   Future<String?> uploadTeacherQrImage(File imageFile) async {
     return await _upload(imageFile, teacherQrHuntPreset);
+  }
+  Future<String?> uploadReportScreenshot(File file) async {
+    return await _upload(file, reportPreset);
   }
 
 }

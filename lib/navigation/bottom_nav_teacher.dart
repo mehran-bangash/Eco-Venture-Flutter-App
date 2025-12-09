@@ -1,10 +1,11 @@
+import 'package:eco_venture/views/child_section/report_safety/child_safety_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/settings/teacher_settings.dart';
 import 'package:eco_venture/views/teacher_section/teacher_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import '../views/child_section/report_safety_screen.dart';
+
 
  class BottomNavTeacher extends StatefulWidget {
    const BottomNavTeacher({super.key});
@@ -20,7 +21,7 @@ import '../views/child_section/report_safety_screen.dart';
 
   final _screens = [
     const TeacherHomeScreen(),
-    const ReportSafetyScreen(),
+    const ChildSafetyDashboard(),
     const TeacherSettings(),
   ];
 

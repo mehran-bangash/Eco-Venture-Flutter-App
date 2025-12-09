@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui'; // Required for CustomPainter
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -15,21 +16,35 @@ class TeacherAddVideoScreen extends ConsumerStatefulWidget {
 }
 
 class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
+  // --- CONTROLLERS ---
   final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descController = TextEditingController(); // Added Description
+  final TextEditingController _descController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
+  // NEW: Tags Controller
+  final TextEditingController _tagsController = TextEditingController();
 
   String _selectedCategory = 'Science';
   final List<String> _categories = ['Science', 'Maths', 'History', 'Ecosystem'];
 
+  // NEW: Safety Toggle
+  bool _isSensitive = false;
+
   File? _thumbnailImage;
   File? _videoFile;
+
+  // --- COLORS ---
+  final Color _primary = const Color(0xFFE53935); // Red for Video
+  final Color _bg = const Color(0xFFF4F7FE);
+  final Color _textDark = const Color(0xFF1B2559);
+  final Color _border = const Color(0xFFE0E0E0);
+  final Color _dashedBorderColor = const Color(0xFFBDBDBD);
 
   @override
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
     _durationController.dispose();
+    _tagsController.dispose();
     super.dispose();
   }
 
@@ -51,14 +66,21 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
       return;
     }
 
+    // Process Tags
+    List<String> tagsList = _tagsController.text.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    if (_isSensitive) tagsList.add('scary'); // Auto-add tag for parent filter logic
+
     final newVideo = VideoModel(
       title: _titleController.text.trim(),
-      description: _descController.text.trim(), // Added
+      description: _descController.text.trim(),
       category: _selectedCategory,
       videoUrl: _videoFile!.path,
       thumbnailUrl: _thumbnailImage?.path,
       duration: _durationController.text.isNotEmpty ? _durationController.text : "00:00",
-      uploadedAt: DateTime.now(), // Added
+      uploadedAt: DateTime.now(),
+      tags: tagsList, // NEW: Save Tags
+      // Defaults
+      isSensitive: _isSensitive,
       likes: 0, dislikes: 0, views: 0, status: 'published', adminId: '', id: '',
     );
 
@@ -81,7 +103,7 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
     });
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FE),
+      backgroundColor: _bg,
       appBar: AppBar(
         title: Text("Upload Video", style: GoogleFonts.poppins(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18.sp)),
         centerTitle: true,
@@ -96,65 +118,90 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildSectionHeader("Video Details"),
+                SizedBox(height: 2.h),
                 _buildLabel("Video Title"),
                 _buildTextField(_titleController, "Enter title"),
                 SizedBox(height: 2.h),
-
-                _buildLabel("Description"), // Added UI
+                _buildLabel("Description"),
                 _buildTextField(_descController, "Enter description", maxLines: 3),
                 SizedBox(height: 2.h),
-
                 Row(children: [
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildLabel("Category"), _buildDropdown()])),
                   SizedBox(width: 4.w),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildLabel("Duration"), _buildTextField(_durationController, "e.g. 05:30")])),
                 ]),
-                SizedBox(height: 2.h),
 
-                _buildLabel("Thumbnail Image"),
-                InkWell(
-                  onTap: _pickThumbnail,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    height: 18.h, width: double.infinity,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade300), image: _thumbnailImage != null ? DecorationImage(image: FileImage(_thumbnailImage!), fit: BoxFit.cover) : null),
-                    child: _thumbnailImage == null ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.image_rounded, size: 32.sp, color: Colors.orangeAccent), SizedBox(height: 1.h), Text("Tap to upload thumbnail", style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.grey))]) : null,
-                  ),
-                ),
                 SizedBox(height: 4.h),
+                _buildSectionHeader("Content Safety"),
+                SizedBox(height: 1.5.h),
 
-                _buildLabel("Video File"),
-                InkWell(
-                  onTap: _pickVideo,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    height: 20.h, width: double.infinity,
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid)),
-                    child: _videoFile == null
-                        ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.cloud_upload_rounded, size: 40.sp, color: Colors.blue), SizedBox(height: 1.h), Text("Tap to upload MP4", style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.grey))])
-                        : Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.check_circle, size: 40.sp, color: Colors.green), SizedBox(height: 1.h), Text("Video Selected", style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.green, fontWeight: FontWeight.bold))]),
+                // --- NEW SAFETY SECTION ---
+                Container(
+                  padding: EdgeInsets.all(4.w),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _border)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel("Tags (comma separated)"),
+                      _buildTextField(_tagsController, "e.g. animals, space, fun"),
+                      SizedBox(height: 2.h),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: Colors.red,
+                        title: Text("Contains Sensitive Content?", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: _textDark)),
+                        subtitle: Text("Marks this as 'Scary' or 'Suspenseful' for parent filters.", style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.grey)),
+                        value: _isSensitive,
+                        onChanged: (val) => setState(() => _isSensitive = val),
+                      )
+                    ],
                   ),
                 ),
+
+                SizedBox(height: 4.h),
+                _buildSectionHeader("Media Content"),
+                SizedBox(height: 2.h),
+                _buildLabel("Thumbnail Image"),
+                _buildThumbnailUpload(),
+                SizedBox(height: 3.h),
+                _buildLabel("Video File"),
+                _buildVideoUpload(),
 
                 SizedBox(height: 5.h),
                 SizedBox(
                   width: double.infinity, height: 7.h,
                   child: ElevatedButton(
                     onPressed: state.isLoading ? null : _uploadVideo,
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE53935), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                    child: state.isLoading ? CircularProgressIndicator(color: Colors.white) : Text("Upload Video", style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.white, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(backgroundColor: _primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                    child: state.isLoading ? const CircularProgressIndicator(color: Colors.white) : Text("Upload Video", style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 )
               ],
             ),
           ),
-          if (state.isLoading) Container(color: Colors.black26, child: Center(child: CircularProgressIndicator())),
+          if (state.isLoading) Container(color: Colors.black26, child: const Center(child: CircularProgressIndicator())),
         ],
       ),
     );
   }
 
-  Widget _buildLabel(String text) => Padding(padding: EdgeInsets.only(bottom: 1.h), child: Text(text, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600)));
-  Widget _buildTextField(TextEditingController ctrl, String hint, {int maxLines = 1}) => TextField(controller: ctrl, maxLines: maxLines, style: GoogleFonts.poppins(fontSize: 15.sp), decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)));
-  Widget _buildDropdown() => Container(padding: EdgeInsets.symmetric(horizontal: 4.w), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _selectedCategory, isExpanded: true, items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: TextStyle(fontSize: 15.sp)))).toList(), onChanged: (v) => setState(() => _selectedCategory = v!))));
+  // ... (Helper Widgets: _buildTextField, _buildLabel, _buildSectionHeader, etc.)
+  // Keeping them concise for the response, assume they are the same standard pro widgets used before.
+  Widget _buildSectionHeader(String title) => Text(title, style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.w700, color: _textDark));
+  Widget _buildLabel(String text) => Padding(padding: EdgeInsets.only(bottom: 1.h), child: Text(text, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: _textDark)));
+  Widget _buildTextField(TextEditingController ctrl, String hint, {int maxLines = 1}) => TextField(controller: ctrl, maxLines: maxLines, style: GoogleFonts.poppins(fontSize: 15.sp), decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _border))));
+  Widget _buildDropdown() => Container(padding: EdgeInsets.symmetric(horizontal: 4.w), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _selectedCategory, isExpanded: true, items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)))).toList(), onChanged: (v) => setState(() => _selectedCategory = v!))));
+
+  Widget _buildThumbnailUpload() {
+    return InkWell(onTap: _pickThumbnail, borderRadius: BorderRadius.circular(20), child: Container(height: 18.h, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: _border), image: _thumbnailImage != null ? DecorationImage(image: FileImage(_thumbnailImage!), fit: BoxFit.cover) : null), child: _thumbnailImage == null ? Center(child: Icon(Icons.image, color: Colors.orange, size: 30.sp)) : null));
+  }
+  Widget _buildVideoUpload() {
+    return InkWell(onTap: _pickVideo, borderRadius: BorderRadius.circular(20), child: Container(height: 18.h, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: _border)), child: _videoFile == null ? Center(child: Icon(Icons.video_library, color: _primary, size: 30.sp)) : Center(child: Icon(Icons.check_circle, color: Colors.green, size: 40.sp))));
+  }
+}
+class DashedRectPainter extends CustomPainter {
+  final double strokeWidth; final Color color; final double gap; final double radius;
+  DashedRectPainter({this.strokeWidth = 1.0, this.color = Colors.red, this.gap = 5.0, this.radius = 0});
+  @override void paint(Canvas canvas, Size size) { Paint dashedPaint = Paint()..color = color..strokeWidth = strokeWidth..style = PaintingStyle.stroke; Path path = Path()..addRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, size.width, size.height), Radius.circular(radius))); PathMetrics pathMetrics = path.computeMetrics(); for (PathMetric pathMetric in pathMetrics) { double distance = 0.0; while (distance < pathMetric.length) { canvas.drawPath(pathMetric.extractPath(distance, distance + 5), dashedPaint); distance += 5 + gap; } } }
+  @override bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

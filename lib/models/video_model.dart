@@ -12,14 +12,17 @@ class VideoModel {
   final int dislikes;
   final int views;
   final String status;
-  final String createdBy; // 'admin' or 'teacher'
+  final String createdBy;
   final Map<String, bool> userLikes;
+  final bool isSensitive;
+  final List<String> tags;
 
   VideoModel({
     required this.id,
     required this.adminId,
     required this.title,
     required this.description,
+    this.isSensitive = false,
     required this.category,
     required this.videoUrl,
     this.thumbnailUrl,
@@ -31,9 +34,33 @@ class VideoModel {
     this.status = 'published',
     this.createdBy = 'admin',
     Map<String, bool>? userLikes,
+    this.tags = const [], // Default empty
   }) : userLikes = userLikes ?? {};
 
-  // --- 1. TO MAP (Required for Firebase Write) ---
+  factory VideoModel.fromMap(Map<String, dynamic> map) {
+    int safeInt(dynamic v) => (v is num) ? v.toInt() : int.tryParse('$v') ?? 0;
+
+    return VideoModel(
+      id: map['id'] ?? '',
+      adminId: map['adminId'] ?? '',
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      isSensitive: map['isSensitive'] ?? false,
+      category: map['category'] ?? 'General',
+      videoUrl: map['videoUrl'] ?? '',
+      thumbnailUrl: map['thumbnailUrl'],
+      duration: map['duration'] ?? '00:00',
+      uploadedAt: DateTime.tryParse(map['uploadedAt'] ?? '') ?? DateTime.now(),
+      likes: safeInt(map['likes']),
+      dislikes: safeInt(map['dislikes']),
+      views: safeInt(map['views']),
+      status: map['status'] ?? 'published',
+      createdBy: map['created_by'] ?? 'admin',
+      userLikes: Map<String, bool>.from(map['userLikes'] ?? {}),
+      tags: List<String>.from(map['tags'] ?? []),
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -50,50 +77,21 @@ class VideoModel {
       'views': views,
       'status': status,
       'created_by': createdBy,
-      'userLikes': userLikes, // Firebase handles Map<String,bool> natively usually, or convert manually if needed
+      'userLikes': userLikes,
+      'tags': tags, // Save tags
+      'isSensitive': isSensitive,
     };
   }
 
-  // --- 2. FROM MAP ---
-  factory VideoModel.fromMap(Map<String, dynamic> map) {
-    int safeInt(dynamic v) => (v is num) ? v.toInt() : int.tryParse('$v') ?? 0;
-
-    return VideoModel(
-      id: map['id'] ?? '',
-      adminId: map['adminId'] ?? '',
-      title: map['title'] ?? '',
-      description: map['description'] ?? '',
-      category: map['category'] ?? 'General',
-      videoUrl: map['videoUrl'] ?? '',
-      thumbnailUrl: map['thumbnailUrl'],
-      duration: map['duration'] ?? '00:00',
-      uploadedAt: DateTime.tryParse(map['uploadedAt'] ?? '') ?? DateTime.now(),
-      likes: safeInt(map['likes']),
-      dislikes: safeInt(map['dislikes']),
-      views: safeInt(map['views']),
-      status: map['status'] ?? 'published',
-      createdBy: map['created_by'] ?? 'admin',
-      userLikes: Map<String, bool>.from(map['userLikes'] ?? {}),
-    );
-  }
-
-  // --- 3. COPY WITH ---
+  // copyWith needs update too...
   VideoModel copyWith({
-    String? id,
-    String? adminId,
-    String? title,
-    String? description,
-    String? category,
-    String? videoUrl,
-    String? thumbnailUrl,
-    String? duration,
-    DateTime? uploadedAt,
-    int? likes,
-    int? dislikes,
-    int? views,
-    String? status,
-    String? createdBy,
+    String? id, String? adminId, String? title, String? description,
+    String? category, String? videoUrl, String? thumbnailUrl,
+    String? duration, DateTime? uploadedAt, int? likes, int? dislikes,
+    int? views, String? status, String? createdBy,
     Map<String, bool>? userLikes,
+    List<String>? tags,
+    bool? isSensitive,
   }) {
     return VideoModel(
       id: id ?? this.id,
@@ -111,6 +109,8 @@ class VideoModel {
       status: status ?? this.status,
       createdBy: createdBy ?? this.createdBy,
       userLikes: userLikes ?? this.userLikes,
+      tags: tags ?? this.tags,
+      isSensitive: isSensitive ?? this.isSensitive,
     );
   }
 }

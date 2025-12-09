@@ -25,15 +25,23 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
 
   // --- TOPIC STATE ---
   final TextEditingController _topicController = TextEditingController();
+
+  // --- ADDED: Tags Controller ---
+  final TextEditingController _tagsController = TextEditingController();
+
   String _selectedCategory = 'Science';
   final List<String> _categories = ['Science', 'Maths', 'Animals', 'Ecosystem'];
 
   // List to hold levels before saving
   List<QuizLevelModel> _levels = [];
 
+  // --- ADDED: Sensitivity Flag ---
+  bool _isSensitive = false;
+
   @override
   void dispose() {
     _topicController.dispose();
+    _tagsController.dispose(); // ADDED: Dispose tags controller
     super.dispose();
   }
 
@@ -55,12 +63,30 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
       return;
     }
 
+    // --- ADDED: Process tags like in other modules ---
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    // --- ADDED: Sensitivity control logic ---
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
+    }
+
     final newTopic = QuizTopicModel(
       category: _selectedCategory,
       topicName: _topicController.text.trim(),
       createdBy: 'teacher',
       creatorId: teacherId,
       levels: _levels,
+      // --- ADDED: Include tags and sensitivity ---
+      tags: tagsList,
+      isSensitive: _isSensitive,
     );
 
     await ref.read(teacherQuizViewModelProvider.notifier).addQuiz(newTopic);
@@ -138,6 +164,34 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
                   controller: _topicController,
                   hint: "e.g. Solar System",
                 ),
+
+                // --- ADDED: Tags Field ---
+                SizedBox(height: 2.5.h),
+                _buildLabel("Tags (comma-separated)"),
+                _buildTextField(
+                  controller: _tagsController,
+                  hint: "e.g. history, war, politics, geography",
+                ),
+
+                // --- ADDED: Sensitivity Switch ---
+                SizedBox(height: 2.5.h),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text("Mark as Sensitive Content",
+                      style: GoogleFonts.poppins(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.red.shade400,
+                      )),
+                  subtitle: Text(
+                    "If enabled, this quiz will be blocked for younger children.",
+                    style: GoogleFonts.poppins(fontSize: 12.sp),
+                  ),
+                  value: _isSensitive,
+                  onChanged: (v) => setState(() => _isSensitive = v),
+                  activeThumbColor: Colors.red,
+                ),
+
                 SizedBox(height: 4.h),
 
                 // Levels Header

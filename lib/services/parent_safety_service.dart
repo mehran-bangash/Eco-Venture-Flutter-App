@@ -8,15 +8,19 @@ class ParentSafetyService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // --- 1. SETTINGS ---
+  // --- 1. SETTINGS (WRITE) ---
+  // Fix: Saves directly to 'parent_settings/childId' so Child App can find it easily.
   Future<void> updateSafetySettings(String childId, ParentSafetySettingsModel settings) async {
     try {
+      print("DEBUG: Saving settings for Child: $childId");
+      // This path must match what the Child App listens to
       await _database.ref('parent_settings/$childId').set(settings.toMap());
     } catch (e) {
       throw Exception("Failed to update settings: $e");
     }
   }
 
+  // Stream Settings (Read back for Parent UI)
   Stream<ParentSafetySettingsModel> getSettingsStream(String childId) {
     return _database.ref('parent_settings/$childId').onValue.map((event) {
       final data = event.snapshot.value;
@@ -36,7 +40,9 @@ class ParentSafetyService {
       if (data != null && data is Map) {
         data.forEach((key, value) {
           if (value is Map) {
-            alerts.add(ParentAlertModel.fromMap(key.toString(), Map<String, dynamic>.from(value)));
+            final map = Map<String, dynamic>.from(value);
+            // Ensure ID is passed if missing in map
+            alerts.add(ParentAlertModel.fromMap(key.toString(), map));
           }
         });
       }
@@ -45,29 +51,24 @@ class ParentSafetyService {
     });
   }
 
-  // FIX: Added missing method
   Future<void> updateAlertStatus(String childId, String alertId, String newStatus) async {
     await _database.ref('safety_alerts/$childId/$alertId').update({'status': newStatus});
   }
 
-  // --- 3. PARENT-CHILD LINKING (NEW) ---
-
+  // --- 3. PARENT-CHILD LINKING ---
   Future<String> linkChildAccount(String parentUid, String childEmail, String childName) async {
-    // 1. Find Child by Email in Firestore
     final query = await _firestore.collection('users')
         .where('email', isEqualTo: childEmail)
         .where('role', isEqualTo: 'child')
         .limit(1)
         .get();
 
-    if (query.docs.isEmpty) {
-      throw Exception("No child found with this email.");
-    }
+    if (query.docs.isEmpty) throw Exception("No child found with this email.");
 
     final childDoc = query.docs.first;
     final childData = childDoc.data();
 
-    // 2. Verify Name (Simple case-insensitive check)
+    // Name Check (Case Insensitive)
     String realName = childData['name'] ?? '';
     if (realName.toLowerCase().trim() != childName.toLowerCase().trim()) {
       throw Exception("Child found, but name does not match.");
@@ -75,7 +76,7 @@ class ParentSafetyService {
 
     final childUid = childDoc.id;
 
-    // 3. Add to Parent's List in RTDB
+    // Add to Parent's List
     await _database.ref('parent_children/$parentUid/$childUid').set({
       'name': realName,
       'uid': childUid,
@@ -83,7 +84,6 @@ class ParentSafetyService {
       'linkedAt': DateTime.now().toIso8601String(),
     });
 
-    // 4. Add Parent ID to Child's Profile (Firestore)
     await _firestore.collection('users').doc(childUid).update({'parent_id': parentUid});
 
     return childUid;
@@ -97,14 +97,11 @@ class ParentSafetyService {
     }
     return [];
   }
-  // Remove child from parent's list
-  Future<void> unlinkChildAccount(String parentUid, String childUid) async {
-    // Remove from parent_children node
-    await _database.ref('parent_children/$parentUid/$childUid').remove();
 
-    // Optional: Remove link from child's profile in Firestore
-    await _firestore.collection('users').doc(childUid).update({
-      'parent_id': FieldValue.delete()
-    });
+  Future<void> unlinkChildAccount(String parentUid, String childUid) async {
+    await _database.ref('parent_children/$parentUid/$childUid').remove();
+    // Do not delete 'parent_id' from Firestore to preserve history if needed,
+    // or uncomment next line to fully detach:
+    // await _firestore.collection('users').doc(childUid).update({'parent_id': FieldValue.delete()});
   }
 }

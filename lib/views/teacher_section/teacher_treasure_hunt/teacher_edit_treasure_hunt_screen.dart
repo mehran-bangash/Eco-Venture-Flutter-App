@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -14,17 +13,25 @@ class TeacherEditTreasureHuntScreen extends ConsumerStatefulWidget {
   const TeacherEditTreasureHuntScreen({super.key, required this.huntData});
 
   @override
-  ConsumerState<TeacherEditTreasureHuntScreen> createState() => _TeacherEditTreasureHuntScreenState();
+  ConsumerState<TeacherEditTreasureHuntScreen> createState() =>
+      _TeacherEditTreasureHuntScreenState();
 }
 
-class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreasureHuntScreen> {
+class _TeacherEditTreasureHuntScreenState
+    extends ConsumerState<TeacherEditTreasureHuntScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _pointsController = TextEditingController();
+
+  // --- ADDED: Tags Controller ---
+  final TextEditingController _tagsController = TextEditingController();
 
   late QrHuntModel _hunt;
   String _difficulty = 'Easy';
   final List<String> _difficultyLevels = ['Easy', 'Medium', 'Hard'];
   final List<TextEditingController> _clueControllers = [];
+
+  // --- ADDED: Sensitivity Flag ---
+  bool _isSensitive = false;
 
   final Color _primary = const Color(0xFF00C853);
   final Color _bg = const Color(0xFFF4F7FE);
@@ -42,10 +49,14 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
       _hunt = QrHuntModel(
         id: map['id'],
         title: map['title'] ?? '',
-        points: map['points'] is int ? map['points'] : int.tryParse(map['points'].toString()) ?? 0,
+        points: map['points'] is int
+            ? map['points']
+            : int.tryParse(map['points'].toString()) ?? 0,
         difficulty: map['difficulty'] ?? 'Easy',
         clues: List<String>.from(map['clues'] ?? []),
         createdAt: DateTime.now(),
+        tags: List<String>.from(map['tags'] ?? []), // ADDED: Load tags
+        isSensitive: map['isSensitive'] ?? false, // ADDED: Load sensitivity
       );
     }
 
@@ -53,7 +64,11 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
     _pointsController.text = _hunt.points.toString();
     _difficulty = _hunt.difficulty;
 
-    for(var clue in _hunt.clues) {
+    // --- ADDED: Initialize tags and sensitivity ---
+    _tagsController.text = _hunt.tags?.join(', ') ?? '';
+    _isSensitive = _hunt.isSensitive ?? false;
+
+    for (var clue in _hunt.clues) {
       _clueControllers.add(TextEditingController(text: clue));
     }
   }
@@ -61,16 +76,39 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
   Future<void> _updateHunt() async {
     if (_titleController.text.isEmpty) return;
 
-    List<String> clues = _clueControllers.where((c) => c.text.isNotEmpty).map((c) => c.text).toList();
+    List<String> clues = _clueControllers
+        .where((c) => c.text.isNotEmpty)
+        .map((c) => c.text)
+        .toList();
+
+    // --- ADDED: Process tags like in Add Screen ---
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    // --- ADDED: Sensitivity control logic like in Add Screen ---
+    if (_isSensitive && !tagsList.contains('scary')) {
+      tagsList.add('scary');
+    }
+    if (!_isSensitive) {
+      tagsList.remove('scary');
+    }
 
     final updatedHunt = _hunt.copyWith(
       title: _titleController.text.trim(),
       points: int.tryParse(_pointsController.text.trim()) ?? 0,
       difficulty: _difficulty,
       clues: clues,
+      // --- ADDED: Include tags and sensitivity in update ---
+      tags: tagsList,
+      isSensitive: _isSensitive,
     );
 
-    await ref.read(teacherTreasureHuntViewModelProvider.notifier).updateHunt(updatedHunt, null);
+    await ref
+        .read(teacherTreasureHuntViewModelProvider.notifier)
+        .updateHunt(updatedHunt, null);
   }
 
   Future<void> _reprintPdf() async {
@@ -91,9 +129,21 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
                   child: pw.Column(
                     mainAxisAlignment: pw.MainAxisAlignment.center,
                     children: [
-                      pw.Text("Clue #${i + 1}", style: pw.TextStyle(fontSize: 30, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(
+                        "Clue #${i + 1}",
+                        style: pw.TextStyle(
+                          fontSize: 30,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
                       pw.SizedBox(height: 10),
-                      pw.Text("Hunt: ${_titleController.text}", style: pw.TextStyle(fontSize: 20, color: PdfColors.grey700)),
+                      pw.Text(
+                        "Hunt: ${_titleController.text}",
+                        style: pw.TextStyle(
+                          fontSize: 20,
+                          color: PdfColors.grey700,
+                        ),
+                      ),
                       pw.SizedBox(height: 40),
                       pw.BarcodeWidget(
                         barcode: pw.Barcode.qrCode(),
@@ -102,7 +152,10 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
                         height: 300,
                       ),
                       pw.SizedBox(height: 40),
-                      pw.Text("Location #${i + 1}", style: pw.TextStyle(fontSize: 18)),
+                      pw.Text(
+                        "Location #${i + 1}",
+                        style: pw.TextStyle(fontSize: 18),
+                      ),
                     ],
                   ),
                 );
@@ -121,7 +174,12 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
 
     ref.listen(teacherTreasureHuntViewModelProvider, (prev, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Hunt Updated!"), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Hunt Updated!"),
+            backgroundColor: Colors.green,
+          ),
+        );
         ref.read(teacherTreasureHuntViewModelProvider.notifier).resetSuccess();
         Navigator.pop(context);
       }
@@ -132,8 +190,18 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: () => Navigator.pop(context)),
-        title: Text("Edit QR Hunt", style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          "Edit QR Hunt",
+          style: GoogleFonts.poppins(
+            color: _textDark,
+            fontWeight: FontWeight.bold,
+            fontSize: 18.sp,
+          ),
+        ),
         centerTitle: true,
       ),
       body: Stack(
@@ -154,6 +222,34 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
                 _buildLabel("Difficulty"),
                 _buildDropdown(),
 
+                // --- ADDED: Tags Field (same as Add Screen) ---
+                SizedBox(height: 2.h),
+                _buildLabel("Tags (comma-separated)"),
+                _buildTextField(
+                  _tagsController,
+                  "e.g. outdoor, mystery, night",
+                ),
+
+                // --- ADDED: Sensitivity Switch (same as Add Screen) ---
+                SizedBox(height: 2.h),
+                SwitchListTile(
+                  title: Text(
+                    "Mark as Sensitive Content",
+                    style: GoogleFonts.poppins(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade400,
+                    ),
+                  ),
+                  subtitle: Text(
+                    "If enabled, this hunt will be blocked for younger children.",
+                    style: GoogleFonts.poppins(fontSize: 12.sp),
+                  ),
+                  value: _isSensitive,
+                  onChanged: (v) => setState(() => _isSensitive = v),
+                  activeThumbColor: Colors.red,
+                ),
+
                 SizedBox(height: 4.h),
                 _buildSectionHeader("Edit Clues"),
 
@@ -162,19 +258,42 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
                     padding: EdgeInsets.only(bottom: 2.h),
                     child: Container(
                       padding: EdgeInsets.all(3.w),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _border),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text("Clue ${index + 1}", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w500)),
-                              InkWell(onTap: () => setState(() => _clueControllers.removeAt(index)), child: Icon(Icons.delete, color: Colors.red, size: 18.sp))
+                              Text(
+                                "Clue ${index + 1}",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 15.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              InkWell(
+                                onTap: () => setState(
+                                  () => _clueControllers.removeAt(index),
+                                ),
+                                child: Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                  size: 18.sp,
+                                ),
+                              ),
                             ],
                           ),
                           SizedBox(height: 1.h),
-                          _buildTextField(_clueControllers[index], "Edit clue...", maxLines: 2),
+                          _buildTextField(
+                            _clueControllers[index],
+                            "Edit clue...",
+                            maxLines: 2,
+                          ),
                         ],
                       ),
                     ),
@@ -182,12 +301,35 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
                 }),
 
                 InkWell(
-                  onTap: () => setState(() => _clueControllers.add(TextEditingController())),
+                  onTap: () => setState(
+                    () => _clueControllers.add(TextEditingController()),
+                  ),
                   child: Container(
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(vertical: 1.5.h),
-                    decoration: BoxDecoration(border: Border.all(color: _primary, width: 1.5, style: BorderStyle.solid), borderRadius: BorderRadius.circular(12)),
-                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add, size: 18.sp, color: _primary), SizedBox(width: 2.w), Text("Add Clue", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.bold, color: _primary))]),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: _primary,
+                        width: 1.5,
+                        style: BorderStyle.solid,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add, size: 18.sp, color: _primary),
+                        SizedBox(width: 2.w),
+                        Text(
+                          "Add Clue",
+                          style: GoogleFonts.poppins(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.bold,
+                            color: _primary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -200,8 +342,20 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
                   child: OutlinedButton.icon(
                     onPressed: _reprintPdf,
                     icon: Icon(Icons.print, color: _primary),
-                    label: Text("Re-Print Codes (PDF)", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: _primary)),
-                    style: OutlinedButton.styleFrom(side: BorderSide(color: _primary), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    label: Text(
+                      "Re-Print Codes (PDF)",
+                      style: GoogleFonts.poppins(
+                        fontSize: 15.sp,
+                        fontWeight: FontWeight.w600,
+                        color: _primary,
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: _primary),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   ),
                 ),
 
@@ -209,25 +363,102 @@ class _TeacherEditTreasureHuntScreenState extends ConsumerState<TeacherEditTreas
 
                 // Update Button
                 SizedBox(
-                  width: double.infinity, height: 7.h,
+                  width: double.infinity,
+                  height: 7.h,
                   child: ElevatedButton(
                     onPressed: state.isLoading ? null : _updateHunt,
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00E676), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    child: state.isLoading ? CircularProgressIndicator(color: Colors.white) : Text("Update Checkpoint", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: _textDark)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF00E676),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: state.isLoading
+                        ? CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            "Update Checkpoint",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: _textDark,
+                            ),
+                          ),
                   ),
                 ),
                 SizedBox(height: 3.h),
               ],
             ),
           ),
-          if (state.isLoading) Container(color: Colors.black12, child: Center(child: CircularProgressIndicator())),
+          if (state.isLoading)
+            Container(
+              color: Colors.black12,
+              child: Center(child: CircularProgressIndicator()),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) => Text(title, style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.w700, color: _textDark));
-  Widget _buildLabel(String text) => Padding(padding: EdgeInsets.only(bottom: 1.h), child: Text(text, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: _textDark)));
-  Widget _buildTextField(TextEditingController ctrl, String hint, {bool isNumber = false, int maxLines = 1}) => TextField(controller: ctrl, keyboardType: isNumber ? TextInputType.number : TextInputType.text, maxLines: maxLines, style: GoogleFonts.poppins(fontSize: 15.sp), decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _border))));
-  Widget _buildDropdown() => Container(padding: EdgeInsets.symmetric(horizontal: 4.w), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _difficulty, isExpanded: true, items: _difficultyLevels.map((c) => DropdownMenuItem(value: c, child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)))).toList(), onChanged: (v) => setState(() => _difficulty = v!))));
+  Widget _buildSectionHeader(String title) => Text(
+    title,
+    style: GoogleFonts.poppins(
+      fontSize: 17.sp,
+      fontWeight: FontWeight.w700,
+      color: _textDark,
+    ),
+  );
+  Widget _buildLabel(String text) => Padding(
+    padding: EdgeInsets.only(bottom: 1.h),
+    child: Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontSize: 15.sp,
+        fontWeight: FontWeight.w600,
+        color: _textDark,
+      ),
+    ),
+  );
+  Widget _buildTextField(
+    TextEditingController ctrl,
+    String hint, {
+    bool isNumber = false,
+    int maxLines = 1,
+  }) => TextField(
+    controller: ctrl,
+    keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+    maxLines: maxLines,
+    style: GoogleFonts.poppins(fontSize: 15.sp),
+    decoration: InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _border),
+      ),
+    ),
+  );
+  Widget _buildDropdown() => Container(
+    padding: EdgeInsets.symmetric(horizontal: 4.w),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: _border),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: _difficulty,
+        isExpanded: true,
+        items: _difficultyLevels
+            .map(
+              (c) => DropdownMenuItem(
+                value: c,
+                child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)),
+              ),
+            )
+            .toList(),
+        onChanged: (v) => setState(() => _difficulty = v!),
+      ),
+    ),
+  );
 }

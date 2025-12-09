@@ -1,17 +1,18 @@
-
 import 'package:eco_venture/models/quiz_topic_model.dart';
 import 'package:eco_venture/models/stem_challenge_read_model.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/child_quiz_topic_detail_screen.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_completion_screen.dart';
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_question_screen.dart';
+import 'package:eco_venture/views/child_section/blocked_screen/app_locked_screen.dart';
+import 'package:eco_venture/views/child_section/blocked_screen/content_blocked_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/learn_with_ai.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_description_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_photo_explore_screen.dart';
 import 'package:eco_venture/views/child_section/child_progress_dashboard.dart';
-import 'package:eco_venture/views/child_section/report_issue_screen.dart';
-import 'package:eco_venture/views/child_section/report_safety_screen.dart';
+import 'package:eco_venture/views/child_section/report_safety/child_report_issue_screen.dart';
+import 'package:eco_venture/views/child_section/report_safety/child_safety_dashboard.dart';
 import 'package:eco_venture/views/child_section/settings/child_settings.dart';
 import 'package:eco_venture/views/child_section/settings/profile/child_profile_screen.dart';
 import 'package:eco_venture/views/child_section/settings/profile/edit_profile_screen.dart';
@@ -38,6 +39,7 @@ import '../../models/video_model.dart';
 import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
 import '../../views/child_section/child_home_screen.dart';
+import '../../views/child_section/child_safety_enforcer.dart';
 import '../../views/child_section/multimedia/child_multimedia_screen.dart';
 import '../../views/child_section/multimedia/story_screen.dart';
 import '../../views/child_section/multimedia/video_screen.dart';
@@ -49,14 +51,23 @@ import '../../views/child_section/treasureHunt/treasure_hunt_screen.dart';
 import '../constants/route_names.dart';
 
 class ChildRouter {
-  static final routes = GoRoute(
-    path: RouteNames.bottomNavChild, // "/child"
-    name: 'bottomNavChild',
-    builder: (context, state) =>
-        const BottomNavChild(), // wrap with your nav container
+  // We use ShellRoute to wrap ALL child screens with the Safety Logic.
+  static final routes = ShellRoute(
+    builder: (context, state, child) {
+      // This is the "Gatekeeper". It checks time limits for EVERY screen below.
+      return ChildSafetyEnforcer(child: child);
+    },
     routes: [
+      // --- MAIN DASHBOARD ---
       GoRoute(
-        path: 'child-profile',
+        path: RouteNames.bottomNavChild, // "/child"
+        name: 'bottomNavChild',
+        builder: (context, state) => const BottomNavChild(),
+      ),
+
+      // --- PROFILE SECTION ---
+      GoRoute(
+        path: '/child/child-profile', // Absolute path for safety
         name: 'childProfile',
         builder: (context, state) => const ChildProfile(),
         routes: [
@@ -67,41 +78,53 @@ class ChildRouter {
           ),
         ],
       ),
-       GoRoute(
-           path: RouteNames.childProgressDashboardScreen,
-           name: 'childProgressDashboardScreen',
-           builder: (context, state) => const ChildProgressDashboard(),
 
-       ),
-       GoRoute(
-         path: 'rewards-screen',
-         name: 'RewardsScreen',
-         builder: (context, state) => RewardsScreen(),
-
-       ),
-       GoRoute(
-           path: 'report-safety-screen',
-           name: "reportSafetyScreen",
-          builder: (context, state) => const ReportSafetyScreen(),
-         routes: [
-           GoRoute(
-               path: 'report-issue-screen',
-               name: "reportIssueScreen",
-               builder: (context, state) => const ReportIssueScreen(),
-           )
-         ]
-
-       ),
+      // --- SAFETY SCREENS ---
       GoRoute(
-        path: 'child-settings',
+        path: RouteNames.childContentBlockedScreen,
+        name: 'childContentBlockedScreen',
+        builder: (context, state) => const ContentBlockedScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.childAppLockedScreen,
+        name: 'childAppLockedScreen',
+        builder: (context, state) => const AppLockedScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.childProgressDashboardScreen,
+        name: 'childProgressDashboardScreen',
+        builder: (context, state) => const ChildProgressDashboard(),
+      ),
+      GoRoute(
+        path: '/child/rewards-screen',
+        name: 'RewardsScreen',
+        builder: (context, state) => const RewardsScreen(),
+      ),
+      GoRoute(
+        path: RouteNames.childReportSafetyScreen,
+        name: "childReportSafetyScreen",
+        builder: (context, state) => const ChildSafetyDashboard(),
+        routes: [
+          GoRoute(
+            path: 'report-issue', // Relative to parent
+            name: "childReportIssueScreen",
+            builder: (context, state) => const ChildReportIssueScreen(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/child/child-settings',
         name: 'childSettings',
         builder: (context, state) => const ChildSettings(),
       ),
+
+      // --- HOME & MODULES ---
       GoRoute(
-        path: 'home', //  relative path, not /child/home
+        path: '/child/home',
         name: 'childHome',
         builder: (context, state) => const ChildHomeScreen(),
         routes: [
+          // 1. TREASURE HUNT
           GoRoute(
             path: 'treasure-hunt',
             name: 'treasureHunt',
@@ -111,22 +134,21 @@ class ChildRouter {
                 path: 'qr-hunt-play-screen',
                 name: 'qrHuntPlayScreen',
                 builder: (context, state) {
-                   final huntData=state.extra as QrHuntReadModel;
-                  return   QrHuntPlayScreen(hunt:huntData,);
+                  final huntData = state.extra as QrHuntReadModel;
+                  return QrHuntPlayScreen(hunt: huntData);
                 },
                 routes: [
                   GoRoute(
                     path: 'qr-scanner-screen',
                     name: 'qrScannerScreen',
                     builder: (context, state) {
-                      final huntData=state.extra as QrHuntReadModel;
+                      final huntData = state.extra as QrHuntReadModel;
                       return QRScannerScreen(hunt: huntData);
                     },
                     routes: [
                       GoRoute(
                         path: 'qr-success-screen',
                         name: 'qrSuccessScreen',
-
                         builder: (context, state) {
                           final rewardCoins = state.extra as int? ?? 0;
                           return QRSuccessScreen(rewardCoins: rewardCoins);
@@ -138,6 +160,8 @@ class ChildRouter {
               ),
             ],
           ),
+
+          // 2. MULTIMEDIA
           GoRoute(
             path: 'multimedia-content',
             name: 'multiMediaContent',
@@ -152,11 +176,10 @@ class ChildRouter {
                     path: 'video-play-screen',
                     name: 'videoPlayScreen',
                     builder: (context, state) {
-                      final video = state.extra as VideoModel; // Cast to Model
+                      final video = state.extra as VideoModel;
                       return VideoPlayerScreen(videoData: video);
                     },
                   ),
-
                 ],
               ),
               GoRoute(
@@ -168,10 +191,7 @@ class ChildRouter {
                     path: 'story-play-screen',
                     name: 'storyPlayScreen',
                     builder: (context, state) {
-                      // Extract the StoryModel from the 'extra' parameter
                       final story = state.extra as StoryModel;
-
-                      // Pass the story to the screen
                       return StoryPlayScreen(story: story);
                     },
                   ),
@@ -179,6 +199,8 @@ class ChildRouter {
               ),
             ],
           ),
+
+          // 3. STEM CHALLENGES
           GoRoute(
             path: 'stem-challenges',
             name: 'stemChallenges',
@@ -193,16 +215,16 @@ class ChildRouter {
                     path: 'science-instruction-screen',
                     name: 'scienceInstructionScreen',
                     builder: (context, state) {
-                      final scienceChallenge= state.extra as StemChallengeReadModel;
-                       return ScienceInstructionScreen(challenge: scienceChallenge,);
-                    }
+                      final challenge = state.extra as StemChallengeReadModel;
+                      return ScienceInstructionScreen(challenge: challenge);
+                    },
                   ),
                   GoRoute(
                     path: 'science-submit-screen',
                     name: 'scienceSubmitScreen',
                     builder: (context, state) {
-                      final scienceChallenge= state.extra as StemChallengeReadModel;
-                      return ScienceSubmitScreen(challenge: scienceChallenge,);
+                      final challenge = state.extra as StemChallengeReadModel;
+                      return ScienceSubmitScreen(challenge: challenge);
                     },
                   ),
                 ],
@@ -216,16 +238,16 @@ class ChildRouter {
                     path: 'math-instruction-screen',
                     name: 'mathInstructionScreen',
                     builder: (context, state) {
-                      final mathChallenge= state.extra as StemChallengeReadModel;
-                      return   MathInstructionScreen(challenge: mathChallenge,);
+                      final challenge = state.extra as StemChallengeReadModel;
+                      return MathInstructionScreen(challenge: challenge);
                     },
                   ),
                   GoRoute(
                     path: 'math-submit-screen',
                     name: 'mathSubmitScreen',
                     builder: (context, state) {
-                      final mathChallenge= state.extra as StemChallengeReadModel;
-                      return MathSubmitScreen(challenge:mathChallenge);
+                      final challenge = state.extra as StemChallengeReadModel;
+                      return MathSubmitScreen(challenge: challenge);
                     },
                   ),
                 ],
@@ -239,18 +261,17 @@ class ChildRouter {
                     path: 'engineering-instruction-screen',
                     name: 'engineeringInstructionScreen',
                     builder: (context, state) {
-                      final engineeringChallenge= state.extra as StemChallengeReadModel;
-                      return  EngineeringInstructionScreen(challenge:engineeringChallenge);
-                    }
-                        ,
+                      final challenge = state.extra as StemChallengeReadModel;
+                      return EngineeringInstructionScreen(challenge: challenge);
+                    },
                   ),
                   GoRoute(
                     path: 'engineering-submit-screen',
                     name: 'engineeringSubmitScreen',
                     builder: (context, state) {
-                      final engineeringChallenge= state.extra as StemChallengeReadModel;
-                      return  EngineeringSubmitScreen(challenge:engineeringChallenge);
-                    }
+                      final challenge = state.extra as StemChallengeReadModel;
+                      return EngineeringSubmitScreen(challenge: challenge);
+                    },
                   ),
                 ],
               ),
@@ -263,23 +284,24 @@ class ChildRouter {
                     path: 'technology-instruction-screen',
                     name: 'technologyInstructionScreen',
                     builder: (context, state) {
-                      final technologyScreenChallenge= state.extra as StemChallengeReadModel;
-                      return TechnologyInstructionScreen(challenge:technologyScreenChallenge);
-                    }
-                        ,
+                      final challenge = state.extra as StemChallengeReadModel;
+                      return TechnologyInstructionScreen(challenge: challenge);
+                    },
                   ),
                   GoRoute(
                     path: 'technology-submit-screen',
                     name: 'technologySubmitScreen',
                     builder: (context, state) {
-                      final technologyScreenChallenge= state.extra as StemChallengeReadModel;
-                      return TechnologySubmitScreen(challenge:technologyScreenChallenge);
+                      final challenge = state.extra as StemChallengeReadModel;
+                      return TechnologySubmitScreen(challenge: challenge);
                     },
                   ),
                 ],
               ),
             ],
           ),
+
+          // 4. NATURE JOURNAL
           GoRoute(
             path: 'nature-photo-journal',
             name: 'naturePhotoJournal',
@@ -305,6 +327,7 @@ class ChildRouter {
             ],
           ),
 
+          // 5. QUIZZES
           GoRoute(
             path: 'interactive-quiz',
             name: 'interactiveQuiz',
@@ -317,16 +340,14 @@ class ChildRouter {
                   final quizModel = state.extra as QuizTopicModel;
                   return ChildQuizTopicDetailScreen(topic: quizModel);
                 },
-
               ),
               GoRoute(
                 path: 'quiz-question-screen',
                 name: 'quizQuestionScreen',
                 builder: (context, state) {
                   final questionArgs = state.extra as QuizQuestionArgs;
-                  return QuizQuestionScreen(args:questionArgs ,);
+                  return QuizQuestionScreen(args: questionArgs);
                 },
-
               ),
             ],
           ),
@@ -334,33 +355,26 @@ class ChildRouter {
             path: 'quiz-completion-screen/:correct/:total',
             name: 'quizCompletionScreen',
             pageBuilder: (context, state) {
-
-              // ✔ Correct: receive values as STRINGS (do not parse here)
               final correct = state.pathParameters['correct']!;
               final total = state.pathParameters['total']!;
-
-              // ✔ Correct: progress passed through extra
               final progress = state.extra as ChildQuizProgressModel?;
 
               return CustomTransitionPage(
                 transitionDuration: const Duration(milliseconds: 500),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(0, 1);
-                  const end = Offset.zero;
-                  var curve = Curves.easeOutCubic;
-
-                  var tween = Tween(begin: begin, end: end).chain(
-                    CurveTween(curve: curve),
-                  );
-
-                  return SlideTransition(
-                    position: animation.drive(tween),
-                    child: FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    ),
-                  );
-                },
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(0, 1);
+                      const end = Offset.zero;
+                      var curve = Curves.easeOutCubic;
+                      var tween = Tween(
+                        begin: begin,
+                        end: end,
+                      ).chain(CurveTween(curve: curve));
+                      return SlideTransition(
+                        position: animation.drive(tween),
+                        child: FadeTransition(opacity: animation, child: child),
+                      );
+                    },
                 child: QuizCompletionScreen(
                   correctStr: correct,
                   totalStr: total,
@@ -369,8 +383,6 @@ class ChildRouter {
               );
             },
           ),
-
-
         ],
       ),
     ],

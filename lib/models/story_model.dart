@@ -29,6 +29,9 @@ class StoryModel {
   final int views;
   final String createdBy;
   final Map<String, bool> userLikes;
+  final List<String> tags;
+  final bool isSensitive;
+  final String category; // ADDED THIS FIELD
 
   StoryModel({
     required this.id,
@@ -43,6 +46,9 @@ class StoryModel {
     this.views = 0,
     this.createdBy = 'admin',
     Map<String, bool>? userLikes,
+    this.tags = const [],
+    this.isSensitive = false,
+    required this.category, // ADDED IN CONSTRUCTOR
   }) : userLikes = userLikes ?? {};
 
   // --- 1. TO MAP (Required for Firebase Write) ---
@@ -60,6 +66,9 @@ class StoryModel {
       'views': views,
       'created_by': createdBy,
       'userLikes': userLikes,
+      'tags': tags,
+      'isSensitive': isSensitive,
+      'category': category, // ADDED THIS
     };
   }
 
@@ -83,6 +92,9 @@ class StoryModel {
       views: (map['views'] as num? ?? 0).toInt(),
       createdBy: map['created_by'] ?? 'admin',
       userLikes: Map<String, bool>.from(map['userLikes'] ?? {}),
+      tags: List<String>.from(map['tags'] ?? []),
+      isSensitive: map['isSensitive'] ?? false,
+      category: map['category'] ?? 'General', // ADDED THIS
     );
   }
 
@@ -100,6 +112,9 @@ class StoryModel {
     int? views,
     String? createdBy,
     Map<String, bool>? userLikes,
+    List<String>? tags,
+    bool? isSensitive,
+    String? category, // ADDED THIS
   }) {
     return StoryModel(
       id: id ?? this.id,
@@ -114,6 +129,9 @@ class StoryModel {
       views: views ?? this.views,
       createdBy: createdBy ?? this.createdBy,
       userLikes: userLikes ?? this.userLikes,
+      tags: tags ?? this.tags,
+      isSensitive: isSensitive ?? this.isSensitive,
+      category: category ?? this.category, // ADDED THIS
     );
   }
 }
