@@ -1,11 +1,16 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../../../../models/qr_hunt_model.dart';
+import '../../../core/config/api_constants.dart';
+import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/teacher_qr_treasure/teacher_treasure_hunt_provider.dart';
 
 class TeacherEditTreasureHuntScreen extends ConsumerStatefulWidget {
@@ -55,7 +60,8 @@ class _TeacherEditTreasureHuntScreenState
         difficulty: map['difficulty'] ?? 'Easy',
         clues: List<String>.from(map['clues'] ?? []),
         createdAt: DateTime.now(),
-        tags: List<String>.from(map['tags'] ?? []), // ADDED: Load tags
+        tags: List<String>.from(map['tags'] ?? []),
+        // ADDED: Load tags
         isSensitive: map['isSensitive'] ?? false, // ADDED: Load sensitivity
       );
     }
@@ -81,14 +87,12 @@ class _TeacherEditTreasureHuntScreenState
         .map((c) => c.text)
         .toList();
 
-    // --- ADDED: Process tags like in Add Screen ---
     List<String> tagsList = _tagsController.text
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
 
-    // --- ADDED: Sensitivity control logic like in Add Screen ---
     if (_isSensitive && !tagsList.contains('scary')) {
       tagsList.add('scary');
     }
@@ -96,19 +100,66 @@ class _TeacherEditTreasureHuntScreenState
       tagsList.remove('scary');
     }
 
+    // --- GET TEACHER ID FOR NOTIFICATION ---
+    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error: No Teacher ID. Re-login."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final updatedHunt = _hunt.copyWith(
       title: _titleController.text.trim(),
       points: int.tryParse(_pointsController.text.trim()) ?? 0,
       difficulty: _difficulty,
       clues: clues,
-      // --- ADDED: Include tags and sensitivity in update ---
       tags: tagsList,
       isSensitive: _isSensitive,
     );
 
+    // Update in Firebase
     await ref
         .read(teacherTreasureHuntViewModelProvider.notifier)
         .updateHunt(updatedHunt, null);
+
+    // --- SEND NOTIFICATION ONLY IF NOT SENSITIVE ---
+    if (!_isSensitive) {
+      await _sendClassNotification(teacherId, updatedHunt.title);
+    }
+  }
+
+  // --- NOTIFICATION LOGIC ---
+  Future<void> _sendClassNotification(
+    String teacherId,
+    String huntTitle,
+  ) async {
+    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "teacherId": teacherId,
+          "type": "QR Hunt",
+          "title": "QR Hunt Updated: $huntTitle ✏️",
+          "body":
+              "Your teacher updated the treasure hunt: $huntTitle. Check it out!",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ QR Hunt Update Notification sent successfully");
+      } else {
+        print("❌ Notification failed: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Error calling notification backend: $e");
+    }
   }
 
   Future<void> _reprintPdf() async {
@@ -175,8 +226,10 @@ class _TeacherEditTreasureHuntScreenState
     ref.listen(teacherTreasureHuntViewModelProvider, (prev, next) {
       if (next.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Hunt Updated!"),
+          SnackBar(
+            content: Text(_isSensitive
+                ? "Hunt Updated! (No notification sent - marked sensitive)"
+                : "Hunt Updated & Class Notified!"),
             backgroundColor: Colors.green,
           ),
         );

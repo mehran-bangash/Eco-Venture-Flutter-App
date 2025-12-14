@@ -4,9 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Riverpod
-
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../viewmodels/child_view_model/report_safety/child_safety_provider.dart';
 
 
@@ -33,6 +31,9 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
   @override
   void initState() {
     super.initState();
+    // Debug Print to verify data arrival
+    print("DEBUG REPORT: Context Received: ${widget.contentContext}");
+
     if (widget.contentContext != null) {
       _selectedIssueType = 'Scary Content';
     }
@@ -43,14 +44,14 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
     if (image != null) setState(() => _screenshot = File(image.path));
   }
 
-  // --- SEND LOGIC ---
   Future<void> _sendReport() async {
+    // Pass the widget.contentContext to the ViewModel
     await ref.read(childReportViewModelProvider.notifier).sendReport(
       recipient: _selectedRecipient,
       issueType: _selectedIssueType,
       details: _detailsController.text.trim(),
       screenshot: _screenshot,
-      contextData: widget.contentContext,
+      contextData: widget.contentContext, // <--- CRITICAL: Sending Data
     );
   }
 
@@ -58,10 +59,9 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
   Widget build(BuildContext context) {
     final state = ref.watch(childReportViewModelProvider);
 
-    // Listen for Success
     ref.listen(childReportViewModelProvider, (prev, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Report Sent! We will check it soon."), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Report Sent!"), backgroundColor: Colors.green));
         ref.read(childReportViewModelProvider.notifier).resetSuccess();
         context.pop();
       }
@@ -89,11 +89,16 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
+            // CONTEXT CARD (Shows if data arrived)
             if (hasContext) ...[
               Container(
                 width: double.infinity,
                 padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(color: Colors.redAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.redAccent.withOpacity(0.5))),
+                decoration: BoxDecoration(
+                    color: Colors.redAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.redAccent.withOpacity(0.5))
+                ),
                 child: Row(
                   children: [
                     Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 24.sp),
@@ -132,7 +137,8 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
               decoration: InputDecoration(
                 hintText: hasContext ? "Why is this $contentType bad?" : "Tell us more...",
                 hintStyle: GoogleFonts.poppins(color: Colors.white30),
-                filled: true, fillColor: Colors.white.withOpacity(0.05),
+                filled: true,
+                fillColor: Colors.white.withOpacity(0.05),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
               ),
             ),
@@ -146,7 +152,7 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
             SizedBox(
               width: double.infinity, height: 7.h,
               child: ElevatedButton(
-                onPressed: state.isLoading ? null : _sendReport, // Connected
+                onPressed: state.isLoading ? null : _sendReport,
                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00E676), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
                 child: state.isLoading
                     ? const CircularProgressIndicator(color: Colors.black)
@@ -159,7 +165,7 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
     );
   }
 
-  // ... (Helper Widgets: _labelStyle, _buildRecipientSelector, _buildTypeChip, _buildScreenshotUpload - Same as before)
+  // Helper widgets
   TextStyle get _labelStyle => GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: Colors.white70);
   Widget _buildRecipientSelector() { return Row(children: _recipients.map((r) { bool isSelected = _selectedRecipient == r; return GestureDetector(onTap: () => setState(() => _selectedRecipient = r), child: Container(margin: EdgeInsets.only(right: 3.w), padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h), decoration: BoxDecoration(color: isSelected ? Colors.blueAccent : Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: isSelected ? Colors.blue : Colors.white10)), child: Text(r, style: GoogleFonts.poppins(color: Colors.white, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)))); }).toList()); }
   Widget _buildTypeChip(String type) { bool isSelected = _selectedIssueType == type; return GestureDetector(onTap: () => setState(() => _selectedIssueType = type), child: Container(padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h), decoration: BoxDecoration(color: isSelected ? Colors.orange : Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20)), child: Text(type, style: GoogleFonts.poppins(color: Colors.white)))); }

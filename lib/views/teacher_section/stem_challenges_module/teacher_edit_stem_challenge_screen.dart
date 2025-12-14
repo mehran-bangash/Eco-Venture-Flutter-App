@@ -1,13 +1,17 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui'; // Required for PathMetrics
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
 // Import Backend Model
 import '../../../../models/stem_challenge_model.dart';
+import '../../../core/config/api_constants.dart';
+import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/teacher_stem_challenge/teacher_stem_provider.dart';
 
 class TeacherEditStemChallengeScreen extends ConsumerStatefulWidget {
@@ -82,7 +86,7 @@ class _TeacherEditStemChallengeScreenState
         isSensitive: map['isSensitive'] ?? false, // ADDED: Load sensitivity
       );
     }
-
+    // --- NOTIFICATION LOGIC ---
     _titleController = TextEditingController(text: _challenge.title);
     _pointsController = TextEditingController(
       text: _challenge.points.toString(),
@@ -113,6 +117,35 @@ class _TeacherEditStemChallengeScreenState
     _materialController.dispose();
     _tagsController.dispose(); // ADDED: Dispose tags controller
     super.dispose();
+  }
+
+  Future<void> _sendClassNotification(
+    String teacherId,
+    String challengeTitle,
+  ) async {
+    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "teacherId": teacherId,
+          "type": "STEM Challenge",
+          "title": "STEM Challenge Updated: $challengeTitle ✏️",
+          "body":
+              "Your teacher updated the STEM challenge: $challengeTitle. Check the changes!",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ STEM Challenge Update Notification sent successfully");
+      } else {
+        print("❌ Notification failed: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Error calling notification backend: $e");
+    }
   }
 
   // --- UPDATE LOGIC (Simplified - No Category Change) ---
@@ -147,6 +180,17 @@ class _TeacherEditStemChallengeScreenState
 
     final String? finalImage = _newImageFile?.path ?? _existingImageUrl;
 
+    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error: No Teacher ID. Re-login."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final updatedChallenge = _challenge.copyWith(
       title: _titleController.text.trim(),
       // Category remains unchanged
@@ -160,11 +204,19 @@ class _TeacherEditStemChallengeScreenState
       tags: tagsList,
       isSensitive: _isSensitive,
     );
+    // Send notification only if not sensitive
+    if (!_isSensitive) {
+      await _sendClassNotification(teacherId, updatedChallenge.title);
+    }
 
     // Call update directly (No need for oldCategory since it hasn't changed)
     await ref
         .read(teacherStemViewModelProvider.notifier)
         .updateChallenge(updatedChallenge);
+
+    if (!_isSensitive) {
+      await _sendClassNotification(teacherId, updatedChallenge.title);
+    }
   }
 
   @override
@@ -182,8 +234,12 @@ class _TeacherEditStemChallengeScreenState
       }
       if (next.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Challenge Updated Successfully!"),
+          SnackBar(
+            content: Text(
+              _isSensitive
+                  ? "Challenge Updated! (No notification - marked sensitive)"
+                  : "Challenge Updated & Class Notified!",
+            ),
             backgroundColor: Colors.green,
           ),
         );

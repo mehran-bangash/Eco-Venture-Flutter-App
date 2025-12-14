@@ -1,299 +1,402 @@
-import 'package:eco_venture/models/user_model.dart';
-import 'package:eco_venture/viewmodels/teacher_student_detail/teacher_student_detail_provider.dart';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:shimmer/shimmer.dart';
 import 'package:timeago/timeago.dart' as timeago;
 
-class StudentDetailScreen extends ConsumerWidget {
-  final UserModel student;
+import '../../viewmodels/teacher_student_detail/teacher_student_detail_provider.dart';
 
-  const StudentDetailScreen({super.key, required this.student});
+
+class ViewStudentDetailScreen extends ConsumerStatefulWidget {
+  final Map<String, dynamic> studentData;
+  const ViewStudentDetailScreen({super.key, required this.studentData});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final studentDetailState = ref.watch(teacherStudentDetailViewModelProvider(student.uid));
+  ConsumerState<ViewStudentDetailScreen> createState() => _ViewStudentDetailScreenState();
+}
 
-    final Color primary = const Color(0xFF1565C0);
-    final Color bg = const Color(0xFFF4F7FE);
-    final Color textDark = const Color(0xFF1B2559);
+class _ViewStudentDetailScreenState extends ConsumerState<ViewStudentDetailScreen> {
+  final Color _bg = const Color(0xFFF4F7FE);
+  final Color _textDark = const Color(0xFF1B2559);
+
+  // --- COLORS FOR STATUS ---
+  final Color _green = const Color(0xFF00C853);
+  final Color _red = const Color(0xFFD32F2F);
+  final Color _amber = const Color(0xFFFFAB00);
+  final Color _blue = const Color(0xFF2979FF);
+  final Color primary = const Color(0xFF1565C0);
+
+  @override
+  void initState() {
+    super.initState();
+    final String uid = widget.studentData['uid'];
+    Future.microtask(() =>
+        ref.read(teacherStudentDetailViewModelProvider.notifier).loadStudent(uid)
+    );
+  }
+
+  // --- UPDATED REVIEW DIALOG WITH POINTS ---
+  void _showReviewDialog(Map<String, dynamic> activity) {
+    if (!activity['title'].toString().contains('STEM')) return;
+
+    final TextEditingController feedbackCtrl = TextEditingController();
+    final TextEditingController pointsCtrl = TextEditingController(text: "50");
+
+    final submissionData = activity['data'] as Map<String, dynamic>;
+    final String status = submissionData['status'] ?? 'pending';
+
+    // Get Image URL safely
+    String? imageUrl;
+    if (submissionData['proofImageUrls'] != null) {
+      var imgs = submissionData['proofImageUrls'];
+      if (imgs is List && imgs.isNotEmpty) imageUrl = imgs.first.toString();
+      else if (imgs is String) imageUrl = imgs;
+    }
+
+    showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          scrollable: true,
+          title: Text("Review Submission", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18.sp)),
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Challenge:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.sp, color: Colors.grey[700])),
+              Text("${submissionData['challenge_title']}", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600)),
+              SizedBox(height: 2.h),
+
+              if (imageUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(imageUrl, height: 20.h, width: double.infinity, fit: BoxFit.cover,
+                    errorBuilder: (c,e,s) => Container(height: 15.h, color: Colors.grey[200], child: const Center(child: Icon(Icons.broken_image))),
+                  ),
+                )
+              else
+                Container(
+                    height: 15.h,
+                    decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                    child: const Center(child: Text("No Image Uploaded"))
+                ),
+
+              SizedBox(height: 2.h),
+              Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded, size: 14.sp, color: Colors.blue),
+                  SizedBox(width: 2.w),
+                  Text("Days Taken: ${submissionData['days_taken'] ?? 'N/A'}", style: TextStyle(fontSize: 13.sp, color: Colors.grey[800])),
+                ],
+              ),
+
+              SizedBox(height: 3.h),
+
+              if (status == 'pending') ...[
+                Text("Award Points", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.sp, color: Colors.grey[700])),
+                SizedBox(height: 1.h),
+                TextField(
+                  controller: pointsCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                      hintText: "50",
+                      contentPadding: EdgeInsets.symmetric(horizontal: 4.w),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      suffixText: "XP"
+                  ),
+                ),
+                SizedBox(height: 2.h),
+                Text("Feedback", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.sp, color: Colors.grey[700])),
+                SizedBox(height: 1.h),
+                TextField(
+                  controller: feedbackCtrl,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                      hintText: "Great job! / Try again...",
+                      contentPadding: EdgeInsets.all(4.w),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F7FA)
+                  ),
+                )
+              ] else ...[
+                Container(
+                  padding: EdgeInsets.all(3.w),
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                      color: status == 'approved' ? _green.withOpacity(0.1) : _red.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: status == 'approved' ? _green : _red)
+                  ),
+                  child: Column(
+                    children: [
+                      Text("Status: ${status.toUpperCase()}", style: TextStyle(fontWeight: FontWeight.bold, color: status == 'approved' ? _green : _red)),
+                      if (status == 'approved') Text("+${submissionData['points_awarded']} XP Awarded", style: TextStyle(color: _green))
+                    ],
+                  ),
+                )
+              ]
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close", style: TextStyle(color: Colors.grey))),
+            if (status == 'pending') ...[
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: _red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                onPressed: () {
+                  ref.read(teacherStudentDetailViewModelProvider.notifier).markStemSubmission(
+                      studentId: widget.studentData['uid'],
+                      challengeId: submissionData['challenge_id'].toString(),
+                      approved: false,
+                      points: 0,
+                      feedback: feedbackCtrl.text.isEmpty ? "Try again." : feedbackCtrl.text
+                  );
+                  Navigator.pop(ctx);
+                },
+                child: const Text("Reject", style: TextStyle(color: Colors.white)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: _green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                onPressed: () {
+                  int pts = int.tryParse(pointsCtrl.text) ?? 50;
+                  ref.read(teacherStudentDetailViewModelProvider.notifier).markStemSubmission(
+                      studentId: widget.studentData['uid'],
+                      challengeId: submissionData['challenge_id'].toString(),
+                      approved: true,
+                      points: pts,
+                      feedback: feedbackCtrl.text.isEmpty ? "Great work!" : feedbackCtrl.text
+                  );
+                  Navigator.pop(ctx);
+                },
+                child: const Text("Approve", style: TextStyle(color: Colors.white)),
+              ),
+            ]
+          ],
+        )
+    );
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(teacherStudentDetailViewModelProvider);
+    final student = state.student;
+
+    if (state.isLoading || student == null) {
+      return Scaffold(backgroundColor: _bg, body: const Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: _bg,
+      appBar: AppBar(
+        title: Text("Student Profile", style: GoogleFonts.poppins(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18.sp)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: const BackButton(color: Colors.black),
+      ),
       body: SingleChildScrollView(
+        padding: EdgeInsets.all(5.w),
         child: Column(
           children: [
-            // --- 1. HEADER (using passed student data) ---
-            _buildHeader(context, primary),
+            _buildProfileBanner(student.name, student.email, student.currentLevel),
+            SizedBox(height: 3.h),
+            _buildStatsGrid(student.totalXP, student.quizzesPassed, student.stemApproved, student.qrHuntsCompleted),
+            SizedBox(height: 4.h),
 
-            // --- 2. PERFORMANCE STATS (using ViewModel data) ---
-            Padding(
-              padding: EdgeInsets.all(5.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Learning Overview", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: textDark)),
-                  SizedBox(height: 2.h),
-                  if (studentDetailState.isLoading)
-                    _buildStatsShimmer()
-                  else if (studentDetailState.errorMessage != null)
-                    Center(child: Text(studentDetailState.errorMessage!))
-                  else
-                    _buildStatsGrid(studentDetailState.stats),
-                ],
-              ),
-            ),
+            Align(alignment: Alignment.centerLeft, child: Text("Activity History", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.bold, color: _textDark))),
+            SizedBox(height: 2.h),
 
-            // --- 3. RECENT ACTIVITY (using ViewModel data) ---
-            Container(
-              width: double.infinity,
-              margin: EdgeInsets.symmetric(horizontal: 5.w),
-              padding: EdgeInsets.all(5.w),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 5))],
+            if (student.recentActivity.isEmpty)
+              Container(
+                  padding: EdgeInsets.all(5.w),
+                  width: double.infinity,
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+                  child: Center(child: Text("No activity recorded yet.", style: GoogleFonts.poppins(color: Colors.grey)))
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: student.recentActivity.length,
+                itemBuilder: (context, index) {
+                  final item = student.recentActivity[index];
+                  return _buildActivityTile(item);
+                },
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Recent Activity", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: textDark)),
-                  SizedBox(height: 2.5.h),
-                  if (studentDetailState.isLoading)
-                    _buildActivityShimmer()
-                  else if (studentDetailState.errorMessage != null)
-                    const Center(child: Text("Could not load activities."))
-                  else if (studentDetailState.activities.isEmpty)
-                    const Center(child: Text("No recent activity found."))
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: studentDetailState.activities.length,
-                      itemBuilder: (context, index) {
-                        final activity = studentDetailState.activities[index];
-                        return _buildActivityItem(
-                          activity.title,
-                          timeago.format(activity.timestamp),
-                          _getIconForActivityType(activity.type),
-                          _getColorForActivityType(activity.type),
-                        );
-                      },
-                      separatorBuilder: (context, index) => Divider(color: Colors.grey.shade100, height: 3.h),
-                    ),
-                ],
-              ),
-            ),
-            SizedBox(height: 5.h),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, Color primary) {
+  // --- WIDGETS ---
+
+  Widget _buildProfileBanner(String name, String email, int level) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.only(top: 6.h, bottom: 5.h, left: 5.w, right: 5.w),
+      padding: EdgeInsets.all(5.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [primary, const Color(0xFF42A5F5)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(40),
-          bottomRight: Radius.circular(40),
-        ),
-        boxShadow: [BoxShadow(color: primary.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+        gradient: LinearGradient(colors: [const Color(0xFF1565C0), const Color(0xFF42A5F5)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: const Color(0xFF1565C0).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20.sp),
-                onPressed: () => Navigator.pop(context),
-              ),
-              Text("Student Profile", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18.sp)),
-              IconButton(onPressed: () {}, icon: Icon(Icons.more_vert, color: Colors.white, size: 22.sp)),
-            ],
-          ),
-          SizedBox(height: 3.h),
           Container(
-            padding: EdgeInsets.all(1.w),
-            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 3)),
+            padding: const EdgeInsets.all(3),
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
             child: CircleAvatar(
-              radius: 38.sp,
-              backgroundColor: Colors.white,
-              backgroundImage: student.imgUrl != null && student.imgUrl!.isNotEmpty
-                  ? NetworkImage(student.imgUrl!)
-                  : const AssetImage('assets/images/boy_1.png') as ImageProvider,
-              onBackgroundImageError: (_, __) => Icon(Icons.person, size: 40.sp, color: primary),
+              radius: 28.sp,
+              backgroundColor: Colors.white.withOpacity(0.2),
+              child: Icon(Icons.person, color: Colors.white, size: 35.sp),
             ),
           ),
-          SizedBox(height: 2.h),
-          Text(
-            student.displayName,
-            style: GoogleFonts.poppins(fontSize: 22.sp, fontWeight: FontWeight.w700, color: Colors.white),
-          ),
-          Text(
-            "ID: ${student.uid.substring(0, 10)}...", // Displaying a shortened UID for privacy
-            style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.white.withOpacity(0.85)),
-          ),
+          SizedBox(width: 4.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+                Text(email, style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white70)),
+                SizedBox(height: 1.5.h),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.5.h),
+                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.star_rounded, color: Colors.amberAccent, size: 16.sp),
+                      SizedBox(width: 1.w),
+                      Text("Level $level", style: GoogleFonts.poppins(fontSize: 12.sp, fontWeight: FontWeight.w700, color: Colors.white)),
+                    ],
+                  ),
+                )
+              ],
+            ),
+          )
         ],
       ),
     );
   }
 
-  Widget _buildStatsGrid(dynamic stats) {
-    return Column(
-      children: [
-        Row(
-          children: [
-            _buildStatCard("Total Points", stats.totalPoints.toString(), Icons.star_rounded, Colors.amber),
-            SizedBox(width: 4.w),
-            _buildStatCard("Quiz Avg", "${stats.quizAverage.toStringAsFixed(1)}%", Icons.pie_chart_rounded, Colors.purple),
-          ],
-        ),
-        SizedBox(height: 2.h),
-        Row(
-          children: [
-            _buildStatCard("QR Finds", "${stats.qrFinds} Items", Icons.qr_code_scanner_rounded, Colors.teal),
-            SizedBox(width: 4.w),
-            _buildStatCard("STEM Tasks", stats.stemTasksDone.toString(), Icons.science_rounded, Colors.blue),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(4.5.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: EdgeInsets.all(2.5.w),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 20.sp),
-            ),
-            SizedBox(height: 2.h),
-            Text(value, style: GoogleFonts.poppins(fontSize: 20.sp, fontWeight: FontWeight.w700, color: const Color(0xFF1B2559))),
-            Text(label, style: GoogleFonts.poppins(fontSize: 13.sp, color: Colors.grey[500], fontWeight: FontWeight.w500)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActivityItem(String title, String subtitle, IconData icon, Color color) {
+  Widget _buildStatsGrid(int xp, int quiz, int stem, int qr) {
     return Row(
       children: [
-        Container(
-          padding: EdgeInsets.all(2.5.w),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: color, size: 20.sp),
-        ),
-        SizedBox(width: 4.w),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: const Color(0xFF1B2559)), overflow: TextOverflow.ellipsis),
-              SizedBox(height: 0.5.h),
-              Text(subtitle, style: GoogleFonts.poppins(fontSize: 13.sp, color: Colors.grey[500])),
-            ],
-          ),
-        )
+        Expanded(child: _buildStatCard("Total XP", "$xp", Icons.emoji_events, _amber)),
+        SizedBox(width: 3.w),
+        Expanded(child: _buildStatCard("Quizzes", "$quiz", Icons.quiz, Colors.purpleAccent)),
+        SizedBox(width: 3.w),
+        Expanded(child: _buildStatCard("STEM", "$stem", Icons.science, _blue)),
       ],
     );
   }
 
-  IconData _getIconForActivityType(String type) {
-    switch (type.toLowerCase()) {
-      case 'quiz':
-        return Icons.check_circle;
-      case 'video':
-        return Icons.play_circle_fill_rounded;
-      case 'story':
-        return Icons.book_rounded;
-      case 'stem':
-        return Icons.upload_file;
-      default:
-        return Icons.star;
-    }
-  }
-
-  Color _getColorForActivityType(String type) {
-    switch (type.toLowerCase()) {
-      case 'quiz':
-        return Colors.green;
-      case 'video':
-        return Colors.redAccent;
-      case 'story':
-        return Colors.blueAccent;
-      case 'stem':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  Widget _buildStatsShimmer() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
+  Widget _buildStatCard(String label, String val, IconData icon, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 2.w),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))]
+      ),
       child: Column(
         children: [
-          Row(children: [Expanded(child: _shimmerBox()), SizedBox(width: 4.w), Expanded(child: _shimmerBox())]),
-          SizedBox(height: 2.h),
-          Row(children: [Expanded(child: _shimmerBox()), SizedBox(width: 4.w), Expanded(child: _shimmerBox())]),
+          Container(
+            padding: EdgeInsets.all(2.w),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 18.sp),
+          ),
+          SizedBox(height: 1.h),
+          Text(val, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: _textDark)),
+          Text(label, style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey[600], fontWeight: FontWeight.w500)),
         ],
       ),
     );
   }
 
-  Widget _buildActivityShimmer() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: Column(
-        children: List.generate(3, (index) => Padding(
-          padding: EdgeInsets.symmetric(vertical: 1.h),
-          child: Row(
-            children: [
-              Container(width: 12.w, height: 12.w, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
-              SizedBox(width: 4.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(height: 2.h, width: 60.w, color: Colors.white),
-                    SizedBox(height: 1.h),
-                    Container(height: 1.5.h, width: 30.w, color: Colors.white),
-                  ],
-                ),
-              )
-            ],
-          ),
-        )),
+  // --- UPDATED ACTIVITY TILE LOGIC ---
+
+  Widget _buildActivityTile(Map<String, dynamic> activity) {
+    final String title = activity['title'].toString();
+    // 'type' is set by Service (Quiz, STEM, QR)
+    final bool isSubmission = activity['type'] == 'STEM';
+
+    // Status Logic
+    bool isPositive = activity['isPositive'] == true;
+    Color statusColor = isPositive ? _green : _red;
+    IconData icon = isPositive ? Icons.check_circle_rounded : Icons.cancel_rounded;
+
+    if (isSubmission) {
+      // Check if pending or approved to set color
+      String status = activity['subtitle']?.toString().toLowerCase() ?? '';
+      if (status.contains('pending')) {
+        statusColor = _amber;
+        icon = Icons.hourglass_bottom_rounded;
+      } else {
+        statusColor = _blue;
+        icon = Icons.assignment_ind_rounded;
+      }
+    }
+
+    // Determine subtitle to show (Subtitle field OR Score field)
+    String subtitle = activity['subtitle'] ?? '';
+    if (subtitle.isEmpty && activity['score'] != null) {
+      subtitle = activity['score'];
+    }
+
+    return GestureDetector(
+      onTap: isSubmission ? () => _showReviewDialog(activity) : null,
+      child: Container(
+        margin: EdgeInsets.only(bottom: 1.5.h),
+        padding: EdgeInsets.all(4.w),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border(left: BorderSide(color: statusColor, width: 4)),
+            boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))]
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(2.w),
+              decoration: BoxDecoration(color: statusColor.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: statusColor, size: 18.sp),
+            ),
+            SizedBox(width: 3.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                      title,
+                      style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w600, color: _textDark),
+                      maxLines: 2, overflow: TextOverflow.ellipsis
+                  ),
+                  SizedBox(height: 0.5.h),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: 12.sp, color: Colors.grey),
+                      SizedBox(width: 1.w),
+                      // Display Time • Subtitle (or Score)
+                      Expanded(
+                        child: Text(
+                            "${timeago.format(DateTime.parse(activity['time']))}${subtitle.isNotEmpty ? ' • $subtitle' : ''}",
+                            style: GoogleFonts.poppins(fontSize: 10.sp, color: Colors.grey),
+                            maxLines: 1, overflow: TextOverflow.ellipsis
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (isSubmission)
+              Icon(Icons.arrow_forward_ios_rounded, size: 14.sp, color: Colors.grey)
+          ],
+        ),
       ),
     );
   }
-
-  Widget _shimmerBox() => Container(height: 20.h, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)));
 }

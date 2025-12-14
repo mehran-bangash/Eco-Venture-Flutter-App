@@ -22,13 +22,20 @@ class ContentBlockedScreen extends StatelessWidget {
               SizedBox(height: 4.h),
               Text(
                 "Content Hidden",
-                style: GoogleFonts.poppins(fontSize: 22.sp, fontWeight: FontWeight.w900, color: Colors.white),
+                style: GoogleFonts.poppins(
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                ),
               ),
               SizedBox(height: 2.h),
               Text(
                 "This content is not available due to your safety settings ($reason).",
                 textAlign: TextAlign.center,
-                style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.white70),
+                style: GoogleFonts.poppins(
+                  fontSize: 15.sp,
+                  color: Colors.white70,
+                ),
               ),
               SizedBox(height: 6.h),
               SizedBox(
@@ -38,9 +45,18 @@ class ContentBlockedScreen extends StatelessWidget {
                   onPressed: () => context.pop(), // Go back
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.white54),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: Text("Go Back", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w600)),
+                  child: Text(
+                    "Go Back",
+                    style: GoogleFonts.poppins(
+                      color: Colors.white,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
               SizedBox(height: 2.h),
@@ -49,8 +65,11 @@ class ContentBlockedScreen extends StatelessWidget {
                   // Navigate to Report Screen if they think this is a mistake
                   context.replaceNamed('childReportIssueScreen');
                 },
-                child: Text("Report a mistake", style: GoogleFonts.poppins(color: Colors.blueAccent)),
-              )
+                child: Text(
+                  "Report a mistake",
+                  style: GoogleFonts.poppins(color: Colors.blueAccent),
+                ),
+              ),
             ],
           ),
         ),

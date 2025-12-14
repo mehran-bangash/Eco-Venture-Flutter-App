@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'package:eco_venture/core/config/api_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import '../../../models/child_report_model.dart';
 import '../../../repositories/child_safety_repository.dart';
+import '../../../services/shared_preferences_helper.dart';
 import 'child_report_state.dart';
 
 // --- VIEW MODEL ---
@@ -50,11 +54,40 @@ class ChildReportViewModel extends StateNotifier<ChildReportState> {
         contentType: contextData?['type'],
       );
 
+      // 1. Save to Firebase
       await _repository.submitReport(report, screenshot);
+
+      // 2. NOTIFY PARENT (Call Node.js)
+      if (recipient == 'Parent') {
+        await _notifyParent(report);
+      }
 
       state = state.copyWith(isLoading: false, isSuccess: true);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> _notifyParent(ChildReportModel report) async {
+    try {
+      final childId = await SharedPreferencesHelper.instance.getUserId();
+      if (childId == null) return;
+
+      final url = Uri.parse(ApiConstants.notifyParentEndPoint);
+
+      await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'childId': childId,
+            'title': 'Safety Alert: ${report.issueType}',
+            'body': 'Your child reported an issue: ${report.details.isEmpty ? "No details" : report.details}',
+          })
+      );
+      print("🔔 Parent Notified Successfully");
+    } catch (e) {
+      print("⚠️ Failed to notify parent: $e");
+      // Don't fail the whole action, just log it
     }
   }
 

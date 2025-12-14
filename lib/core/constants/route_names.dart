@@ -17,6 +17,8 @@ class RouteNames {
   static const teacherHome = '/teacher/home';
 
   //  nested inside child
+  static const childNotificationsScreen='/child/child-notifications-screen';
+
   static const childProfile = '/child/child-profile';
   static const editProfile = '/child/child-profile/edit-profile';
   static const childSettings = '/child/child-settings';
@@ -146,6 +148,7 @@ class RouteNames {
       '/teacher/home/teacher-treasure-hunt/edit';
 
   // Parent Route
+  static const parentNotificationsScreen='/parent/parent-notifications-screen';
   static const parentSettings = '/parent/bottom-nav-parent/parent-settings';
   static const parentProfile =
       '/parent/bottom-nav-parent/parent-settings/profile';
@@ -154,6 +157,7 @@ class RouteNames {
 
   static const parentReportSafetyScreen =
       '/parent/bottom-nav-parent/parent-report-safety';
+  static const parentReportDetailScreen='/parent/bottom-nav-parent/parent-report-safety/parent-report-detail';
   static const parentScreenTimeScreen =
       '/parent/bottom-nav-parent/parent-report-safety/screen-time';
   static const parentContentFiltersScreen =

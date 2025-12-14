@@ -1,30 +1,26 @@
-import '../../models/teacher_student_activity_model.dart';
-import '../../models/teacher_student_stats_model.dart';
+
+import '../../models/teacher_student_detail_model.dart';
 
 class TeacherStudentDetailState {
   final bool isLoading;
+  final TeacherStudentDetailModel? student;
   final String? errorMessage;
-  final TeacherStudentStatsModel stats;
-  final List<TeacherStudentActivityModel> activities;
 
   TeacherStudentDetailState({
-    this.isLoading = true, // Default to loading on initialization
+    this.isLoading = true,
+    this.student,
     this.errorMessage,
-    TeacherStudentStatsModel? stats,
-    this.activities = const [],
-  }) : stats = stats ?? TeacherStudentStatsModel.initial();
+  });
 
   TeacherStudentDetailState copyWith({
     bool? isLoading,
+    TeacherStudentDetailModel? student,
     String? errorMessage,
-    TeacherStudentStatsModel? stats,
-    List<TeacherStudentActivityModel>? activities,
   }) {
     return TeacherStudentDetailState(
       isLoading: isLoading ?? this.isLoading,
+      student: student ?? this.student,
       errorMessage: errorMessage,
-      stats: stats ?? this.stats,
-      activities: activities ?? this.activities,
     );
   }
 }

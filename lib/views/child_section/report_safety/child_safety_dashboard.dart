@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../models/child_report_model.dart';
 import '../../../viewmodels/child_view_model/report_safety/child_safety_provider.dart';
@@ -85,22 +84,8 @@ class _ChildSafetyDashboardState extends ConsumerState<ChildSafetyDashboard>
                 children: [
                   // Header
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      IconButton(
-                        onPressed: () => context.pop(),
-                        icon: Container(
-                          padding: EdgeInsets.all(2.w),
-                          decoration: BoxDecoration(
-                            color: Colors.white10,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.arrow_back_ios_new,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
                       Text(
                         "Safety Center",
                         style: GoogleFonts.poppins(
@@ -117,47 +102,85 @@ class _ChildSafetyDashboardState extends ConsumerState<ChildSafetyDashboard>
                   // --- REAL TIME INDICATOR ---
                   settingsAsync.when(
                     loading: () => _buildLoadingCircle(),
-                    error: (err, stack) => Center(
-                      child: Text(
-                        "Error loading settings",
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
+                    error: (err, stack) => const Text("Error loading settings"),
                     data: (settings) {
+
+                      // 1. CHECK: IS USER LINKED?
+                      // If limit is 24 hours (our default safe value), consider them UNLINKED.
+                      bool isLinked = settings.dailyLimitHours < 24.0;
+
+                      if (!isLinked) {
+                        // --- UNLINKED STATE (Static Beautiful Icon) ---
+                        return Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(8.w),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.greenAccent.withOpacity(0.1),
+                                  border: Border.all(color: Colors.greenAccent.withOpacity(0.3), width: 2),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.greenAccent.withOpacity(0.2),
+                                      blurRadius: 30,
+                                      spreadRadius: 5,
+                                    )
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.security_rounded, // Static Shield Icon
+                                  size: 40.sp,
+                                  color: Colors.greenAccent,
+                                ),
+                              ),
+                              SizedBox(height: 2.h),
+                              Text(
+                                "You are Protected",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 22.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                "No active time limits",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 14.sp,
+                                  color: Colors.white54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      // --- LINKED STATE (Timer Logic) ---
                       return usageAsync.when(
-                        loading: () =>
-                            _buildLoadingCircle(), // Wait for usage to load
-                        error: (_, __) => Text("Error usage"),
+                        loading: () => _buildLoadingCircle(),
+                        error: (_, __) => const Text("Error usage"),
                         data: (usedMinutes) {
-                          // CALCULATE REMAINING TIME
-                          final int totalLimitMinutes =
-                              (settings.dailyLimitHours * 60).round();
-                          int remainingMinutes =
-                              totalLimitMinutes - usedMinutes;
+                          final int totalLimitMinutes = (settings.dailyLimitHours * 60).round();
+                          int remainingMinutes = totalLimitMinutes - usedMinutes;
                           if (remainingMinutes < 0) remainingMinutes = 0;
 
-                          // Progress for Circle (1.0 = Full Time Left, 0.0 = Time Up)
                           final double progress = totalLimitMinutes == 0
                               ? 0.0
-                              : (remainingMinutes / totalLimitMinutes).clamp(
-                                  0.0,
-                                  1.0,
-                                );
+                              : (remainingMinutes / totalLimitMinutes).clamp(0.0, 1.0);
 
-                          final bool isPaused = settings.isAppPaused;
+                          final bool isPaused = settings.isAppPaused; // Ensure this getter exists in your model
                           final bool isTimeUp = remainingMinutes <= 0;
 
                           Color statusColor = const Color(0xFF00E5FF);
                           if (isPaused) {
                             statusColor = Colors.red;
-                          } else if (isTimeUp)
-                            statusColor = Colors.orange;
+                          } else if (isTimeUp) {statusColor = Colors.orange;}
 
                           return Center(
                             child: Stack(
                               alignment: Alignment.center,
                               children: [
-                                // Pulse Effect (Only if active)
+                                // Pulse (Only if Active)
                                 if (!isPaused && !isTimeUp)
                                   AnimatedBuilder(
                                     animation: _pulseController,
@@ -169,9 +192,7 @@ class _ChildSafetyDashboardState extends ConsumerState<ChildSafetyDashboard>
                                           shape: BoxShape.circle,
                                           boxShadow: [
                                             BoxShadow(
-                                              color: statusColor.withOpacity(
-                                                0.2 * _pulseController.value,
-                                              ),
+                                              color: statusColor.withOpacity(0.2 * _pulseController.value),
                                               blurRadius: 40,
                                               spreadRadius: 10,
                                             ),
@@ -186,12 +207,10 @@ class _ChildSafetyDashboardState extends ConsumerState<ChildSafetyDashboard>
                                   width: 60.w,
                                   height: 60.w,
                                   child: CircularProgressIndicator(
-                                    value: progress, // Updates every minute
+                                    value: progress,
                                     strokeWidth: 15,
                                     backgroundColor: Colors.white10,
-                                    valueColor: AlwaysStoppedAnimation(
-                                      statusColor,
-                                    ),
+                                    valueColor: AlwaysStoppedAnimation(statusColor),
                                     strokeCap: StrokeCap.round,
                                   ),
                                 ),
@@ -201,23 +220,13 @@ class _ChildSafetyDashboardState extends ConsumerState<ChildSafetyDashboard>
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      isPaused
-                                          ? Icons.pause_circle_filled
-                                          : (isTimeUp
-                                                ? Icons.hourglass_empty
-                                                : Icons.timer_rounded),
+                                      isPaused ? Icons.pause_circle_filled : (isTimeUp ? Icons.hourglass_empty : Icons.timer_rounded),
                                       color: statusColor,
                                       size: 24.sp,
                                     ),
                                     SizedBox(height: 1.h),
                                     Text(
-                                      isPaused
-                                          ? "PAUSED"
-                                          : (isTimeUp
-                                                ? "TIME'S UP"
-                                                : _formatMinutes(
-                                                    remainingMinutes,
-                                                  )),
+                                      isPaused ? "PAUSED" : (isTimeUp ? "TIME'S UP" : _formatMinutes(remainingMinutes)),
                                       style: GoogleFonts.poppins(
                                         fontSize: 28.sp,
                                         fontWeight: FontWeight.w900,
@@ -225,9 +234,7 @@ class _ChildSafetyDashboardState extends ConsumerState<ChildSafetyDashboard>
                                       ),
                                     ),
                                     Text(
-                                      isPaused
-                                          ? "By Parent"
-                                          : "Remaining Today",
+                                      isPaused ? "By Parent" : "Remaining Today",
                                       style: GoogleFonts.poppins(
                                         fontSize: 12.sp,
                                         color: Colors.white54,

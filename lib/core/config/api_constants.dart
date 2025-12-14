@@ -17,4 +17,7 @@ class ApiConstants {
  static const String getUserEndpoint = "${baseUrl}user";
  static const String chatEndpoint = "${baseUrl}chat";
  static const String createStudentEndPoint="${baseUrl}create-student";
+ static const String notifyParentEndPoint='${baseUrl}notify-parent';
+ static const  String  notifyChildEndPoints='${baseUrl}notify-child';
+ static const String notifyChildClassEndPoints='${baseUrl}notify-class';
 }

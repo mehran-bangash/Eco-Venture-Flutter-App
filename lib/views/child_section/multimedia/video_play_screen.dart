@@ -136,9 +136,25 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      video.title,
-                      style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                    Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          video.title,
+                          style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            context.pushNamed('childReportIssueScreen', extra: {
+                              'id': video.id,
+                              'title': video.title,
+                              'type': 'Video'
+                            });
+                          },
+                          icon: Icon(Icons.flag_rounded, color: Colors.redAccent.withOpacity(0.7)),
+                          tooltip: "Report this video",
+                        )
+                      ],
                     ),
                     SizedBox(height: 1.h),
 

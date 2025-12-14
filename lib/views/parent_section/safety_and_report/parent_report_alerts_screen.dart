@@ -4,10 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
-
 import '../../../models/parent_alert_model.dart';
-import '../../../viewmodels/parent_section/report_safety/parent_safety_provider.dart'; // Add this package to pubspec
-
+import '../../../viewmodels/parent_section/report_safety/parent_safety_provider.dart';
 
 class ParentReportAlertsScreen extends ConsumerWidget {
   const ParentReportAlertsScreen({super.key});
@@ -46,30 +44,32 @@ class ParentReportAlertsScreen extends ConsumerWidget {
     bool isPending = alert.status == 'Pending';
     Color statusColor = isPending ? Colors.orange : Colors.green;
 
-    // Determine Icon
     IconData icon = Icons.notifications;
     if(alert.title.contains("Content")) {
       icon = Icons.flag_rounded;
-    } else if(alert.title.contains("Time")) icon = Icons.timer_rounded;
+    } else if(alert.title.contains("Time")){icon = Icons.timer_rounded;}
 
-    return Container(
-      padding: EdgeInsets.all(5.w),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 5))], border: Border.all(color: Colors.grey.shade100)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [Icon(icon, color: Colors.grey, size: 18.sp), SizedBox(width: 2.w), Text(alert.title, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w700, color: const Color(0xFF1B2559)))]), Text(timeago.format(alert.timestamp), style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey, fontWeight: FontWeight.w500))]),
-          SizedBox(height: 1.5.h),
-          Text(alert.description, style: GoogleFonts.poppins(fontSize: 12.sp, color: const Color(0xFF546E7A), height: 1.5)),
-          SizedBox(height: 3.h),
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Container(padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.6.h), decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Text(alert.status, style: GoogleFonts.poppins(color: statusColor, fontWeight: FontWeight.w700, fontSize: 11.sp))),
-            if (isPending) ElevatedButton(onPressed: () {
-              // Mark Resolved Logic
-              ref.read(parentSafetyViewModelProvider.notifier).markAlertResolved(alert.id);
-            }, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E88E5), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h), elevation: 0), child: Text("Mark Resolved", style: GoogleFonts.poppins(fontSize: 11.sp, fontWeight: FontWeight.w600, color: Colors.white)))
-          ]),
-        ],
+    return GestureDetector( // FIX: Wrapped in GestureDetector for Navigation
+      onTap: () {
+        // Navigate to Detail Screen
+        context.pushNamed('parentReportDetailScreen', extra: alert);
+      },
+      child: Container(
+        padding: EdgeInsets.all(5.w),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 5))], border: Border.all(color: Colors.grey.shade100)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [Icon(icon, color: Colors.grey, size: 18.sp), SizedBox(width: 2.w), Text(alert.title, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w700, color: const Color(0xFF1B2559)))]), Text(timeago.format(alert.timestamp), style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey, fontWeight: FontWeight.w500))]),
+            SizedBox(height: 1.5.h),
+            Text(alert.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.sp, color: const Color(0xFF546E7A), height: 1.5)),
+            SizedBox(height: 3.h),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Container(padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.6.h), decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Text(alert.status, style: GoogleFonts.poppins(color: statusColor, fontWeight: FontWeight.w700, fontSize: 11.sp))),
+              Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey.shade400, size: 16.sp) // Indicator that it's clickable
+            ]),
+          ],
+        ),
       ),
     );
   }

@@ -17,19 +17,30 @@ class AppLockedScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.hourglass_empty_rounded, color: Colors.white, size: 45.sp),
+              Icon(
+                Icons.hourglass_empty_rounded,
+                color: Colors.white,
+                size: 45.sp,
+              ),
               SizedBox(height: 4.h),
               Padding(
-                padding:  EdgeInsets.only(left: 17.w),
+                padding: EdgeInsets.only(left: 17.w),
                 child: Text(
                   message,
-                  style: GoogleFonts.poppins(fontSize: 24.sp, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: GoogleFonts.poppins(
+                    fontSize: 24.sp,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
               ),
               SizedBox(height: 2.h),
               Text(
                 "Take a break! Come back later.",
-                style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.white54),
+                style: GoogleFonts.poppins(
+                  fontSize: 16.sp,
+                  color: Colors.white54,
+                ),
               ),
             ],
           ),

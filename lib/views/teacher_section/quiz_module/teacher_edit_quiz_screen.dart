@@ -1,11 +1,18 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:eco_venture/core/config/api_constants.dart';
+import 'package:http/http.dart' as http; // Add HTTP import
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+
+// Import models, providers, and helper
 import '../../../../models/quiz_topic_model.dart';
+import '../../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/teacher_quiz/teacher_quiz_provider.dart';
+
 class TeacherEditQuizScreen extends ConsumerStatefulWidget {
   // Accepts dynamic to safely handle routing arguments
   final dynamic quizData;
@@ -57,7 +64,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     _topicNameController = TextEditingController(text: _topic.topicName);
 
     // --- ADDED: Initialize tags controller ---
-    _tagsController = TextEditingController(text: _topic.tags?.join(', ') ?? '');
+    _tagsController = TextEditingController(text: _topic.tags.join(', '));
 
     _selectedCategory = _categories.contains(_topic.category) ? _topic.category : _categories.first;
 
@@ -65,7 +72,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     _levels = List<QuizLevelModel>.from(_topic.levels);
 
     // --- ADDED: Initialize sensitivity ---
-    _isSensitive = _topic.isSensitive ?? false;
+    _isSensitive = _topic.isSensitive;
   }
 
   @override
@@ -73,6 +80,30 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     _topicNameController.dispose();
     _tagsController.dispose(); // ADDED: Dispose tags controller
     super.dispose();
+  }
+
+  // --- NOTIFICATION LOGIC ---
+  Future<void> _sendClassNotification(String teacherId, String topicName) async {
+    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "teacherId": teacherId,
+          "type": "Quiz",
+          "title": "Quiz Updated: $topicName 📝",
+          "body": "Your teacher updated the '$topicName' quiz. Check it out!"
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Class Notification sent successfully");
+      }
+    } catch (e) {
+      print("❌ Error calling backend: $e");
+    }
   }
 
   // --- UPDATE LOGIC ---
@@ -85,6 +116,8 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
       _showError("Please ensure there is at least one Level");
       return;
     }
+
+    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
 
     // --- ADDED: Process tags like in Add Screen ---
     List<String> tagsList = _tagsController.text
@@ -112,6 +145,11 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     );
 
     await ref.read(teacherQuizViewModelProvider.notifier).updateQuiz(updatedTopic);
+
+    // Trigger Notification if valid teacher and not sensitive
+    if (!_isSensitive && teacherId != null) {
+      _sendClassNotification(teacherId, updatedTopic.topicName);
+    }
   }
 
   void _showError(String msg) {
@@ -214,21 +252,28 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
 
                       // --- ADDED: Sensitivity Switch ---
                       SizedBox(height: 3.h),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text("Mark as Sensitive Content",
-                            style: GoogleFonts.poppins(
-                              fontSize: 15.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.red.shade400,
-                            )),
-                        subtitle: Text(
-                          "If enabled, this quiz will be blocked for younger children.",
-                          style: GoogleFonts.poppins(fontSize: 12.sp),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: _bg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: _border),
                         ),
-                        value: _isSensitive,
-                        onChanged: (v) => setState(() => _isSensitive = v),
-                        activeThumbColor: Colors.red,
+                        child: SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text("Mark as Sensitive Content",
+                              style: GoogleFonts.poppins(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.red.shade400,
+                              )),
+                          subtitle: Text(
+                            "If enabled, this quiz will be blocked for younger children.",
+                            style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.grey),
+                          ),
+                          value: _isSensitive,
+                          onChanged: (v) => setState(() => _isSensitive = v),
+                          activeThumbColor: Colors.red,
+                        ),
                       ),
                     ],
                   ),
@@ -389,7 +434,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
   }
 
   // ==========================================
-  // LEVEL EDITOR MODAL (FULL FUNCTIONALITY)
+  // LEVEL EDITOR MODAL (Reused logic)
   // ==========================================
   void _showLevelEditor({QuizLevelModel? existingLevel, int? index}) {
     final titleCtrl = TextEditingController(text: existingLevel?.title ?? "");
@@ -406,7 +451,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) {
           return Container(
-            height: 92.h,
+            height: 90.h,
             padding: EdgeInsets.fromLTRB(5.w, 2.h, 5.w, MediaQuery.of(context).viewInsets.bottom + 2.h),
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -513,7 +558,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
                     height: 7.h,
                     child: ElevatedButton(
                       onPressed: () {
-                        if (titleCtrl.text.isEmpty) return;
+                        if (titleCtrl.text.isEmpty || tempQuestions.isEmpty) return;
                         final newLevel = QuizLevelModel(
                           title: titleCtrl.text,
                           order: int.tryParse(orderCtrl.text) ?? 1,

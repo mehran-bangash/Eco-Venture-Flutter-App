@@ -56,9 +56,15 @@ class _MathInstructionScreenState extends State<MathInstructionScreen> {
             ),
           ),
           actions: [
-            Padding(
-              padding: EdgeInsets.only(right: 3.w),
-              child: const Icon(Icons.bookmark_border, color: Colors.white),
+            IconButton(
+              icon: Icon(Icons.flag, color: Colors.redAccent),
+              onPressed: () {
+                context.pushNamed('childReportIssueScreen', extra: {
+                  'id': widget.challenge.id,
+                  'title': widget.challenge.title,
+                  'type': 'STEM Challenge'
+                });
+              },
             )
           ],
         ),

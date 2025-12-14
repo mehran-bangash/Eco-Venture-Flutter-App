@@ -11,6 +11,7 @@ import 'package:eco_venture/views/child_section/naturePhotoJournal/learn_with_ai
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_description_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_photo_explore_screen.dart';
 import 'package:eco_venture/views/child_section/child_progress_dashboard.dart';
+import 'package:eco_venture/views/child_section/notifications/child_notification_screen.dart';
 import 'package:eco_venture/views/child_section/report_safety/child_report_issue_screen.dart';
 import 'package:eco_venture/views/child_section/report_safety/child_safety_dashboard.dart';
 import 'package:eco_venture/views/child_section/settings/child_settings.dart';
@@ -108,7 +109,10 @@ class ChildRouter {
           GoRoute(
             path: 'report-issue', // Relative to parent
             name: "childReportIssueScreen",
-            builder: (context, state) => const ChildReportIssueScreen(),
+            builder: (context, state) {
+              final data = state.extra as Map<String, dynamic>?;
+              return ChildReportIssueScreen(contentContext: data);
+            },
           ),
         ],
       ),
@@ -125,6 +129,12 @@ class ChildRouter {
         builder: (context, state) => const ChildHomeScreen(),
         routes: [
           // 1. TREASURE HUNT
+          GoRoute(
+            path: RouteNames.childNotificationsScreen,
+            name: 'childNotificationsScreen',
+            builder: (context, state) => const ChildNotificationScreen(),
+          ),
+
           GoRoute(
             path: 'treasure-hunt',
             name: 'treasureHunt',

@@ -1,41 +1,61 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/teacher_student_activity_model.dart';
-import '../../models/teacher_student_stats_model.dart';
-import '../../repositories/teacher_student_detail_repository.dart';
-import 'teacher_student_detail_state.dart';
+import 'dart:async';
+import 'package:eco_venture/viewmodels/teacher_student_detail/teacher_student_detail_state.dart';
+import 'package:state_notifier/state_notifier.dart';
+import '../../repositories/teacher_student_repository.dart';
 
-class TeacherStudentDetailViewModel extends StateNotifier<TeacherStudentDetailState> {
-  final TeacherStudentDetailRepository _repository;
-  final String _studentId;
+class TeacherStudentDetailViewModel
+    extends StateNotifier<TeacherStudentDetailState> {
+  final TeacherStudentRepository _repository;
+  StreamSubscription? _sub;
 
-  TeacherStudentDetailViewModel(this._repository, this._studentId) : super(TeacherStudentDetailState()) {
-    _fetchAllStudentData();
+  TeacherStudentDetailViewModel(this._repository)
+    : super(TeacherStudentDetailState());
+
+  void loadStudent(String studentId) {
+    state = state.copyWith(isLoading: true);
+    _sub?.cancel();
+
+    _sub = _repository
+        .getStudentDetail(studentId)
+        .listen(
+          (data) {
+            state = state.copyWith(isLoading: false, student: data);
+          },
+          onError: (e) {
+            state = state.copyWith(
+              isLoading: false,
+              errorMessage: e.toString(),
+            );
+          },
+        );
   }
 
-  Future<void> _fetchAllStudentData() async {
+  // --- NEW: Action to Review STEM ---
+  Future<void> markStemSubmission({
+    required String studentId,
+    required String challengeId,
+    required bool approved,
+    required int points,
+    required String feedback,
+  }) async {
     try {
-      // State is already loading by default
-
-      // Fetch stats and activities concurrently
-      final futureStats = _repository.getStudentStats(_studentId);
-      final futureActivities = _repository.getRecentActivity(_studentId);
-
-      final results = await Future.wait([futureStats, futureActivities]);
-
-      // CORRECTED: Cast results to their specific types
-      final stats = results[0] as TeacherStudentStatsModel;
-      final activities = results[1] as List<TeacherStudentActivityModel>;
-
-      state = state.copyWith(
-        isLoading: false,
-        stats: stats,
-        activities: activities,
+      final status = approved ? 'approved' : 'rejected';
+      await _repository.reviewSubmission(
+        studentId,
+        challengeId,
+        status,
+        points,
+        feedback,
       );
+      // Success: Stream will auto-update the UI stats
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: "Failed to load student details: ${e.toString()}",
-      );
+      state = state.copyWith(errorMessage: "Failed to review: $e");
     }
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
   }
 }

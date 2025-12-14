@@ -31,6 +31,18 @@ class _EngineeringInstructionScreenState extends State<EngineeringInstructionScr
         backgroundColor: const Color(0xFF263238), // Blue Grey Dark
         appBar: AppBar(
           backgroundColor: Colors.transparent,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.flag, color: Colors.redAccent),
+              onPressed: () {
+                context.pushNamed('childReportIssueScreen', extra: {
+                  'id': widget.challenge.id,
+                  'title': widget.challenge.title,
+                  'type': 'STEM Challenge'
+                });
+              },
+            )
+          ],
           elevation: 0,
           leading: Padding(
             padding: EdgeInsets.only(left: 2.w),
@@ -47,12 +59,6 @@ class _EngineeringInstructionScreenState extends State<EngineeringInstructionScr
             challenge.title,
             style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w600, color: Colors.white),
           ),
-          actions: [
-            Padding(
-              padding: EdgeInsets.only(right: 3.w),
-              child: const Icon(Icons.bookmark_border, color: Colors.white),
-            )
-          ],
         ),
         body: Padding(
           padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),

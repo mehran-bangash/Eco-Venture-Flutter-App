@@ -114,6 +114,19 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
         ),
         title: Text(widget.story.title, style: GoogleFonts.poppins(color: Colors.black, fontWeight: FontWeight.w700, fontSize: 17.sp)),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.flag_outlined, color: Colors.red),
+            onPressed: () {
+              _flutterTts.stop();
+              context.pushNamed('childReportIssueScreen', extra: {
+                'id': widget.story.id,
+                'title': widget.story.title,
+                'type': 'Story'
+              });
+            },
+          )
+        ],
       ),
       body: Column(
         children: [

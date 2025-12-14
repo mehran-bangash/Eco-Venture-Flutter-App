@@ -1,9 +1,12 @@
+import 'package:eco_venture/models/parent_alert_model.dart';
 import 'package:eco_venture/navigation/bottom_nav_parent.dart';
+import 'package:eco_venture/views/parent_section/notification/parent_notification_screen.dart';
 import 'package:eco_venture/views/parent_section/parent_child_section_screen.dart';
 import 'package:eco_venture/views/parent_section/profile/parent_edit_profile_screen.dart';
 import 'package:eco_venture/views/parent_section/profile/parent_profile_screen.dart';
 import 'package:eco_venture/views/parent_section/safety_and_report/parent_content_filters_screen.dart';
 import 'package:eco_venture/views/parent_section/safety_and_report/parent_report_alerts_screen.dart';
+import 'package:eco_venture/views/parent_section/safety_and_report/parent_report_detail_screen.dart';
 import 'package:eco_venture/views/parent_section/safety_and_report/parent_report_safety_screen.dart';
 import 'package:eco_venture/views/parent_section/safety_and_report/parent_screen_time_screen.dart';
 import 'package:eco_venture/views/parent_section/settings/parent_settings.dart';
@@ -26,6 +29,14 @@ class ParentRouter {
             path: RouteNames.parentHome,
             name: 'parentHome',
             builder: (context, state) => const ParentHomeScreen(),
+            routes: [
+              GoRoute(
+                path: RouteNames.parentNotificationsScreen,
+                name: 'parentNotificationsScreen',
+                builder: (context, state) => const ParentNotificationScreen(),
+              ),
+
+            ]
           ),
 
           GoRoute(
@@ -55,6 +66,14 @@ class ParentRouter {
                 path: RouteNames.parentScreenTimeScreen,
                 name: 'parentScreenTimeScreen',
                 builder: (context, state) => const ParentScreenTimeScreen(),
+              ),
+              GoRoute(
+                path: RouteNames.parentReportDetailScreen,
+                name: 'parentReportDetailScreen',
+                builder: (context, state) {
+                  final alertData=state.extra as ParentAlertModel;
+                  return ParentReportDetailScreen(alert: alertData);
+                },
               ),
               GoRoute(
                 path: RouteNames.parentContentFiltersScreen,

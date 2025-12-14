@@ -261,14 +261,19 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
                           ),
                         ],
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
+                      GestureDetector(
+                        onTap: () {
+                          context.goNamed('childNotificationsScreen');
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(Icons.notifications_none_rounded,
+                              color: Colors.white, size: 22),
                         ),
-                        padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.notifications_none_rounded,
-                            color: Colors.white, size: 22),
                       ),
                     ],
                   ),

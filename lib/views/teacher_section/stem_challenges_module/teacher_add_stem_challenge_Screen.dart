@@ -6,7 +6,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../models/stem_challenge_model.dart';
+import '../../../core/config/api_constants.dart';
+import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/teacher_stem_challenge/teacher_stem_provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class TeacherAddStemChallengeScreen extends ConsumerStatefulWidget {
   const TeacherAddStemChallengeScreen({super.key});
@@ -59,6 +63,35 @@ class _TeacherAddStemChallengeScreenState
   // State for navigation
   bool _shouldPopAfterSave = false;
 
+  // --- NOTIFICATION LOGIC ---
+  Future<void> _sendClassNotification(
+      String teacherId,
+      String challengeTitle,
+      ) async {
+    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "teacherId": teacherId,
+          "type": "STEM Challenge",
+          "title": "New STEM Challenge: $challengeTitle 🔬",
+          "body": "Your teacher added a new STEM challenge: $challengeTitle. Try it now!",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ STEM Challenge Notification sent successfully");
+      } else {
+        print("❌ Notification failed: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Error calling notification backend: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewModelState = ref.watch(teacherStemViewModelProvider);
@@ -76,10 +109,13 @@ class _TeacherAddStemChallengeScreenState
         );
       }
       if (next.isSuccess) {
+        // Updated success message with notification status
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              "Challenge Saved Successfully!",
+              _isSensitive
+                  ? "Challenge Saved! (No notification - marked sensitive)"
+                  : "Challenge Saved & Class Notified!",
               style: TextStyle(fontSize: 15.sp),
             ),
             backgroundColor: Colors.green,
@@ -361,14 +397,26 @@ class _TeacherAddStemChallengeScreenState
       return;
     }
 
-    // --- ADDED: Process tags like in QR Hunt ---
+    // Get teacher ID for notification
+    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error: No Teacher ID. Re-login."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Process tags like in QR Hunt
     List<String> tagsList = _tagsController.text
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
 
-    // --- ADDED: Sensitivity control logic ---
+    // Sensitivity control logic
     if (_isSensitive && !tagsList.contains('scary')) {
       tagsList.add('scary');
     }
@@ -385,14 +433,20 @@ class _TeacherAddStemChallengeScreenState
       imageUrl: _challengeImage?.path, // Local path
       materials: _materials,
       steps: _steps,
-      // --- ADDED: Include tags and sensitivity ---
+      // Include tags and sensitivity
       tags: tagsList,
       isSensitive: _isSensitive,
     );
 
+    // Save to Firebase
     await ref
         .read(teacherStemViewModelProvider.notifier)
         .addChallenge(newChallenge);
+
+    // Send notification only if not sensitive
+    if (!_isSensitive) {
+      await _sendClassNotification(teacherId, newChallenge.title);
+    }
   }
 
   void _clearForm() {
@@ -400,13 +454,13 @@ class _TeacherAddStemChallengeScreenState
       _titleController.clear();
       _pointsController.text = "50";
       _materialController.clear();
-      _tagsController.clear(); // ADDED: Clear tags
+      _tagsController.clear(); // Clear tags
       _selectedCategory = _categories.first;
       _selectedDifficulty = _difficultyLevels.first;
       _challengeImage = null;
       _materials = [];
       _steps = [];
-      _isSensitive = false; // ADDED: Reset sensitivity
+      _isSensitive = false; // Reset sensitivity
     });
   }
 
@@ -668,44 +722,44 @@ class _TeacherAddStemChallengeScreenState
 
   Widget _buildStepItem(int index, String text) {
     return Container(
-      margin: EdgeInsets.only(bottom: 2.h),
-      padding: EdgeInsets.all(4.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 14.sp,
-            backgroundColor: _primaryBlue,
-            child: Text(
-              "$index",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
+        margin: EdgeInsets.only(bottom: 2.h),
+        padding: EdgeInsets.all(4.w),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F9FA),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CircleAvatar(
+              radius: 14.sp,
+              backgroundColor: _primaryBlue,
+              child: Text(
+                "$index",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
-          ),
-          SizedBox(width: 3.w),
-          Expanded(
-            child: Text(
-              text,
-              style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark),
+            SizedBox(width: 3.w),
+            Expanded(
+              child: Text(
+                text,
+                style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark),
+              ),
             ),
-          ),
-          InkWell(
-            onTap: () => setState(() => _steps.remove(text)),
-            child: Icon(
-              Icons.delete_outline,
-              color: Colors.redAccent,
-              size: 20.sp,
+            InkWell(
+              onTap: () => setState(() => _steps.remove(text)),
+              child: Icon(
+                Icons.delete_outline,
+                color: Colors.redAccent,
+                size: 20.sp,
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        )
     );
   }
 

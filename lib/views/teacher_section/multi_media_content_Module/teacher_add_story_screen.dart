@@ -1,11 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:ui'; // Required for CustomPainter
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../models/story_model.dart';
+import '../../../core/config/api_constants.dart';
+import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/multimedia_content/teacher_multimedia_provider.dart';
 
 class TeacherAddStoryScreen extends ConsumerStatefulWidget {
@@ -81,6 +85,18 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
       return;
     }
 
+    // Get teacher ID for notification
+    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error: No Teacher ID. Re-login."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     // Process Tags
     List<String> tagsList = _tagsController.text
         .split(',')
@@ -108,8 +124,39 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
     await ref
         .read(teacherMultimediaViewModelProvider.notifier)
         .addStory(newStory);
+    // Send notification only if not sensitive
+    if (!_isSensitive) {
+      await _sendClassNotification(teacherId, newStory.title);
+    }
   }
+// --- NOTIFICATION LOGIC ---
+  Future<void> _sendClassNotification(
+      String teacherId,
+      String storyTitle,
+      ) async {
+    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
 
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "teacherId": teacherId,
+          "type": "Story",
+          "title": "New Story: $storyTitle 📖",
+          "body": "Your teacher added a new story: $storyTitle. Read it now!",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Story Notification sent successfully");
+      } else {
+        print("❌ Notification failed: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Error calling notification backend: $e");
+    }
+  }
   Future<void> _pickCoverImage() async {
     final ImagePicker picker = ImagePicker();
     final XFile? img = await picker.pickImage(source: ImageSource.gallery);
@@ -123,8 +170,12 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
     ref.listen(teacherMultimediaViewModelProvider, (prev, next) {
       if (next.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Story Published Successfully!"),
+          SnackBar(
+            content: Text(
+              _isSensitive
+                  ? "Story Published! (No notification - marked sensitive)"
+                  : "Story Published & Class Notified!",
+            ),
             backgroundColor: Colors.green,
           ),
         );

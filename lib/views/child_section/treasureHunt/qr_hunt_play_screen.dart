@@ -124,6 +124,16 @@ class _QrHuntPlayScreenState extends ConsumerState<QrHuntPlayScreen> {
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () => context.pop(),
           ),
+          IconButton(
+            icon: Icon(Icons.report_problem_rounded, color: Colors.white54),
+            onPressed: () {
+              context.pushNamed('childReportIssueScreen', extra: {
+                'id': widget.hunt.id,
+                'title': widget.hunt.title,
+                'type': 'QR Hunt'
+              });
+            },
+          ),
           Column(
             children: [
               Text(

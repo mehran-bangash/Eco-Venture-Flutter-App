@@ -6,7 +6,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../models/story_model.dart';
+import '../../../core/config/api_constants.dart';
+import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/multimedia_content/teacher_multimedia_provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class TeacherEditStoryScreen extends ConsumerStatefulWidget {
   final StoryModel storyData;
@@ -47,7 +51,6 @@ class _TeacherEditStoryScreenState
 
   late String _selectedCategory;
 
-
   @override
   void initState() {
     super.initState();
@@ -55,8 +58,6 @@ class _TeacherEditStoryScreenState
     _titleController.text = widget.storyData.title;
     _descController.text = widget.storyData.description;
     _existingCoverUrl = widget.storyData.thumbnailUrl;
-
-
 
     // FIX HERE
     _pages = List.from(widget.storyData.pages);
@@ -66,7 +67,6 @@ class _TeacherEditStoryScreenState
     _selectedCategory = widget.storyData.category;
   }
 
-
   @override
   void dispose() {
     _titleController.dispose();
@@ -74,11 +74,51 @@ class _TeacherEditStoryScreenState
     super.dispose();
   }
 
+  // --- NOTIFICATION LOGIC ---
+  Future<void> _sendClassNotification(
+    String teacherId,
+    String storyTitle,
+  ) async {
+    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
+
+    try {
+      final response = await http.post(
+        Uri.parse(backendUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "teacherId": teacherId,
+          "type": "Story",
+          "title": "Story Updated: $storyTitle 📖",
+          "body": "Your teacher updated the story: $storyTitle. Check it out!",
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Story Update Notification sent successfully");
+      } else {
+        print("❌ Notification failed: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Error calling notification backend: $e");
+    }
+  }
+
   Future<void> _updateStory() async {
     if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Title is required"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    // Get teacher ID for notification
+    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error: No Teacher ID. Re-login."),
           backgroundColor: Colors.red,
         ),
       );
@@ -107,6 +147,10 @@ class _TeacherEditStoryScreenState
     await ref
         .read(teacherMultimediaViewModelProvider.notifier)
         .updateStory(updatedStory);
+    // Send notification only if not sensitive
+    if (!_isSensitive) {
+      await _sendClassNotification(teacherId, updatedStory.title);
+    }
   }
 
   Future<void> _pickCoverImage() async {
@@ -127,8 +171,12 @@ class _TeacherEditStoryScreenState
     ref.listen(teacherMultimediaViewModelProvider, (prev, next) {
       if (next.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Story Updated Successfully!"),
+          SnackBar(
+            content: Text(
+              _isSensitive
+                  ? "Story Updated! (No notification - marked sensitive)"
+                  : "Story Updated & Class Notified!",
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -280,7 +328,7 @@ class _TeacherEditStoryScreenState
                     ],
                   ),
                 ),
-              SizedBox(height: 1.h,),
+                SizedBox(height: 1.h),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [

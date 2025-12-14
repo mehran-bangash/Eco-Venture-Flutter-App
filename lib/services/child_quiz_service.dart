@@ -18,20 +18,35 @@ class ChildQuizService {
   // --- HELPER: FIND TEACHER ID ---
   Future<String?> _getTeacherId() async {
     try {
-      String? teacherId = await SharedPreferencesHelper.instance.getChildTeacherId();
-      if (teacherId != null && teacherId.isNotEmpty) return teacherId;
-      final user = _auth.currentUser;
-      if (user != null) {
-        final doc = await _firestore.collection('users').doc(user.uid).get();
-        if (doc.exists && doc.data() != null && doc.data()!['teacher_id'] != null) {
-          String tid = doc.data()!['teacher_id'];
-          await SharedPreferencesHelper.instance.saveChildTeacherId(tid);
-          return tid;
+      // 1. Get Current User ID (Prefs first for speed/safety)
+      final user = await SharedPreferencesHelper.instance.getUserId();
+
+      if (user == null) {
+        // Fallback to Auth
+        if (_auth.currentUser != null) return null; // If auth is null, return null
+        return null;
+      }
+
+      // 2. Fetch Document directly from Firestore
+      final doc = await _firestore.collection('users').doc(user).get();
+
+      if (doc.exists && doc.data() != null) {
+        final data = doc.data()!;
+
+        // 3. Check for 'teacher_id'
+        if (data.containsKey('teacher_id') && data['teacher_id'] != null) {
+          final String teacherId = data['teacher_id'];
+          // Cache it locally
+          await SharedPreferencesHelper.instance.saveChildTeacherId(teacherId);
+          return teacherId;
         }
       }
-    } catch (e) { print("Error: $e"); }
+    } catch (e) {
+      print("ERROR fetching teacher ID: $e");
+    }
     return null;
   }
+
 
   // --- HELPER: GET SAFETY SETTINGS STREAM ---
   Stream<ParentSafetySettingsModel> _getSafetySettings() {

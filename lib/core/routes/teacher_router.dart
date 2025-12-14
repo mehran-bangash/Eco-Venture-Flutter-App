@@ -101,7 +101,7 @@ class TeacherRouter {
               // CORRECTED: Create UserModel from the map passed in `state.extra`
               final studentMap = state.extra as Map<String, dynamic>;
               final student = UserModel.fromMap(studentMap);
-              return StudentDetailScreen(student: student);
+              return ViewStudentDetailScreen(studentData:studentMap);
             },
           ),
           GoRoute(
