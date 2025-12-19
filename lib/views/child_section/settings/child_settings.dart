@@ -265,7 +265,6 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                           // Step 2: If confirmed, call ViewModel
                           if (confirmed == true) {
                             await authVM.signOut();
-
                             // Step 3: Show feedback to user
                             Utils.showDelightToast(
                               context,

@@ -13,7 +13,7 @@ import 'services/notification_service.dart';
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print("🌙 Background Message: ${message.messageId}");
+  print(" Background Message: ${message.messageId}");
 }
 
 Future<void> main() async {

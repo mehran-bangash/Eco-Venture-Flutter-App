@@ -30,16 +30,16 @@ class TeacherStemViewModel extends StateNotifier<TeacherStemState> {
 
   // --- ADD ---
   Future<void> addChallenge(StemChallengeModel challenge) async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, errorMessage: null); // Reset error first
     try {
       final processedChallenge = await _processImage(challenge);
       await _repository.addChallenge(processedChallenge);
       state = state.copyWith(isLoading: false, isSuccess: true);
     } catch (e) {
+      // This catches the specific strings we threw above
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
-
   // --- UPDATE ---
   Future<void> updateChallenge(StemChallengeModel challenge) async {
     state = state.copyWith(isLoading: true);

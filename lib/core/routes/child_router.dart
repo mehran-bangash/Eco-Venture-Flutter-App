@@ -34,6 +34,7 @@ import 'package:eco_venture/views/child_section/treasureHunt/qR_scanner_screen.d
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/child_progress_model.dart';
+import '../../models/nature_photo_upload_model.dart';
 import '../../models/qr_hunt_read_model.dart';
 import '../../models/story_model.dart';
 import '../../models/video_model.dart';
@@ -320,7 +321,10 @@ class ChildRouter {
               GoRoute(
                 path: 'nature-description-screen',
                 name: "natureDescriptionScreen",
-                builder: (context, state) => const NatureDescriptionScreen(),
+                builder: (context, state) {
+                  final entry = state.extra as JournalEntry;
+                  return NatureDescriptionScreen(entry: entry);
+                },
               ),
               GoRoute(
                 path: 'learn-with-Ai-screen',

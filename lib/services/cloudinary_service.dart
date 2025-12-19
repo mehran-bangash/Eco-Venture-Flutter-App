@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
-
+import 'dart:async';
 class CloudinaryService {
   final String cloudName = "dc6suw4tu"; // Your Child App Cloud Name
 
@@ -16,7 +16,7 @@ class CloudinaryService {
   final String teacherMultimediaPreset = "eco_teacher_multimedia_content";
   final String teacherQrHuntPreset = "eco_teacher_treasure_hunt";
   final String reportPreset = "eco_child_reports";
-
+  final String childNaturePhotoPreset = "eco_child_nature_photo_journal";
 
   /// Core: Upload image to Cloudinary
   Future<String?> uploadImage(File imageFile, {String? preset}) async {
@@ -25,7 +25,9 @@ class CloudinaryService {
       final mimeType = lookupMimeType(imageFile.path) ?? 'image/jpeg';
       final fileType = mimeType.split('/');
 
-      final uri = Uri.parse("https://api.cloudinary.com/v1_1/$cloudName/upload");
+      final uri = Uri.parse(
+        "https://api.cloudinary.com/v1_1/$cloudName/upload",
+      );
 
       final request = http.MultipartRequest("POST", uri)
         ..fields['upload_preset'] = preset ?? defaultPreset
@@ -95,13 +97,14 @@ class CloudinaryService {
       final apiKey = "YOUR_API_KEY";
       final apiSecret = "YOUR_API_SECRET";
 
-      final authHeader = 'Basic ${base64Encode(utf8.encode('$apiKey:$apiSecret'))}';
+      final authHeader =
+          'Basic ${base64Encode(utf8.encode('$apiKey:$apiSecret'))}';
 
       final response = await http.delete(
-        Uri.parse("https://api.cloudinary.com/v1_1/$cloudName/resources/image/upload/$publicId"),
-        headers: {
-          "Authorization": authHeader,
-        },
+        Uri.parse(
+          "https://api.cloudinary.com/v1_1/$cloudName/resources/image/upload/$publicId",
+        ),
+        headers: {"Authorization": authHeader},
       );
 
       if (response.statusCode != 200) {
@@ -112,8 +115,8 @@ class CloudinaryService {
     }
   }
 
-
   // --- CORE UPLOAD LOGIC (Private) ---
+  // --- DEBUG UPLOAD LOGIC ---
   Future<String?> _upload(File file, String preset, {bool isVideo = false}) async {
     try {
       final mimeType = lookupMimeType(file.path) ?? (isVideo ? 'video/mp4' : 'image/jpeg');
@@ -124,29 +127,33 @@ class CloudinaryService {
 
       final request = http.MultipartRequest("POST", uri)
         ..fields['upload_preset'] = preset
-        ..files.add(
-          await http.MultipartFile.fromPath(
-            'file',
-            file.path,
-            contentType: MediaType(fileType[0], fileType[1]),
-          ),
-        );
+        ..files.add(await http.MultipartFile.fromPath(
+            'file', file.path,
+            contentType: MediaType(fileType[0], fileType[1])));
 
-      final response = await request.send();
+      // Add a timeout of 30 seconds
+      final response = await request.send().timeout(const Duration(seconds: 30));
+      final responseData = await response.stream.bytesToString();
 
       if (response.statusCode == 200) {
-        final responseData = await response.stream.bytesToString();
         final jsonResponse = json.decode(responseData);
         return jsonResponse['secure_url'];
       } else {
-        print("Cloudinary upload failed: ${response.statusCode}");
-        return null;
+        // ERROR TYPE 1: Cloudinary rejected it (Wrong preset, file too big)
+        throw "Server Error: Cloudinary rejected the file. Code: ${response.statusCode}";
       }
+    } on SocketException {
+      // ERROR TYPE 2: No Internet / Blocked Wi-Fi (Your main issue)
+      throw "Network Error: Cannot reach server. Please try Mobile Data or check Wi-Fi.";
+    } on TimeoutException {
+      // ERROR TYPE 3: Internet too slow
+      throw "Timeout: Internet is too slow. Upload took too long.";
     } catch (e) {
-      print("⚠ Cloudinary Error: $e");
-      return null;
+      // ERROR TYPE 4: Unknown
+      throw "Upload Failed: $e";
     }
   }
+
   // --- 2. Teacher Quiz Image Upload (NEW) ---
   Future<String?> uploadTeacherQuizImage(File imageFile) async {
     return await _upload(imageFile, teacherQuizPreset);
@@ -155,14 +162,23 @@ class CloudinaryService {
   Future<String?> uploadTeacherStemImage(File imageFile) async {
     return await _upload(imageFile, teacherStemPreset);
   }
-  Future<String?> uploadTeacherMultimediaFile(File file, {bool isVideo = false}) async {
+
+  Future<String?> uploadTeacherMultimediaFile(
+    File file, {
+    bool isVideo = false,
+  }) async {
     return await _upload(file, teacherMultimediaPreset, isVideo: isVideo);
   }
+
   Future<String?> uploadTeacherQrImage(File imageFile) async {
     return await _upload(imageFile, teacherQrHuntPreset);
   }
+
   Future<String?> uploadReportScreenshot(File file) async {
     return await _upload(file, reportPreset);
   }
 
+  Future<String?> uploadChildNaturePhotoImage(File imageFile) async {
+    return await _upload(imageFile, childNaturePhotoPreset);
+  }
 }

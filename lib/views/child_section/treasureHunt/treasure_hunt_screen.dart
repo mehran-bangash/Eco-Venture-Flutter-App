@@ -556,47 +556,51 @@ class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
             ],
           ),
           SizedBox(height: 2.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(total, (index) {
-              final isFound = index < found;
-              final pulse = 1.0 + 0.1 * math.sin(t * 4 * math.pi + index);
-              return Transform.scale(
-                scale: isFound ? pulse : 1.0,
-                child: Container(
-                  width: 10.w,
-                  height: 10.w,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isFound
-                        ? Colors.orange.shade500
-                        : Colors.white.withValues(alpha: 0.3), // More opaque
-                    boxShadow: isFound
-                        ? [
-                            BoxShadow(
-                              color: Colors.orange.withValues(alpha:
-                                0.6,
-                              ), // Brighter glow
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : null,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(total, (index) {
+                final isFound = index < found;
+                final pulse = 1.0 + 0.1 * math.sin(t * 4 * math.pi + index);
+                return Transform.scale(
+                  scale: isFound ? pulse : 1.0,
+                  child: Container(
+                    width: 10.w,
+                    height: 10.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isFound
+                          ? Colors.orange.shade500
+                          : Colors.white.withValues(alpha: 0.3), // More opaque
+                      boxShadow: isFound
+                          ? [
+                              BoxShadow(
+                                color: Colors.orange.withValues(alpha:
+                                  0.6,
+                                ), // Brighter glow
+                                blurRadius: 8,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: isFound
+                        ? Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 14.sp,
+                          )
+                        : Icon(
+                            Icons.lock_rounded,
+                            color: Colors.white70,
+                            size: 12.sp,
+                          ),
                   ),
-                  child: isFound
-                      ? Icon(
-                          Icons.check_rounded,
-                          color: Colors.white,
-                          size: 14.sp,
-                        )
-                      : Icon(
-                          Icons.lock_rounded,
-                          color: Colors.white70,
-                          size: 12.sp,
-                        ),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ),
         ],
       ),

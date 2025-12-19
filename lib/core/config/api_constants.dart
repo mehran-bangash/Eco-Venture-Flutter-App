@@ -20,4 +20,5 @@ class ApiConstants {
  static const String notifyParentEndPoint='${baseUrl}notify-parent';
  static const  String  notifyChildEndPoints='${baseUrl}notify-child';
  static const String notifyChildClassEndPoints='${baseUrl}notify-class';
+
 }

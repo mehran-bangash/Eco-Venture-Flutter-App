@@ -7,14 +7,11 @@ class TeacherStudentDetailViewModel
     extends StateNotifier<TeacherStudentDetailState> {
   final TeacherStudentRepository _repository;
   StreamSubscription? _sub;
-
   TeacherStudentDetailViewModel(this._repository)
     : super(TeacherStudentDetailState());
-
   void loadStudent(String studentId) {
     state = state.copyWith(isLoading: true);
     _sub?.cancel();
-
     _sub = _repository
         .getStudentDetail(studentId)
         .listen(
@@ -47,7 +44,7 @@ class TeacherStudentDetailViewModel
         points,
         feedback,
       );
-      // Success: Stream will auto-update the UI stats
+      // Success: Stream will auto-update the UI stats }
     } catch (e) {
       state = state.copyWith(errorMessage: "Failed to review: $e");
     }

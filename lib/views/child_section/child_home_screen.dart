@@ -7,7 +7,6 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../services/shared_preferences_helper.dart';
 import '../child_section/widgets/click_able_info_card.dart';
 
-
 class ChildHomeScreen extends StatefulWidget {
   const ChildHomeScreen({super.key});
 
@@ -22,10 +21,9 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
   late final AnimationController _mainController;
   late final AnimationController _bgController;
   late final AnimationController _floatController;
+  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, dynamic>> _filteredModules = [];
 
-  // --- MOCK DATA FOR THE 5 MODULES ---
-  // We define the module data here. Your RiverPod/MVVM would provide this.
-// In _ChildHomeScreenState
 
   final List<Map<String, dynamic>> _modules = [
     {
@@ -34,7 +32,8 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
       'color1': const Color(0xFF43A047),
       'color2': const Color(0xFF81C784),
       'route': 'treasureHunt',
-      'imageUrl': 'https://images.unsplash.com/photo-1620423855978-e5d74a7bef30?auto=format&fit=crop&w=800&q=80',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1620423855978-e5d74a7bef30?auto=format&fit=crop&w=800&q=80',
     },
     {
       'title': 'STEM challenges',
@@ -42,23 +41,26 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
       'color1': const Color(0xFF1E88E5),
       'color2': const Color(0xFF64B5F6),
       'route': 'stemChallenges',
-      'imageUrl': 'https://images.unsplash.com/photo-1634872583967-6417a8638a59?auto=format&fit=crop&w=800&q=80',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1634872583967-6417a8638a59?auto=format&fit=crop&w=800&q=80',
     },
     {
       'title': 'Nature Photo journal',
       'icon': Icons.photo_camera_rounded,
       'color1': const Color(0xFFFB8C00),
       'color2': const Color(0xFFFFB74D),
-      'route':'naturePhotoJournal',
-      'imageUrl': 'https://images.unsplash.com/photo-1579535984712-92fffbbaa266?auto=format&fit=crop&w=800&q=80',
+      'route': 'naturePhotoJournal',
+      'imageUrl':
+          'https://images.unsplash.com/photo-1579535984712-92fffbbaa266?auto=format&fit=crop&w=800&q=80',
     },
     {
       'title': 'Interactive Quiz',
       'icon': Icons.quiz_rounded, // <-- CHANGED icon
       'color1': const Color(0xFF8E24AA),
       'color2': const Color(0xFFBA68C8),
-      'route':'interactiveQuiz' , // You may want to change this route name
-      'imageUrl': 'https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/black/png/256/question.png',
+      'route': 'interactiveQuiz', // You may want to change this route name
+      'imageUrl':
+          'https://raw.githubusercontent.com/encharm/Font-Awesome-SVG-PNG/master/black/png/256/question.png',
     },
     {
       'title': 'MultiMedia Content',
@@ -66,7 +68,8 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
       'color1': const Color(0xFFE53935),
       'color2': const Color(0xFFEF9A9A),
       'route': 'multiMediaContent', // You may want to change this route name
-      'imageUrl': 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80', // <-- CHANGED image
+      'imageUrl':
+          'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80', // <-- CHANGED image
     },
   ];
 
@@ -89,7 +92,23 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
+    _filteredModules = List.from(_modules);
+
   }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      if (query.trim().isEmpty) {
+        _filteredModules = List.from(_modules);
+      } else {
+        _filteredModules = _modules.where((module) {
+          final title = module['title'].toString().toLowerCase();
+          return title.contains(query.toLowerCase());
+        }).toList();
+      }
+    });
+  }
+
 
   @override
   void dispose() {
@@ -123,13 +142,13 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
       parent: _mainController,
       curve: Interval(0.1 * index, 1, curve: Curves.easeInOut),
     );
-    final slide = Tween<Offset>(
-      begin: const Offset(0, 0.25),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _mainController,
-      curve: Interval(0.1 * index, 0.9, curve: Curves.easeOutCubic),
-    ));
+    final slide = Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _mainController,
+            curve: Interval(0.1 * index, 0.9, curve: Curves.easeOutCubic),
+          ),
+        );
     return FadeTransition(
       opacity: fade,
       child: SlideTransition(position: slide, child: child),
@@ -145,12 +164,18 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.12), // Changed from withValues
+            color: Colors.white.withValues(
+              alpha: 0.12,
+            ), // Changed from withValues
             borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.25)), // Changed from withValues
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.25),
+            ), // Changed from withValues
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1), // Changed from withValues
+                color: Colors.black.withValues(
+                  alpha: 0.1,
+                ), // Changed from withValues
                 offset: const Offset(0, 4),
                 blurRadius: 8,
               ),
@@ -168,9 +193,15 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
       animation: _bgController,
       builder: (context, _) {
         final color1 = Color.lerp(
-            const Color(0xFF3F51B5), const Color(0xFF2196F3), _bgController.value)!;
+          const Color(0xFF3F51B5),
+          const Color(0xFF2196F3),
+          _bgController.value,
+        )!;
         final color2 = Color.lerp(
-            const Color(0xFF7C4DFF), const Color(0xFFFF4081), _bgController.value)!;
+          const Color(0xFF7C4DFF),
+          const Color(0xFFFF4081),
+          _bgController.value,
+        )!;
         return Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -186,9 +217,10 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
   }
 
   // Header Section
-// Header Section
+  // Header Section
   Widget _buildHeader() {
-    return ClipRRect( // <-- ADDED ClipRRect to contain the zoom
+    return ClipRRect(
+      // <-- ADDED ClipRRect to contain the zoom
       child: Stack(
         children: [
           // --- THIS IS THE NEW ANIMATED PART ---
@@ -211,7 +243,8 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
                     image: DecorationImage(
                       image: AssetImage("assets/images/child-Back-image.jpeg"),
                       fit: BoxFit.cover,
-                      alignment: Alignment.center, // Ensure image stays centered
+                      alignment:
+                          Alignment.center, // Ensure image stays centered
                     ),
                   ),
                 ),
@@ -248,8 +281,11 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
                     children: [
                       Row(
                         children: [
-                          Image.asset("assets/images/appLogo.png",
-                              height: 45, width: 45),
+                          Image.asset(
+                            "assets/images/appLogo.png",
+                            height: 45,
+                            width: 45,
+                          ),
                           SizedBox(width: 2.w),
                           Text(
                             "Hi, $username ",
@@ -271,8 +307,11 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
                             shape: BoxShape.circle,
                           ),
                           padding: const EdgeInsets.all(8),
-                          child: const Icon(Icons.notifications_none_rounded,
-                              color: Colors.white, size: 22),
+                          child: const Icon(
+                            Icons.notifications_none_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ],
@@ -309,11 +348,16 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
           padding: EdgeInsets.symmetric(horizontal: 3.w),
           child: Row(
             children: [
-              Icon(Icons.search_rounded,
-                  color: Colors.white.withValues(alpha: 0.9), size: 22.sp), // Changed from withValues
+              Icon(
+                Icons.search_rounded,
+                color: Colors.white.withValues(alpha: 0.9),
+                size: 22.sp,
+              ), // Changed from withValues
               SizedBox(width: 3.w),
               Expanded(
                 child: TextField(
+                  controller: _searchController,
+                  onChanged: _onSearchChanged,
                   style: GoogleFonts.poppins(
                     color: Colors.white,
                     fontWeight: FontWeight.w500,
@@ -327,6 +371,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
                     ),
                   ),
                 ),
+
               ),
             ],
           ),
@@ -378,16 +423,13 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
       ),
     );
   }
-
-  /// --- Ultra Pro Module Grid ---
-  /// --- Ultra Pro Module Grid ---
   Widget _buildModuleGrid() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 5.w),
       child: GridView.builder(
         physics: const NeverScrollableScrollPhysics(),
         shrinkWrap: true,
-        itemCount: _modules.length,
+        itemCount: _filteredModules.length,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           mainAxisSpacing: 3.w,
@@ -395,11 +437,7 @@ class _ChildHomeScreenState extends State<ChildHomeScreen>
           childAspectRatio: 0.85, // Adjust this ratio to fit your design
         ),
         itemBuilder: (context, index) {
-          final module = _modules[index];
-
-          // --- THIS IS THE UPGRADE ---
-          // I've wrapped your _animatedEntry in the _floatingWrapper
-          // so the cards will float just like your "Progress" card.
+          final module = _filteredModules[index];
           return _floatingWrapper(
             child: _animatedEntry(
               index: 4 + index, // Stagger the animation
@@ -473,7 +511,8 @@ class EcoModuleCard extends StatefulWidget {
   EcoModuleCardState createState() => EcoModuleCardState();
 }
 
-class EcoModuleCardState extends State<EcoModuleCard> with TickerProviderStateMixin {
+class EcoModuleCardState extends State<EcoModuleCard>
+    with TickerProviderStateMixin {
   late final AnimationController _flipController;
   late final Animation<double> _flipAnimation;
   bool _isPressed = false;
@@ -521,11 +560,6 @@ class EcoModuleCardState extends State<EcoModuleCard> with TickerProviderStateMi
     }
   }
 
-
-
-
-
-
   @override
   void didUpdateWidget(covariant EcoModuleCard oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -546,7 +580,9 @@ class EcoModuleCardState extends State<EcoModuleCard> with TickerProviderStateMi
 
     // --- THIS IS THE NEW GLOW EFFECT ---
     final glow = _isPressed ? 15.0 : 0.0;
-    final glowColor = _isPressed ? widget.color1.withValues(alpha: 0.7) : Colors.transparent;
+    final glowColor = _isPressed
+        ? widget.color1.withValues(alpha: 0.7)
+        : Colors.transparent;
     // --- END NEW EFFECT ---
 
     // I've wrapped the AnimatedScale in an AnimatedContainer
@@ -557,11 +593,7 @@ class EcoModuleCardState extends State<EcoModuleCard> with TickerProviderStateMi
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
-          BoxShadow(
-            color: glowColor,
-            blurRadius: glow,
-            spreadRadius: 2.0,
-          ),
+          BoxShadow(color: glowColor, blurRadius: glow, spreadRadius: 2.0),
         ],
       ),
       child: AnimatedScale(
@@ -586,10 +618,10 @@ class EcoModuleCardState extends State<EcoModuleCard> with TickerProviderStateMi
                 child: isFront
                     ? _buildFrontDesign()
                     : Transform(
-                  alignment: Alignment.center,
-                  transform: Matrix4.identity()..rotateY(math.pi),
-                  child: _buildBackDesign(),
-                ),
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()..rotateY(math.pi),
+                        child: _buildBackDesign(),
+                      ),
               );
             },
           ),
@@ -686,14 +718,20 @@ class EcoModuleCardState extends State<EcoModuleCard> with TickerProviderStateMi
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
       ),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline_rounded,
-                color: Colors.white, size: 10.w),
+            Icon(
+              Icons.check_circle_outline_rounded,
+              color: Colors.white,
+              size: 10.w,
+            ),
             SizedBox(height: 1.h),
             Text(
               "Let's Go!",

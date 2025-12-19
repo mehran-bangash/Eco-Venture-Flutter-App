@@ -1,4 +1,5 @@
-import 'package:eco_venture/views/child_section/report_safety/child_safety_dashboard.dart';
+
+import 'package:eco_venture/views/teacher_section/report_safety/teacher_safety_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/settings/teacher_settings.dart';
 import 'package:eco_venture/views/teacher_section/teacher_home_screen.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 
   final _screens = [
     const TeacherHomeScreen(),
-    const ChildSafetyDashboard(),
+    const TeacherSafetyDashboard(),
     const TeacherSettings(),
   ];
 

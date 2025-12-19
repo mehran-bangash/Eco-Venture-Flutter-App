@@ -133,18 +133,40 @@ class ChildSafetyService {
   // Reports
   Future<void> submitReport(ChildReportModel report) async {
     try {
-      String? uid =
-          _auth.currentUser?.uid ??
-          await SharedPreferencesHelper.instance.getUserId();
+      String? uid = _auth.currentUser?.uid ?? await SharedPreferencesHelper.instance.getUserId();
       if (uid == null) throw Exception("User not logged in");
 
       final newKey = _database.ref().push().key!;
       final reportWithMeta = report.copyWith(childId: uid);
       final data = reportWithMeta.toMap();
       data['id'] = newKey;
+
+      // 1. Save to Child's Alerts (Standard)
       await _database.ref('safety_alerts/$uid/$newKey').set(data);
+
+      // 2. NEW: If Recipient is Teacher, Copy to Teacher Notifications
+      if (report.recipient == 'Teacher') {
+        // Need Teacher ID
+        // Reuse _getTeacherId() logic or fetch from profile
+        // Assuming _getTeacherId() is available in this class (it is)
+        // We'll reimplement a quick fetch here for robustness
+        final doc = await _firestore.collection('users').doc(uid).get();
+        final teacherId = doc.data()?['teacher_id'];
+
+        if (teacherId != null) {
+          await _database.ref('teacher_notifications/$teacherId').push().set({
+            'title': 'Safety Alert from Student',
+            'body': '${report.issueType}: ${report.details}',
+            'type': 'Safety',
+            'timestamp': DateTime.now().toIso8601String(),
+            'isRead': false,
+            'reportId': newKey // Link to full report
+          });
+        }
+      }
+
     } catch (e) {
-      throw Exception("Failed: $e");
+      throw Exception("Failed to send report: $e");
     }
   }
 

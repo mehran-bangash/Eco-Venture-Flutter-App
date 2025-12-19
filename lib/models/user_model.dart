@@ -30,43 +30,51 @@ class UserModel {
       "role": role,
       "createdAt": createdAt.toIso8601String(),
       "token": token,
-      "imgUrl":imgUrl,
-      "phoneNumber":phoneNumber
+      "imgUrl": imgUrl,
+      "phoneNumber": phoneNumber,
     };
   }
 
   // Convert to JSON String
   String toJson() => json.encode(toMap());
-
-  // Factory: handle both flat and nested JSON
   factory UserModel.fromMap(Map<String, dynamic> map) {
-    // 🔎 Case 1: Backend sends { user: {...}, token: "..." }
-    if (map.containsKey('user')) {
+    // Helper function: Safely converts ANYTHING to a String to prevent crashes
+    String safeString(dynamic value) {
+      if (value == null) return "";
+      if (value is String) return value;
+      return value.toString(); // Fixes "Map is not subtype of string" error
+    }
+
+    //  Case 1: Backend sends { user: {...}, token: "..." }
+    if (map.containsKey('user') && map['user'] is Map) {
       final userMap = map['user'] as Map<String, dynamic>;
       return UserModel(
-        uid: userMap['uid'],
-        imgUrl: userMap['imgUrl'],
-        phoneNumber: userMap['phoneNumber'],
-        email: userMap['email'],
-        displayName: userMap['displayName'],
-        role: userMap['role'],
-        createdAt: DateTime.parse(userMap['createdAt']),
-        token: map['token'], // token stays at root
+        uid: safeString(userMap['uid']),
+        imgUrl: safeString(userMap['imgUrl']),
+        phoneNumber: safeString(userMap['phoneNumber']),
+        email: safeString(userMap['email']),
+        displayName: safeString(userMap['displayName']),
+        role: safeString(userMap['role']),
+        // Safe Date Parsing
+        createdAt: userMap['createdAt'] != null
+            ? DateTime.tryParse(userMap['createdAt'].toString()) ?? DateTime.now()
+            : DateTime.now(),
+        token: safeString(map['token']),
       );
     }
 
-    // 🔎 Case 2: Backend sends flat JSON { uid, email, displayName, ... }
+    //  Case 2: Flat JSON
     return UserModel(
-      uid: map['uid'],
-      email: map['email']??"",
-      displayName: map['displayName']??"",
-      imgUrl: map['imgUrl']??"",
-      phoneNumber: map['phoneNumber'],
-      role: map['role']??"",
+      uid: safeString(map['uid']),
+      email: safeString(map['email']),
+      displayName: safeString(map['displayName']),
+      imgUrl: safeString(map['imgUrl']),
+      phoneNumber: safeString(map['phoneNumber']),
+      role: safeString(map['role']),
       createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt']) ?? DateTime.now()
+          ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
-      token: map['token']??"", // may or may not exist
+      token: safeString(map['token']),
     );
   }
 

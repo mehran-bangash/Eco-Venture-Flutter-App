@@ -1,4 +1,3 @@
-
 import 'package:eco_venture/core/config/api_constants.dart';
 import 'package:eco_venture/models/user_model.dart';
 import 'package:eco_venture/services/auth_service.dart';
@@ -43,15 +42,12 @@ class AuthRepo {
       createdAt: DateTime.now(),
     );
   }
+
   Future<UserModel?> loginUser(String email, String password) async {
     try {
-
       final userData = await _apiService.sendUserToken(
         ApiConstants.signInEndpoint,
-        {
-          'email': email,
-          'password': password,
-        },
+        {'email': email, 'password': password},
       );
 
       return UserModel(
@@ -65,14 +61,18 @@ class AuthRepo {
       throw Exception("Login failed: $e");
     }
   }
+
   Future<UserModel?> sendTokenOfGoogle(String role) async {
     final googleUser = await AuthService.authInstance.continueWithGoogle();
 
+    // ERROR FIX: Check if Google Name is null. If yes, use the email prefix.
+    String safeName = googleUser.displayName ?? googleUser.email.split('@')[0];
+
     final requestBody = {
-      'idToken': googleUser.idToken ,
-      'email': googleUser.email ,
-      'name': googleUser.displayName,
-      'role': role.isNotEmpty ? role : "user",  // safer check
+      'idToken': googleUser.idToken, // Ensure your AuthService returns this
+      'email': googleUser.email,
+      'name': safeName, // Now it is never null
+      'role': role.isNotEmpty ? role : "user",
     };
 
     final response = await _apiService.sendUserToken(
@@ -83,14 +83,11 @@ class AuthRepo {
     return UserModel.fromMap(response);
   }
 
-
   Future<void> forgotUser(String email) async {
     await AuthService.authInstance.forgot(email);
   }
 
-  Future<void> logout()async{
+  Future<void> logout() async {
     await AuthService.authInstance.logout();
   }
-
-
 }

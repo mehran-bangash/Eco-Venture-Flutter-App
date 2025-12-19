@@ -3,7 +3,11 @@ import 'package:eco_venture/navigation/bottom_nav_teacher.dart';
 import 'package:eco_venture/views/child_section/report_safety/child_report_issue_screen.dart';
 import 'package:eco_venture/views/child_section/report_safety/child_safety_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/add_student_screen.dart';
-import 'package:eco_venture/views/teacher_section/class_report_screen.dart';
+import 'package:eco_venture/views/teacher_section/notification/teacher_notification_screen.dart';
+import 'package:eco_venture/views/teacher_section/report_safety/teacher_report_detail_screen.dart';
+import 'package:eco_venture/views/teacher_section/report_safety/teacher_safety_dashboard.dart';
+import 'package:eco_venture/views/teacher_section/report_safety/teacher_send_report_screen.dart';
+import 'package:eco_venture/views/teacher_section/teacher_class_report_screen.dart';
 import 'package:eco_venture/views/teacher_section/multi_media_content_Module/teacher_add_story_screen.dart';
 import 'package:eco_venture/views/teacher_section/multi_media_content_Module/teacher_add_video_screen.dart';
 import 'package:eco_venture/views/teacher_section/multi_media_content_Module/teacher_edit_story_screen.dart';
@@ -19,11 +23,14 @@ import 'package:eco_venture/views/teacher_section/settings/teacher_settings.dart
 import 'package:eco_venture/views/teacher_section/stem_challenges_module/teacher_edit_stem_challenge_screen.dart';
 import 'package:eco_venture/views/teacher_section/stem_challenges_module/teacher_stem_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/teacher_home_screen.dart';
+import 'package:eco_venture/views/teacher_section/teacher_stem_approved_screen.dart';
 import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_add_treasure_hunt_screen.dart';
 import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_edit_treasure_hunt_screen.dart';
 import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_treasure_hunt_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/view_student_detail_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../models/teacher_report_model.dart';
 import '../../views/child_section/rewards_screen.dart';
 import '../../views/teacher_section/quiz_module/teacher_edit_quiz_screen.dart';
 import '../../views/teacher_section/stem_challenges_module/teacher_add_stem_challenge_Screen.dart';
@@ -70,14 +77,25 @@ class TeacherRouter {
 
       // Teacher Safety
       GoRoute(
-        path: 'report-safety-screen',
-        name: "teacherReportSafetyScreen",
-        builder: (context, state) => const ChildSafetyDashboard(),
+        path: RouteNames.teacherSafetyDashboard,
+        name: "teacherSafetyDashboard",
+        builder: (context, state) => const TeacherSafetyDashboard(),
         routes: [
           GoRoute(
-            path: 'report-issue-screen',
-            name: "teacherReportIssueScreen",
-            builder: (context, state) => const ChildReportIssueScreen(),
+            path: RouteNames.teacherReportDetailScreen,
+            name: "teacherReportDetailScreen",
+            builder: (context, state) {
+              final reportData = state.extra as TeacherReportModel;
+              return TeacherReportDetailScreen(reportData: reportData);
+            },
+          ),
+          GoRoute(
+            path: RouteNames.teacherSendReportScreen,
+            name: "teacherSendReportScreen",
+            builder: (context, state) {
+              final extra = state.extra as Map<String, dynamic>;
+              return TeacherSendReportScreen(extra: extra);
+            },
           ),
         ],
       ),
@@ -90,6 +108,11 @@ class TeacherRouter {
         builder: (context, state) => const TeacherHomeScreen(),
         routes: [
           GoRoute(
+            path: RouteNames.teacherNotificationScreen,
+            name: 'teacherNotificationScreen',
+            builder: (context, state) => const TeacherNotificationScreen(),
+          ),
+          GoRoute(
             path: RouteNames.addStudentScreen,
             name: 'addStudentScreen',
             builder: (context, state) => const AddStudentScreen(),
@@ -101,13 +124,36 @@ class TeacherRouter {
               // CORRECTED: Create UserModel from the map passed in `state.extra`
               final studentMap = state.extra as Map<String, dynamic>;
               final student = UserModel.fromMap(studentMap);
-              return ViewStudentDetailScreen(studentData:studentMap);
+              return ViewStudentDetailScreen(studentData: studentMap);
             },
+            routes: [
+              GoRoute(
+                path: RouteNames.teacherStemApprovedScreen,
+                name: 'teacherStemApprovedScreen',
+                builder: (context, state) {
+                  final approvedData = state.extra;
+                  if (approvedData is Map<String, dynamic>) {
+                    return TeacherStemApprovedScreen(data: approvedData);
+                  } else {
+                    // Fallback screen if no data is provided
+                    return Scaffold(
+                      body: Center(
+                        child: Text(
+                          "Error: Missing submission data!",
+                          style: TextStyle(color: Colors.red, fontSize: 16),
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+
+            ],
           ),
           GoRoute(
             path: RouteNames.classReportScreen,
             name: 'classReportScreen',
-            builder: (context, state) => const ClassReportScreen(),
+            builder: (context, state) => const TeacherClassReportScreen(),
           ),
           GoRoute(
             path: RouteNames.teacherQuizDashboard,
@@ -206,7 +252,8 @@ class TeacherRouter {
               GoRoute(
                 path: RouteNames.teacherAddTreasureHuntScreen,
                 name: 'teacherAddTreasureHuntScreen',
-                builder: (context, state) => const TeacherAddTreasureHuntScreen(),
+                builder: (context, state) =>
+                    const TeacherAddTreasureHuntScreen(),
               ),
               GoRoute(
                 path: RouteNames.teacherEditTreasureHuntScreen,
@@ -216,9 +263,7 @@ class TeacherRouter {
                   return TeacherEditTreasureHuntScreen(huntData: huntData);
                 },
               ),
-
-
-            ]
+            ],
           ),
         ],
       ),

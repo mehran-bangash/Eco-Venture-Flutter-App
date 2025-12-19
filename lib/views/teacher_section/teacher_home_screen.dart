@@ -13,6 +13,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../services/shared_preferences_helper.dart';
 import '../../core/utils/utils.dart';
+import '../../viewmodels/teacher_student_detail/teacher_student_detail_provider.dart';
 
 class TeacherHomeScreen extends ConsumerStatefulWidget {
   const TeacherHomeScreen({super.key});
@@ -49,6 +50,42 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
 
     _controller.forward();
+  }
+
+  void _confirmDelete(
+      BuildContext context,
+      WidgetRef ref,
+      Map<String, dynamic> student,
+      ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Remove Student?"),
+        content: Text(
+          "Are you sure you want to remove ${student['name']} from your class?",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              // Call Service directly or via ViewModel
+              await ref
+                  .read(teacherStudentServiceProvider)
+                  .removeStudentFromClass(student['uid']);
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text("Student Removed")));
+            },
+            child: const Text("Remove", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   // --- NEW LOGIC: CHECK STATUS ---
@@ -89,6 +126,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    final studentsAsync = ref.watch(teacherStudentsStreamProvider);
     // 2. BLOCKING LOGIC
     if (_teacherStatus == 'loading') {
       return const Scaffold(
@@ -101,7 +139,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
       return _buildBlockingScreen(
         title: "Approval Pending",
         message:
-            "Your account is currently under review by the Admin.\nYou will be notified once approved.",
+        "Your account is currently under review by the Admin.\nYou will be notified once approved.",
         icon: Icons.hourglass_top_rounded,
         color: Colors.orange,
       );
@@ -111,7 +149,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
       return _buildBlockingScreen(
         title: "Account Suspended",
         message:
-            "Your access has been revoked. Please contact the administrator for more details.",
+        "Your access has been revoked. Please contact the administrator for more details.",
         icon: Icons.block_rounded,
         color: Colors.red,
       );
@@ -334,20 +372,25 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
               ],
             ),
           ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(50),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                padding: EdgeInsets.all(3.w),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.notifications_active_rounded,
-                  color: Colors.white,
-                  size: 22.sp,
+          GestureDetector(
+            onTap: () {
+              context.goNamed('teacherNotificationScreen');
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(50),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Container(
+                  padding: EdgeInsets.all(3.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.notifications_active_rounded,
+                    color: Colors.white,
+                    size: 22.sp,
+                  ),
                 ),
               ),
             ),
@@ -407,53 +450,59 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
   }
 
   Widget _buildStudentItem(UserModel student) {
-    return Column(
-      children: [
-        InkWell(
-          onTap: () {
-            context.pushNamed('studentDetailScreen', extra: student.toMap());
-          },
-          child: Container(
-            width: 20.w,
-            height: 20.w,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white,
-              border: Border.all(color: Colors.white, width: 3),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blueGrey.withValues(alpha: 0.15),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () {
+              context.pushNamed('studentDetailScreen', extra: student.toMap());
+            },
+            child: Container(
+              width: 20.w,
+              height: 20.w,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white,
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blueGrey.withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(2.0),
+                child: CircleAvatar(
+                  backgroundColor: Colors.grey.shade100,
+                  backgroundImage:
+                  student.imgUrl != null && student.imgUrl!.isNotEmpty
+                      ? NetworkImage(student.imgUrl!)
+                      : const AssetImage('assets/images/boy_1.png')
+                  as ImageProvider,
+                  onBackgroundImageError: (_, __) =>
+                      Icon(Icons.person, size: 20.sp),
                 ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(2.0),
-              child: CircleAvatar(
-                backgroundColor: Colors.grey.shade100,
-                backgroundImage:
-                    student.imgUrl != null && student.imgUrl!.isNotEmpty
-                    ? NetworkImage(student.imgUrl!)
-                    : const AssetImage('assets/images/boy_1.png')
-                          as ImageProvider,
-                onBackgroundImageError: (_, __) =>
-                    Icon(Icons.person, size: 20.sp),
               ),
             ),
           ),
-        ),
-        SizedBox(height: 1.5.h),
-        Text(
-          student.displayName,
-          style: GoogleFonts.poppins(
-            fontSize: 13.sp,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey.shade800,
+          SizedBox(height: 1.5.h),
+          Text(
+            student.displayName,
+            style: GoogleFonts.poppins(
+              fontSize: 13.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade800,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: () => _confirmDelete(context, ref, student as Map<String, dynamic>),
+          ),
+        ],
+      ),
     );
   }
 
@@ -606,21 +655,21 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
           "Create Levels",
           Icons.quiz_rounded,
           const [Color(0xFFFF9966), Color(0xFFFF5E62)],
-          () => context.goNamed('teacherQuizDashBoard'),
+              () => context.goNamed('teacherQuizDashBoard'),
         ),
         _buildGradientActionCard(
           "STEM",
           "Build & Learn",
           Icons.science_rounded,
           const [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-          () => context.goNamed('teacherStemChallengeDashboard'),
+              () => context.goNamed('teacherStemChallengeDashboard'),
         ),
         _buildGradientActionCard(
           "Multimedia",
           "Videos & Stories",
           Icons.play_circle_filled_rounded,
           const [Color(0xFFEB3349), Color(0xFFF45C43)],
-          () {
+              () {
             context.goNamed('teacherMultimediaDashboard');
           },
         ),
@@ -629,7 +678,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
           "Scavenger Hunt",
           Icons.qr_code_scanner_rounded,
           const [Color(0xFF00B4DB), Color(0xFF0083B0)],
-          () {
+              () {
             context.goNamed('teacherTreasureHuntDashboard');
           },
         ),
@@ -638,12 +687,12 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
   }
 
   Widget _buildGradientActionCard(
-    String title,
-    String subtitle,
-    IconData icon,
-    List<Color> gradient,
-    VoidCallback onTap,
-  ) {
+      String title,
+      String subtitle,
+      IconData icon,
+      List<Color> gradient,
+      VoidCallback onTap,
+      ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(

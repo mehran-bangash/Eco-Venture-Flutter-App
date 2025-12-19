@@ -12,6 +12,8 @@ import '../../../viewmodels/teacher_stem_challenge/teacher_stem_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import '../../../viewmodels/teacher_stem_challenge/teacher_stem_state.dart';
+
 class TeacherAddStemChallengeScreen extends ConsumerStatefulWidget {
   const TeacherAddStemChallengeScreen({super.key});
 
@@ -95,6 +97,17 @@ class _TeacherAddStemChallengeScreenState
   @override
   Widget build(BuildContext context) {
     final viewModelState = ref.watch(teacherStemViewModelProvider);
+    ref.listen<TeacherStemState>(teacherStemViewModelProvider, (previous, next) {
+      if (next.errorMessage != null && next.errorMessage!.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.errorMessage!), // Shows: "Network Error: Cannot reach server..."
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    });
 
     ref.listen(teacherStemViewModelProvider, (previous, next) {
       if (next.errorMessage != null) {

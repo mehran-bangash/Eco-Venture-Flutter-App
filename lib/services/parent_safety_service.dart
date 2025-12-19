@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:eco_venture/core/config/api_constants.dart';
-import 'package:eco_venture/services/shared_preferences_helper.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:http/http.dart' as http;
 import '../models/parent_safety_settings_model.dart';
@@ -11,8 +10,6 @@ class ParentSafetyService {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // --- 1. SETTINGS (WRITE) ---
-  // Fix: Saves directly to 'parent_settings/childId' so Child App can find it easily.
   Future<void> updateSafetySettings(
     String childId,
     ParentSafetySettingsModel settings,
@@ -43,40 +40,59 @@ class ParentSafetyService {
     return _database.ref('safety_alerts/$childId').onValue.map((event) {
       final data = event.snapshot.value;
       final List<ParentAlertModel> alerts = [];
+
       if (data != null && data is Map) {
         data.forEach((key, value) {
           if (value is Map) {
-            alerts.add(
-              ParentAlertModel.fromMap(
-                key.toString(),
-                Map<String, dynamic>.from(value),
-              ),
-            );
+            final map = Map<String, dynamic>.from(value);
+
+            // MAP FIELDS CORRECTLY
+            // 1. Title/Source
+            String title = map['issueType'] ?? map['title'] ?? 'Alert';
+            String desc =
+                map['details'] ?? map['body'] ?? map['description'] ?? '';
+
+            // 2. Content Context
+            // If the report has content info, append it to description for clarity if model doesn't support it directly yet,
+            // or better, ensure ParentAlertModel has these fields (I will update Model next).
+            // For now, pass raw map values to the model factory.
+
+            alerts.add(ParentAlertModel.fromMap(key.toString(), map));
           }
         });
       }
+
       alerts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       return alerts;
     });
   }
 
   // --- FIX: RESOLVE & NOTIFY CHILD ---
+
   Future<void> updateAlertStatus(
     String childId,
     String alertId,
     String newStatus,
   ) async {
-    // 1. Update Firebase
+    // 1. Update Database
     await _database.ref('safety_alerts/$childId/$alertId').update({
       'status': newStatus,
     });
 
-    // 2. Notify Child (Via Backend)
+    // 2. FIX: Notify Child
     if (newStatus == 'Resolved') {
-      await _notifyChild(
-        childId,
-        "Report Resolved",
-        "Your parent has reviewed your report.",
+      // Call Node.js
+      final url = Uri.parse(
+        'https://eco-venture-backend.onrender.com/notify-child',
+      );
+      await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'childId': childId,
+          'title': 'Safety Report Resolved',
+          'body': 'Your parent has reviewed your report.',
+        }),
       );
     }
   }
@@ -151,61 +167,40 @@ class ParentSafetyService {
     String note,
   ) async {
     try {
-      // 1. Get Parent ID (Current User)
-      String? parentId = await SharedPreferencesHelper.instance.getUserId();
+      // 1. Get Child Profile to find Teacher ID
+      // (Assuming you have a way to get the teacher ID, typically stored in child profile)
+      // For now, we write to a global 'escalated_reports' node or 'teacher_inbox' if we know the ID.
+
+      // Let's assume we save to a specific node that Teachers listen to:
       final newKey = _database.ref().push().key!;
 
-      final childDoc = await _firestore.collection('users').doc(childId).get();
-      final teacherId = childDoc.data()?['teacher_id'];
-
-      if (teacherId != null) {
-        await _database.ref('Teacher_Content/$teacherId/inbox/$newKey').set({
-          'type': 'Safety Report',
-          'childId': childId,
-          'parentId': parentId, // <--- ADDED PARENT ID
-          'reportTitle': alert.title,
-          'reportDesc': alert.description,
-          'parentNote': note,
-          'timestamp': DateTime.now().toIso8601String(),
-          'status': 'Pending',
-        });
-        print("Report escalated to Teacher $teacherId");
-      }
+      await _database.ref('teacher_reports/$newKey').set({
+        'childId': childId,
+        'originalReportId': alert.id,
+        'title': alert.title,
+        'description': alert.description,
+        'parentNote': note,
+        'status': 'Escalated',
+        'timestamp': DateTime.now().toIso8601String(),
+        'type': 'Safety',
+      });
     } catch (e) {
       print("Escalation Error: $e");
     }
   }
 
-  // Escalation: Copy to Admin
   Future<void> escalateReportToAdmin(
     String childId,
     ParentAlertModel alert,
     String note,
   ) async {
-    try {
-      final parentId = await SharedPreferencesHelper.instance.getUserId();
-      final adminsSnapshot = await _firestore.collection('Admins').get();
-
-      for (final adminDoc in adminsSnapshot.docs) {
-        final adminUid = adminDoc.id;
-
-        final newKey = _database.ref().push().key!;
-
-        await _database.ref('Admin/$adminUid/inbox/$newKey').set({
-          'type': 'Safety Report',
-          'childId': childId,
-          'parentId': parentId,
-          'reportTitle': alert.title,
-          'reportDesc': alert.description,
-          'parentNote': note,
-          'timestamp': DateTime.now().toIso8601String(),
-          'status': 'Pending',
-        });
-      }
-
-      print("Report successfully sent to Admin inbox");
-    } catch (e) {
-      print("Admin Escalation Error: $e");
-    }
+    final newKey = _database.ref().push().key!;
+    await _database.ref('admin_reports/$newKey').set({
+      'childId': childId,
+      'issue': alert.title,
+      'details': alert.description,
+      'parentNote': note,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
   }
 }

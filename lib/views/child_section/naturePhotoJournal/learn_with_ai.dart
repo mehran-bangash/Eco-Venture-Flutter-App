@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-
 class LearnWithAi extends StatefulWidget {
   const LearnWithAi({super.key});
 
@@ -13,7 +12,6 @@ class LearnWithAi extends StatefulWidget {
 }
 
 class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin {
-
   late final AnimationController _skyController;
   late final AnimationController _cloudController;
   late final AnimationController _birdController;
@@ -83,14 +81,14 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
     );
   }
 
-  // Cloud widget (uses _cloudController to compute horizontal offset)
+  // Cloud widget
   Widget _buildCloud({required double topPct, required double sizePct, required double speedFactor, required double opacity}) {
     return AnimatedBuilder(
       animation: _cloudController,
       builder: (_, child) {
         final widthFactor = _cloudController.value; // 0..1
-        // movement: start -30% off left to +120% off right (so loops offscreen)
         final screenWidth = MediaQuery.of(context).size.width;
+        // movement: start -30% off left to +120% off right (so loops offscreen)
         final x = (widthFactor * (screenWidth + screenWidth * 1.5)) - (screenWidth * 0.75) * speedFactor;
         return Positioned(
           top: MediaQuery.of(context).size.height * topPct,
@@ -105,16 +103,15 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
           ),
         );
       },
-      child: _CloudShape(),
+      child: const _CloudShape(),
     );
   }
 
-  // Bird widget — simple cartoon bird using Icons and animations
+  // Bird widget
   Widget _buildBird({required double startLeftPct, required double startTopPct, required double scale, required double delay}) {
     return AnimatedBuilder(
       animation: _birdController,
       builder: (_, child) {
-        // bobbing using sin wave, shift horizontally slightly
         final t = (_birdController.value + delay) % 1.0;
         final bob = sin(t * 2 * pi) * 10;
         final wiggle = cos(t * 2 * pi) * 6;
@@ -132,24 +129,23 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
           ),
         );
       },
-      child: _BirdWidget(),
+      child: const _BirdWidget(),
     );
   }
 
-  // Floating leaf / sparkles that drift down
+  // Floating leaf
   Widget _buildLeaf({required double startLeftPct, required double startTopPct, required double size, required double delay}) {
     return AnimatedBuilder(
       animation: _leafController,
       builder: (_, child) {
         final t = (_leafController.value + delay) % 1.0;
-        // Y travels slowly down and wraps using modulo
         final screenH = MediaQuery.of(context).size.height;
         final y = (startTopPct * screenH) + (t * screenH * 0.35);
         final x = MediaQuery.of(context).size.width * startLeftPct + sin(t * 2 * pi) * 18;
         final rotation = t * 2 * pi;
         return Positioned(
           left: x,
-          top: y % (screenH * 0.9), // keep inside
+          top: y % (screenH * 0.9),
           child: Transform.rotate(
             angle: rotation,
             child: Opacity(opacity: 0.9 - (t * 0.5), child: child),
@@ -169,20 +165,21 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
       child: ScaleTransition(
         scale: _ctaController,
         child: GestureDetector(
-          onTapDown: (_) => _ctaController.reverse(), // scale to 0.92
+          onTapDown: (_) => _ctaController.reverse(),
           onTapUp: (_) {
-            _ctaController.forward(); // scale back
+            _ctaController.forward();
+            // Go to the Camera / Explorer Screen
             context.goNamed('naturePhotoExploreScreen');
           },
           onTapCancel: () => _ctaController.forward(),
           child: Container(
             padding: EdgeInsets.symmetric(vertical: 2.2.h),
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [const Color(0xFF5EEAD4), const Color(0xFF06B6D4)]),
+              gradient: const LinearGradient(colors: [Color(0xFF5EEAD4), Color(0xFF06B6D4)]),
               borderRadius: BorderRadius.circular(40),
               boxShadow: [
-                BoxShadow(color: Colors.teal.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 10)),
-                BoxShadow(color: Colors.white.withValues(alpha: 0.08), blurRadius: 6, offset: const Offset(0, -4)),
+                BoxShadow(color: Colors.teal.withOpacity(0.28), blurRadius: 18, offset: const Offset(0, 10)),
+                BoxShadow(color: Colors.white.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, -4)),
               ],
             ),
             child: Row(
@@ -207,9 +204,8 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
     );
   }
 
-  // Soft bouncy headline near top center
+  // Headline
   Widget _buildHeadline() {
-    // we will create a bouncy scale using a derived curved animation from _skyController (just for variety)
     final headlineScale = CurvedAnimation(parent: _skyController, curve: Curves.easeOutBack);
     return Positioned(
       top: 6.h,
@@ -227,7 +223,7 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
                 fontWeight: FontWeight.w900,
                 color: Colors.brown.shade800,
                 shadows: [
-                  Shadow(color: Colors.white.withValues(alpha: 0.6), blurRadius: 2, offset: const Offset(0, 1)),
+                  Shadow(color: Colors.white.withOpacity(0.6), blurRadius: 2, offset: const Offset(0, 1)),
                 ],
               ),
             ),
@@ -247,7 +243,7 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
     );
   }
 
-  // OPTIONAL decorative ground with simple hills — full width
+  // Hills
   Widget _buildHills() {
     return Positioned(
       bottom: 0,
@@ -263,24 +259,25 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
     );
   }
 
-  // Back button widget
+  // Back button
   Widget _buildBackButton() {
     return Positioned(
       top: 4.h,
       left: 4.w,
       child: GestureDetector(
         onTap: () {
-          context.pop(); // Navigate back
+          // Go back to the Journal List
+          context.goNamed('naturePhotoJournal');
         },
         child: Container(
           width: 12.w,
           height: 12.w,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.9),
+            color: Colors.white.withOpacity(0.9),
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -299,14 +296,14 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return PopScope(
-       canPop: false,
-       onPopInvokedWithResult: (didPop, result) {
-         if(!didPop){
-           context.goNamed("naturePhotoJournal");
-         }
-       },
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          // Hardware back button behavior
+          context.goNamed("naturePhotoJournalScreen");
+        }
+      },
       child: Scaffold(
-        // Keep the status bar bright and consistent
         body: AnimatedBuilder(
           animation: Listenable.merge([_skyController, _cloudController, _birdController, _leafController]),
           builder: (context, _) {
@@ -316,10 +313,9 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
               decoration: BoxDecoration(gradient: _animatedSkyGradient()),
               child: Stack(
                 children: [
-                  // Back button (added at the top-left)
                   _buildBackButton(),
 
-                  // Decorative sun (top-right) with slow rotation
+                  // Sun
                   Positioned(
                     top: 6.h,
                     right: 6.w,
@@ -331,15 +327,14 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: RadialGradient(colors: [Colors.yellow.shade300, Colors.orange.shade300]),
-                          boxShadow: [BoxShadow(color: Colors.orange.withValues(alpha: 0.25), blurRadius: 20, offset: const Offset(0, 10))],
+                          boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.25), blurRadius: 20, offset: const Offset(0, 10))],
                         ),
-                        child: Center(child: Icon(Icons.wb_sunny, color: Colors.white.withValues(alpha: 0.9), size: 8.w)),
+                        child: Center(child: Icon(Icons.wb_sunny, color: Colors.white.withOpacity(0.9), size: 8.w)),
                       ),
                     ),
                   ),
 
-
-                  // Clouds (multiple layers)
+                  // Clouds
                   _buildCloud(topPct: 0.08, sizePct: 0.48, speedFactor: 0.9, opacity: 0.95),
                   _buildCloud(topPct: 0.16, sizePct: 0.32, speedFactor: 0.65, opacity: 0.85),
                   _buildCloud(topPct: 0.26, sizePct: 0.42, speedFactor: 1.2, opacity: 0.9),
@@ -349,19 +344,19 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
                   _buildBird(startLeftPct: 0.45, startTopPct: 0.18, scale: 0.9, delay: 0.25),
                   _buildBird(startLeftPct: 0.65, startTopPct: 0.28, scale: 0.8, delay: 0.55),
 
-                  // Leaves / sparkles floating down
+                  // Leaves
                   _buildLeaf(startLeftPct: 0.12, startTopPct: 0.02, size: 6.w, delay: 0.05),
                   _buildLeaf(startLeftPct: 0.32, startTopPct: 0.05, size: 7.w, delay: 0.25),
                   _buildLeaf(startLeftPct: 0.72, startTopPct: 0.01, size: 5.w, delay: 0.6),
                   _buildLeaf(startLeftPct: 0.52, startTopPct: 0.12, size: 6.5.w, delay: 0.8),
 
-                  // Soft particles (decorative little glows) using positioned small circles
+                  // Sparkles
                   Positioned(
                     left: 10.w,
                     top: 22.h,
                     child: Opacity(
                       opacity: 0.9,
-                      child: Container(width: 12, height: 12, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.8), shape: BoxShape.circle)),
+                      child: Container(width: 12, height: 12, decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), shape: BoxShape.circle)),
                     ),
                   ),
                   Positioned(
@@ -369,17 +364,12 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
                     top: 24.h,
                     child: Opacity(
                       opacity: 0.7,
-                      child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.7), shape: BoxShape.circle)),
+                      child: Container(width: 8, height: 8, decoration: BoxDecoration(color: Colors.white.withOpacity(0.7), shape: BoxShape.circle)),
                     ),
                   ),
 
-                  // Headline (top center)
                   _buildHeadline(),
-
-                  // Hills / ground
                   _buildHills(),
-
-                  // CTA (bottom)
                   _buildCTA(),
                 ],
               ),
@@ -391,48 +381,43 @@ class _LearnWithAiState extends State<LearnWithAi> with TickerProviderStateMixin
   }
 }
 
-/// Simple cloud widget (vector-like using containers)
 class _CloudShape extends StatelessWidget {
   const _CloudShape();
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        // base rounded cloud parts
         Positioned(
           left: 0,
           top: 8,
-          child: Container(width: 120, height: 48, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), borderRadius: BorderRadius.circular(40))),
+          child: Container(width: 120, height: 48, decoration: BoxDecoration(color: Colors.white.withOpacity(0.92), borderRadius: BorderRadius.circular(40))),
         ),
         Positioned(
           left: 36,
           top: 0,
-          child: Container(width: 72, height: 72, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.95), borderRadius: BorderRadius.circular(40))),
+          child: Container(width: 72, height: 72, decoration: BoxDecoration(color: Colors.white.withOpacity(0.95), borderRadius: BorderRadius.circular(40))),
         ),
         Positioned(
           left: 86,
           top: 10,
-          child: Container(width: 46, height: 44, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.9), borderRadius: BorderRadius.circular(40))),
+          child: Container(width: 46, height: 44, decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(40))),
         ),
       ],
     );
   }
 }
 
-/// Cute bird widget (cartoon) — using simple shapes
 class _BirdWidget extends StatelessWidget {
   const _BirdWidget();
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        // beak
         Transform.rotate(
           angle: -0.25,
           child: Container(width: 12, height: 12, decoration: BoxDecoration(color: Colors.orangeAccent, borderRadius: BorderRadius.circular(3))),
         ),
-        SizedBox(width: 4),
-        // body
+        const SizedBox(width: 4),
         Container(
           width: 48,
           height: 28,
@@ -443,7 +428,7 @@ class _BirdWidget extends StatelessWidget {
               width: 22,
               height: 20,
               margin: const EdgeInsets.only(right: 6),
-              decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+              decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             ),
           ),
         ),
@@ -452,7 +437,6 @@ class _BirdWidget extends StatelessWidget {
   }
 }
 
-/// Leaf icon (vector-ish)
 class _LeafIcon extends StatelessWidget {
   final double size;
   const _LeafIcon({required this.size});
@@ -466,18 +450,17 @@ class _LeafIcon extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(colors: [Colors.green.shade300, Colors.green.shade600]),
           borderRadius: BorderRadius.circular(8),
-          boxShadow: [BoxShadow(color: Colors.green.withValues(alpha: 0.18), blurRadius: 6, offset: const Offset(0, 4))],
+          boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.18), blurRadius: 6, offset: const Offset(0, 4))],
         ),
         child: Align(
           alignment: Alignment.centerRight,
-          child: Container(width: size * 0.18, height: size * 0.18, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(4))),
+          child: Container(width: size * 0.18, height: size * 0.18, decoration: BoxDecoration(color: Colors.white.withOpacity(0.14), borderRadius: BorderRadius.circular(4))),
         ),
       ),
     );
   }
 }
 
-/// Painter for smooth layered hills at the bottom
 class _HillPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

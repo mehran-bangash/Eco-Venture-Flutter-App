@@ -94,6 +94,7 @@ class RouteNames {
 
   static const addStudentScreen = '/teacher/home/add-student-screen';
   static const studentDetailScreen = '/teacher/home/student-detail-screen';
+  static const teacherStemApprovedScreen='/teacher/home/student-detail-screen/teacher-approved';
   static const classReportScreen = '/teacher/home/class-report-screen';
 
   // Teacher Profile Section
@@ -101,12 +102,17 @@ class RouteNames {
   static const teacherProfile = '/teacher/teacher-settings/teacher-profile';
   static const teacherEditProfile =
       '/teacher/teacher-settings/teacher-edit-profile';
-  static const teacherReportSafetyScreen = '/teacher/report-safety-screen';
-  static const teacherReportIssueScreen =
-      '/teacher/report-safety-screen/report-issue-screen';
+  static const teacherSafetyDashboard = '/teacher/safety-dashboard';
+  static const teacherReportDetailScreen =
+      '/teacher/report-safety-screen/detail-screen';
+  static const teacherSendReportScreen =
+      '/teacher/report-safety-screen/send-report';
   static const teacherProgressDashboardScreen =
       '/teacher/progress-dashboard-screen';
   static const teacherRewardScreen = '/teacher/reward-screen';
+
+  //Notifications
+   static const teacherNotificationScreen='/teacher/home/teacher-notification';
 
   // Teacher Quiz Module
   static const teacherQuizDashboard = '/teacher/home/teacher-quiz-dashboard';

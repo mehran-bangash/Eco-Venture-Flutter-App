@@ -4,24 +4,20 @@ import '../../services/teacher_student_service.dart';
 import '../../repositories/teacher_student_repository.dart';
 import 'teacher_student_detail_view_model.dart';
 
-// 1. Service
-final teacherStudentServiceProvider = Provider(
-  (ref) => TeacherStudentService(),
-);
+// Service
+final teacherStudentServiceProvider = Provider((ref) => TeacherStudentService());
 
-// 2. Repository
+// Repository
 final teacherStudentRepositoryProvider = Provider((ref) {
   return TeacherStudentRepository(ref.watch(teacherStudentServiceProvider));
 });
 
-// 3. ViewModel
-// Using .autoDispose because we want to reload when switching students
-final teacherStudentDetailViewModelProvider =
-    StateNotifierProvider.autoDispose<
-      TeacherStudentDetailViewModel,
-      TeacherStudentDetailState
-    >((ref) {
-      return TeacherStudentDetailViewModel(
-        ref.watch(teacherStudentRepositoryProvider),
-      );
-    });
+// ViewModel (Detail View)
+final teacherStudentDetailViewModelProvider = StateNotifierProvider.autoDispose<TeacherStudentDetailViewModel, TeacherStudentDetailState>((ref) {
+  return TeacherStudentDetailViewModel(ref.watch(teacherStudentRepositoryProvider));
+});
+
+// --- NEW: STREAM PROVIDER FOR DASHBOARD (Fixes Issue #4) ---
+final teacherStudentsStreamProvider = StreamProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+  return ref.watch(teacherStudentServiceProvider).getStudentsStream();
+});
