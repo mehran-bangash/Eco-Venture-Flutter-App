@@ -161,31 +161,36 @@ class ParentSafetyService {
     await _database.ref('parent_children/$parentUid/$childUid').remove();
   }
 
-  Future<void> escalateReportToTeacher(
-    String childId,
-    ParentAlertModel alert,
-    String note,
-  ) async {
+  Future<void> escalateReportToTeacher(String childId, ParentAlertModel alert, String note) async {
     try {
-      // 1. Get Child Profile to find Teacher ID
-      // (Assuming you have a way to get the teacher ID, typically stored in child profile)
-      // For now, we write to a global 'escalated_reports' node or 'teacher_inbox' if we know the ID.
+      // 1. Find the Teacher linked to this Child
+      final childDoc = await _firestore.collection('users').doc(childId).get();
+      final teacherId = childDoc.data()?['teacher_id'];
 
-      // Let's assume we save to a specific node that Teachers listen to:
+      if (teacherId == null) {
+        throw Exception("This student is not linked to any class/teacher yet.");
+      }
+
+      // 2. Save directly to THAT Teacher's report node
       final newKey = _database.ref().push().key!;
 
-      await _database.ref('teacher_reports/$newKey').set({
+      await _database.ref('teacher_reports/$teacherId/$newKey').set({
         'childId': childId,
+        'reportId': newKey,
         'originalReportId': alert.id,
         'title': alert.title,
         'description': alert.description,
         'parentNote': note,
-        'status': 'Escalated',
+        'recipient': 'Teacher', // Explicitly mark recipient
+        'status': 'Pending',
+        'fromName': 'Parent',
         'timestamp': DateTime.now().toIso8601String(),
-        'type': 'Safety',
+        'type': 'Escalated Safety Report',
       });
+
     } catch (e) {
       print("Escalation Error: $e");
+      rethrow; // Pass error to UI
     }
   }
 

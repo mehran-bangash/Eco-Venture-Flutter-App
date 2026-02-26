@@ -55,14 +55,14 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
   void _confirmDelete(
       BuildContext context,
       WidgetRef ref,
-      Map<String, dynamic> student,
+      UserModel student,
       ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Remove Student?"),
         content: Text(
-          "Are you sure you want to remove ${student['name']} from your class?",
+          "Are you sure you want to remove ${student.displayName} from your class? This action cannot be undone.",
         ),
         actions: [
           TextButton(
@@ -73,13 +73,31 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               Navigator.pop(ctx);
-              // Call Service directly or via ViewModel
-              await ref
-                  .read(teacherStudentServiceProvider)
-                  .removeStudentFromClass(student['uid']);
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text("Student Removed")));
+
+              try {
+                await ref
+                    .read(teacherStudentServiceProvider)
+                    .removeStudentFromClass(student.uid);
+                ref.invalidate(teacherHomeViewModelProvider);
+
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Student deleted successfully"),
+                        backgroundColor: Colors.green,
+                      )
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Error deleting: $e"),
+                        backgroundColor: Colors.red,
+                      )
+                  );
+                }
+              }
             },
             child: const Text("Remove", style: TextStyle(color: Colors.white)),
           ),
@@ -499,7 +517,8 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline, color: Colors.red),
-            onPressed: () => _confirmDelete(context, ref, student as Map<String, dynamic>),
+
+            onPressed: () => _confirmDelete(context, ref, student),
           ),
         ],
       ),

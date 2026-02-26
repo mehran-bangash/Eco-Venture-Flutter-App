@@ -7,25 +7,17 @@ class TeacherHomeViewModel extends StateNotifier<TeacherHomeState> {
 
   // The initial state is set here. isLoading is true by default in the state file.
   TeacherHomeViewModel(this._repository) : super(TeacherHomeState()) {
-    _fetchStudents();
+    fetchStudents();
   }
 
-  Future<void> _fetchStudents() async {
+  // NEW (Remove the underscore)
+  Future<void> fetchStudents() async {
     try {
-      // The initial state is already loading.
+      state = state.copyWith(isLoading: true); // Optional: Add loading state while refreshing
       final students = await _repository.getStudentsForTeacher();
-      
-      // On success, update state with the student list and set loading to false.
-      state = state.copyWith(
-        students: students,
-        isLoading: false,
-      );
+      state = state.copyWith(students: students, isLoading: false);
     } catch (e) {
-      // On error, update state with an error message and set loading to false.
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: "Failed to fetch students: ${e.toString()}",
-      );
+      state = state.copyWith(isLoading: false, errorMessage: "Failed: ${e.toString()}");
     }
   }
 }

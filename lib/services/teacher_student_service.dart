@@ -34,12 +34,38 @@ class TeacherStudentService {
 
 
 
+  // Update this function
   Future<void> removeStudentFromClass(String studentUid) async {
-    // Unlinking removes them from the dashboard instantly due to the Stream above.
-    await _firestore.collection('users').doc(studentUid).update({
-      'teacher_id': FieldValue.delete(),
-      'is_teacher_added': false,
-    });
+    try {
+      // 1. Call your Node.js Backend to delete the account
+      // Make sure ApiConstants.baseUrl ends with a slash '/'
+      final url = Uri.parse(ApiConstants.deleteStudentEndPoint);
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'studentId': studentUid}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("✅ Student successfully deleted from Auth & DB");
+      } else {
+        // If API fails, throw error so UI knows
+        throw Exception("Failed to delete: ${response.body}");
+      }
+
+    } catch (e) {
+      print("❌ API Error: $e");
+
+      // FALLBACK: If server is down, at least unlink them locally so they disappear from the list
+      await _firestore.collection('users').doc(studentUid).update({
+        'teacher_id': FieldValue.delete(),
+        'is_teacher_added': false,
+      });
+
+      // Rethrow so the UI shows an error/warning
+      throw Exception("Server error, but student was unlinked locally.");
+    }
   }
 
   // --- STREAM STUDENT DETAIL ---

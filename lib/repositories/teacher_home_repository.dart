@@ -7,8 +7,6 @@ class TeacherHomeRepository {
   TeacherHomeRepository(this._teacherHomeService);
 
   Future<List<UserModel>> getStudentsForTeacher() async {
-    // This method calls the corresponding method in the service layer.
-    // This abstracts the data source logic from the ViewModel.
     try {
       return await _teacherHomeService.getStudentsForTeacher();
     } catch (e) {

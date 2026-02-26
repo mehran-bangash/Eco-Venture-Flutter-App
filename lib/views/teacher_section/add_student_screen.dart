@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Riverpod
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-
+import '../../viewmodels/teacher_home/teacher_home_provider.dart';
 import '../../viewmodels/teacher_auth/teacher_auth_provider.dart';
 
 class AddStudentScreen extends ConsumerStatefulWidget {
@@ -61,6 +61,8 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
     // 3. Watch State for Loading
     final authState = ref.watch(teacherAuthViewModelProvider);
 
+
+
     // 4. Listen for Side Effects (Success/Error)
     ref.listen(teacherAuthViewModelProvider, (previous, next) {
       if (next.errorMessage != null) {
@@ -71,6 +73,7 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
           ),
         );
       }
+
       if (next.isSuccess) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -78,6 +81,10 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
             backgroundColor: Colors.green,
           ),
         );
+
+        // FIX 3: Force Home Screen to refresh
+        ref.read(teacherHomeViewModelProvider.notifier).fetchStudents();
+
         ref.read(teacherAuthViewModelProvider.notifier).resetState();
         Navigator.pop(context);
       }
