@@ -32,7 +32,7 @@ class TeacherSafetyService {
 
       // A. Teacher's Direct Inbox (Parent Reports)
       final directInboxStream = _database
-          .ref('teacher_reports/$teacherId') // <--- THIS LINE CHANGED
+          .ref('Teacher_Content/$teacherId/inbox')
           .onValue
           .map((event) => _parseReports(event.snapshot.value, "Parent"))
           .startWith([]);
@@ -144,7 +144,7 @@ class TeacherSafetyService {
     if (childId != null) {
       await _database.ref('safety_alerts/$childId/$reportId').update({'status': newStatus});
     } else {
-      await _database.ref('teacher_reports/$teacherId/$reportId').update({'status': newStatus});
+      await _database.ref('Teacher_Content/$teacherId/inbox/$reportId').update({'status': newStatus});
     }
 
     // 2. NOTIFY CHILD (New Logic)

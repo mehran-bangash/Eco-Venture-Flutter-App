@@ -12,11 +12,12 @@ class ApiService {
       headers: {"Content-Type": "application/json"},
       body: jsonEncode(data),
     )
-        .timeout(const Duration(seconds: 50)); // You can keep 50 or increase to 100 if needed
+        .timeout(const Duration(seconds: 50));
+
 
     switch (response.statusCode) {
       case 200:
-      case 201:
+      // success → decode and return
         final decoded = jsonDecode(response.body) as Map<String, dynamic>;
         return decoded;
 

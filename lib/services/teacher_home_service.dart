@@ -16,7 +16,7 @@ class TeacherHomeService {
       final querySnapshot = await _firestore
           .collection('users')
           .where('teacher_id', isEqualTo: teacherId)
-          .where('role', isEqualTo: 'child')
+          .where('role', isEqualTo: 'child') // CORRECTED: Changed 'student' to 'child'
           .get();
 
       if (querySnapshot.docs.isEmpty) {
