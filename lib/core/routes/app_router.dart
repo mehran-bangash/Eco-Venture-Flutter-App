@@ -1,5 +1,7 @@
 import 'package:eco_venture/views/auth/forgot_password_screen.dart';
 import 'package:eco_venture/views/auth/sign_up_screen.dart';
+import 'package:eco_venture/views/splash_screen/splash_screen.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 
 import '../constants/route_names.dart';
@@ -14,20 +16,32 @@ import '../../views/auth/login_screen.dart';
 
 class AppRouter {
   static GoRouter router = GoRouter(
-    initialLocation: RouteNames.landing,
+    initialLocation: RouteNames.splash,
     routes: [
-      // // Splash
-      // GoRoute(
-      //   path: RouteNames.splash,
-      //   name: 'splash',
-      //   builder: (context, state) => const SplashScreen(),
-      // ),
+      // Splash
+      GoRoute(
+        path: RouteNames.splash,
+        name: 'splash',
+        builder: (context, state) =>const SplashScreen(),
+      ),
 
+      // Landing
       // Landing
       GoRoute(
         path: RouteNames.landing,
         name: 'landing',
-        builder: (context, state) => const LandingScreen(),
+        pageBuilder: (context, state) {
+          return CustomTransitionPage(
+            key: state.pageKey,
+            child: const LandingScreen(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+          );
+        },
       ),
 
       // Login
