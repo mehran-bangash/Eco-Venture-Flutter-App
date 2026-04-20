@@ -1,10 +1,10 @@
 import 'dart:io';
 import '../models/child_report_model.dart';
 import '../models/parent_safety_settings_model.dart';
-import '../services/child_safety_service.dart';
+import '../services/child_inbox_service.dart';
 import '../services/cloudinary_service.dart';
 class ChildSafetyRepository {
-  final ChildSafetyService _safetyService;
+  final ChildInboxService _safetyService;
   final CloudinaryService _cloudinaryService;
 
   ChildSafetyRepository(this._safetyService, this._cloudinaryService);

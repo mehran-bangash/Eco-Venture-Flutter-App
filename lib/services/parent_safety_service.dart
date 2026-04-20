@@ -113,37 +113,57 @@ class ParentSafetyService {
     }
   }
 
-  // --- 3. PARENT-CHILD LINKING ---
-  // ... (Linking Logic Preserved) ...
   Future<String> linkChildAccount(
-    String parentUid,
-    String childEmail,
-    String childName,
-  ) async {
+      String parentUid,
+      String childEmail,
+      String childName,
+      ) async {
+    // 1. Find the child by email
     final query = await _firestore
         .collection('users')
         .where('email', isEqualTo: childEmail)
         .where('role', isEqualTo: 'child')
         .limit(1)
         .get();
+
     if (query.docs.isEmpty) throw Exception("No child found with this email.");
+
     final childDoc = query.docs.first;
     final childData = childDoc.data();
+    final childUid = childDoc.id;
+
+    // 2. CRITICAL FIX: Check if already linked in RTDB
+    final existingCheck = await _database.ref('parent_children/$parentUid/$childUid').get();
+    if (existingCheck.exists) {
+      throw Exception("${childData['name'] ?? 'Child'} is already in your list.");
+    }
+
+    // 3. Name validation
     String realName = childData['name'] ?? '';
     if (realName.toLowerCase().trim() != childName.toLowerCase().trim()) {
       throw Exception("Child found, but name does not match.");
     }
-    final childUid = childDoc.id;
+
+    // 4. Perform link
     await _database.ref('parent_children/$parentUid/$childUid').set({
       'name': realName,
       'uid': childUid,
       'email': childEmail,
       'linkedAt': DateTime.now().toIso8601String(),
     });
+
     await _firestore.collection('users').doc(childUid).update({
       'parent_id': parentUid,
     });
+
     return childUid;
+  }
+
+  Future<void> unlinkChildAccount(String parentUid, String childUid) async {
+    await _database.ref('parent_children/$parentUid/$childUid').remove();
+    await _firestore.collection('users').doc(childUid).update({
+      'parent_id': FieldValue.delete(),
+    });
   }
 
   Future<List<Map<String, dynamic>>> getLinkedChildren(String parentUid) async {
@@ -157,10 +177,14 @@ class ParentSafetyService {
     return [];
   }
 
-  Future<void> unlinkChildAccount(String parentUid, String childUid) async {
-    await _database.ref('parent_children/$parentUid/$childUid').remove();
-  }
-
+  // Future<void> unlinkChildAccount(String parentUid, String childUid) async {
+  //   // 1. Remove from RTDB
+  //   await _database.ref('parent_children/$parentUid/$childUid').remove();
+  //   // 2. Remove parent_id from Firestore user doc
+  //   await _firestore.collection('users').doc(childUid).update({
+  //     'parent_id': FieldValue.delete(),
+  //   });
+  // }
   Future<void> escalateReportToTeacher(
     String childId,
     ParentAlertModel alert,
@@ -174,7 +198,7 @@ class ParentSafetyService {
       // Let's assume we save to a specific node that Teachers listen to:
       final newKey = _database.ref().push().key!;
 
-      await _database.ref('teacher_reports/$newKey').set({
+      await _database.ref('parent_to_teacher_reports/$newKey').set({
         'childId': childId,
         'originalReportId': alert.id,
         'title': alert.title,
@@ -195,7 +219,7 @@ class ParentSafetyService {
     String note,
   ) async {
     final newKey = _database.ref().push().key!;
-    await _database.ref('admin_reports/$newKey').set({
+    await _database.ref('parent_to_admin_reports/$newKey').set({
       'childId': childId,
       'issue': alert.title,
       'details': alert.description,

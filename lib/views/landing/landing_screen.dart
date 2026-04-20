@@ -19,6 +19,7 @@ class _LandingScreenState extends State<LandingScreen> with TickerProviderStateM
   late AnimationController _cardController;
   late AnimationController _pulseController;
   int? _selectedIndex;
+  final prefs = SharedPreferencesHelper.instance;
 
 
   @override
@@ -292,7 +293,7 @@ class _LandingScreenState extends State<LandingScreen> with TickerProviderStateM
                       onTap: () async {
                         setState(() => _selectedIndex = 0);
                         context.goNamed('login', extra: "child");
-                        await SharedPreferencesHelper.instance.saveUserRole('child');
+                        await SharedPreferencesHelper.instance.saveUserRole("child");
                       },
                       child: _buildCard("Explorer", "CHILD",
                           "Complete missions, scan QR & explore nature",
@@ -303,7 +304,8 @@ class _LandingScreenState extends State<LandingScreen> with TickerProviderStateM
                       onTap: () async {
                         setState(() => _selectedIndex = 1);
                         context.goNamed('login', extra: "parent");
-                        await SharedPreferencesHelper.instance.saveUserRole('parent');
+                        await SharedPreferencesHelper.instance.saveUserRole("parent");
+
                       },
                       child: _buildCard("Guardian", "PARENT",
                           "Track safety and progress insights",
@@ -314,7 +316,7 @@ class _LandingScreenState extends State<LandingScreen> with TickerProviderStateM
                       onTap: () async {
                         setState(() => _selectedIndex = 2);
                         context.goNamed('login', extra: "teacher");
-                        await SharedPreferencesHelper.instance.saveUserRole('teacher');
+                        await SharedPreferencesHelper.instance.saveUserRole("teacher");
                       },
                       child: _buildCard("Mentor", "TEACHER",
                           "Guide learning with challenges & quizzes",

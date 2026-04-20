@@ -155,19 +155,14 @@ class RouteNames {
 
   // Parent Route
   static const parentNotificationsScreen='/parent/parent-notifications-screen';
-  static const parentSettings = '/parent/bottom-nav-parent/parent-settings';
-  static const parentProfile =
-      '/parent/bottom-nav-parent/parent-settings/profile';
-  static const parentEditProfile =
-      '/parent/bottom-nav-parent/parent-settings/edit';
+  static const parentReportAlertsScreen = 'report-alerts';
+  static const parentReportDetailScreen = 'parent-report-detail';
 
-  static const parentReportSafetyScreen =
-      '/parent/bottom-nav-parent/parent-report-safety';
-  static const parentReportDetailScreen='/parent/bottom-nav-parent/parent-report-safety/parent-report-detail';
-  static const parentScreenTimeScreen =
-      '/parent/bottom-nav-parent/parent-report-safety/screen-time';
-  static const parentContentFiltersScreen =
-      '/parent/bottom-nav-parent/parent-report-safety/content-filters';
-  static const parentReportAlertsScreen =
-      '/parent/bottom-nav-parent/parent-report-safety/report-alerts';
+  static const parentSettings = 'parent-settings';
+  static const parentProfile = 'profile';
+  static const parentEditProfile = 'edit';
+
+  static const parentReportSafetyScreen = 'parent-report-safety';
+  static const parentScreenTimeScreen = 'screen-time';
+  static const parentContentFiltersScreen = 'content-filters';
 }

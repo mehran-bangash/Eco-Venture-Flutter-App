@@ -5,6 +5,7 @@ class ParentAlertModel {
   final DateTime timestamp;
   final String status;
   final bool isCritical;
+  final String severity; // Added this field
 
   // NEW: Context Data
   final String? contentId;
@@ -18,6 +19,7 @@ class ParentAlertModel {
     required this.timestamp,
     this.status = 'Pending',
     this.isCritical = false,
+    required this.severity, // Added to constructor
     this.contentId,
     this.contentTitle,
     this.contentType,
@@ -28,6 +30,9 @@ class ParentAlertModel {
     String title = map['title'] ?? map['issueType'] ?? 'Alert';
     String desc = map['description'] ?? map['details'] ?? map['body'] ?? '';
 
+    // Logic to determine severity if not explicitly provided in the map
+    String sev = map['severity'] ?? (map['is_critical'] == true ? 'High' : 'Low');
+
     return ParentAlertModel(
       id: id,
       title: title,
@@ -35,6 +40,7 @@ class ParentAlertModel {
       timestamp: DateTime.tryParse(map['timestamp'] ?? '') ?? DateTime.now(),
       status: map['status'] ?? 'Pending',
       isCritical: map['is_critical'] ?? false,
+      severity: sev, // Map the severity field
       contentId: map['contentId'],
       contentTitle: map['contentTitle'],
       contentType: map['contentType'],
@@ -48,6 +54,7 @@ class ParentAlertModel {
       'timestamp': timestamp.toIso8601String(),
       'status': status,
       'is_critical': isCritical,
+      'severity': severity, // Include in map
       'contentId': contentId,
       'contentTitle': contentTitle,
       'contentType': contentType,

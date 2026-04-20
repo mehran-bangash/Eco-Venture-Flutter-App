@@ -5,10 +5,9 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:timeago/timeago.dart' as timeago;
-
+import '../../../models/parent_alert_model.dart'; // Import the model
 import '../../../viewmodels/parent_section/report_safety/parent_safety_provider.dart';
 
-// --- LIVE USAGE STREAM LOGIC ---
 final childUsageStreamProvider = StreamProvider.autoDispose.family<int, String>((ref, childId) {
   return FirebaseDatabase.instance
       .ref('child_usage_stats/$childId/daily')
@@ -26,7 +25,6 @@ class ParentReportSafetyScreen extends ConsumerStatefulWidget {
 }
 
 class _ParentReportSafetyScreenState extends ConsumerState<ParentReportSafetyScreen> {
-  // Design Tokens - Matching Home Screen Aesthetic
   final Color _primary = const Color(0xFF1E88E5);
   final Color _bgSubtle = const Color(0xFFF8FAFC);
   final Color _textDark = const Color(0xFF1E293B);
@@ -37,7 +35,6 @@ class _ParentReportSafetyScreenState extends ConsumerState<ParentReportSafetyScr
 
   @override
   Widget build(BuildContext context) {
-    // Watch ViewModel State
     final state = ref.watch(parentSafetyViewModelProvider);
     final settings = state.settings;
     final allAlerts = state.alerts;
@@ -45,7 +42,6 @@ class _ParentReportSafetyScreenState extends ConsumerState<ParentReportSafetyScr
     final String childName = _getChildName(state.selectedChildId, state.linkedChildren);
     final String timeLimitStr = _formatHours(settings.dailyLimitHours);
 
-    // Watch Live Firebase Stream
     final AsyncValue<int> usageAsync = state.selectedChildId != null
         ? ref.watch(childUsageStreamProvider(state.selectedChildId!))
         : const AsyncData(0);
@@ -64,7 +60,6 @@ class _ParentReportSafetyScreenState extends ConsumerState<ParentReportSafetyScr
       ),
       body: Column(
         children: [
-          // --- TOP REPORT CARD SECTION ---
           Padding(
             padding: EdgeInsets.all(5.w),
             child: usageAsync.when(
@@ -84,7 +79,6 @@ class _ParentReportSafetyScreenState extends ConsumerState<ParentReportSafetyScr
             ),
           ),
 
-          // --- DEDICATED SECURITY FEED SECTION ---
           Expanded(
             child: Container(
               width: double.infinity,
@@ -137,8 +131,6 @@ class _ParentReportSafetyScreenState extends ConsumerState<ParentReportSafetyScr
     );
   }
 
-  // --- LOGIC HELPERS ---
-
   String _getChildName(String? id, List<Map<String, dynamic>> children) {
     if (id == null) return "Child";
     final child = children.firstWhere((c) => c['uid'] == id, orElse: () => {});
@@ -156,8 +148,6 @@ class _ParentReportSafetyScreenState extends ConsumerState<ParentReportSafetyScr
     int m = totalMinutes % 60;
     return h == 0 ? "${m}m" : "${h}h ${m}m";
   }
-
-  // --- UI WIDGETS ---
 
   Widget _buildPremiumSummaryCard(String name, String used, String limit, double progress, bool isPaused) {
     return Container(
@@ -201,59 +191,64 @@ class _ParentReportSafetyScreenState extends ConsumerState<ParentReportSafetyScr
     );
   }
 
-  Widget _buildPremiumAlertTile(dynamic alert) {
+  Widget _buildPremiumAlertTile(ParentAlertModel alert) {
     final bool isCritical = alert.severity == 'High' || alert.status == 'Pending';
     final Color statusColor = isCritical ? _alertRed : _warningAmber;
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 2.2.h),
-      padding: EdgeInsets.all(4.5.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _cardBorder, width: 1),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 12, offset: const Offset(0, 5))],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(3.w),
-            decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
-            child: Icon(
-                isCritical ? Icons.emergency_share_rounded : Icons.info_rounded,
-                color: statusColor, size: 20.sp
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        print("NAVIGATING TO DETAIL: ${alert.title}");
+        context.pushNamed('parentReportDetailScreen', extra: alert);
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 2.2.h),
+        padding: EdgeInsets.all(4.5.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: _cardBorder, width: 1),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 12, offset: const Offset(0, 5))],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: EdgeInsets.all(3.w),
+              decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+              child: Icon(
+                  isCritical ? Icons.emergency_share_rounded : Icons.info_rounded,
+                  color: statusColor, size: 20.sp
+              ),
             ),
-          ),
-          SizedBox(width: 4.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                        alert.title ?? "System Alert",
-                        style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 15.sp, color: _textDark)
-                    ),
-                    Text(
-                        timeago.format(alert.timestamp),
-                        style: GoogleFonts.poppins(fontSize: 10.sp, color: _textGrey, fontWeight: FontWeight.w500)
-                    ),
-                  ],
-                ),
-                SizedBox(height: 0.6.h),
-                Text(
-                    alert.description ?? "Safety check complete.",
-                    style: GoogleFonts.poppins(fontSize: 12.sp, color: _textGrey, height: 1.4)
-                ),
-                // --- INTERACTIVE SECTION REMOVED TO PREVENT COMPILE ERROR ---
-                // To restore this, the method 'resolveAlert' must be added to ParentSafetyViewModel
-              ],
+            SizedBox(width: 4.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                          alert.title,
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.w700, fontSize: 15.sp, color: _textDark)
+                      ),
+                      Text(
+                          timeago.format(alert.timestamp),
+                          style: GoogleFonts.poppins(fontSize: 10.sp, color: _textGrey, fontWeight: FontWeight.w500)
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 0.6.h),
+                  Text(
+                      alert.description,
+                      style: GoogleFonts.poppins(fontSize: 12.sp, color: _textGrey, height: 1.4)
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

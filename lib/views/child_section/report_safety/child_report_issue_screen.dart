@@ -5,8 +5,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../viewmodels/child_view_model/report_safety/child_safety_provider.dart';
-
 
 class ChildReportIssueScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? contentContext;
@@ -14,10 +15,12 @@ class ChildReportIssueScreen extends ConsumerStatefulWidget {
   const ChildReportIssueScreen({super.key, this.contentContext});
 
   @override
-  ConsumerState<ChildReportIssueScreen> createState() => _ChildReportIssueScreenState();
+  ConsumerState<ChildReportIssueScreen> createState() =>
+      _ChildReportIssueScreenState();
 }
 
-class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen> {
+class _ChildReportIssueScreenState
+    extends ConsumerState<ChildReportIssueScreen> {
   String _selectedRecipient = 'Parent';
   String _selectedIssueType = 'Content';
   final TextEditingController _detailsController = TextEditingController();
@@ -25,17 +28,43 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
   File? _screenshot;
   final ImagePicker _picker = ImagePicker();
 
-  final List<String> _recipients = ['Parent', 'Teacher', 'Admin'];
-  final List<String> _issueTypes = ['Scary Content', 'Bullying', 'App Bug', 'Other'];
+  // Changed to dynamic list
+  List<String> _availableRecipients = ['Parent', 'Admin'];
+  final List<String> _issueTypes = [
+    'Scary Content',
+    'Bullying',
+    'App Bug',
+    'Other',
+  ];
 
   @override
   void initState() {
     super.initState();
-    // Debug Print to verify data arrival
-    print("DEBUG REPORT: Context Received: ${widget.contentContext}");
-
+    _checkTeacherLink();
     if (widget.contentContext != null) {
       _selectedIssueType = 'Scary Content';
+    }
+  }
+
+  // Logic to show Teacher only if linked
+  Future<void> _checkTeacherLink() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+        final teacherId = doc.data()?['teacher_id'];
+
+        if (teacherId != null && teacherId.toString().isNotEmpty) {
+          setState(() {
+            _availableRecipients = ['Parent', 'Teacher', 'Admin'];
+          });
+        }
+      }
+    } catch (e) {
+      print("Error checking teacher link: $e");
     }
   }
 
@@ -45,14 +74,15 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
   }
 
   Future<void> _sendReport() async {
-    // Pass the widget.contentContext to the ViewModel
-    await ref.read(childReportViewModelProvider.notifier).sendReport(
-      recipient: _selectedRecipient,
-      issueType: _selectedIssueType,
-      details: _detailsController.text.trim(),
-      screenshot: _screenshot,
-      contextData: widget.contentContext, // <--- CRITICAL: Sending Data
-    );
+    await ref
+        .read(childReportViewModelProvider.notifier)
+        .sendReport(
+          recipient: _selectedRecipient,
+          issueType: _selectedIssueType,
+          details: _detailsController.text.trim(),
+          screenshot: _screenshot,
+          contextData: widget.contentContext,
+        );
   }
 
   @override
@@ -61,17 +91,29 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
 
     ref.listen(childReportViewModelProvider, (prev, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Report Sent!"), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Report Sent!"),
+            backgroundColor: Colors.green,
+          ),
+        );
         ref.read(childReportViewModelProvider.notifier).resetSuccess();
         context.pop();
       }
       if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: ${next.errorMessage}"), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${next.errorMessage}"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     });
 
     final bool hasContext = widget.contentContext != null;
-    final String contentTitle = hasContext ? widget.contentContext!['title'] : '';
+    final String contentTitle = hasContext
+        ? widget.contentContext!['title']
+        : '';
     final String contentType = hasContext ? widget.contentContext!['type'] : '';
 
     return Scaffold(
@@ -79,8 +121,17 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => context.pop()),
-        title: Text("Submit Report", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold)),
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => context.pop(),
+        ),
+        title: Text(
+          "Submit Report",
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -88,30 +139,46 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // CONTEXT CARD (Shows if data arrived)
             if (hasContext) ...[
               Container(
                 width: double.infinity,
                 padding: EdgeInsets.all(4.w),
                 decoration: BoxDecoration(
-                    color: Colors.redAccent.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.redAccent.withOpacity(0.5))
+                  color: Colors.redAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 24.sp),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.redAccent,
+                      size: 24.sp,
+                    ),
                     SizedBox(width: 3.w),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Reporting $contentType", style: GoogleFonts.poppins(color: Colors.redAccent, fontSize: 12.sp, fontWeight: FontWeight.bold)),
-                          Text(contentTitle, style: GoogleFonts.poppins(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                          Text(
+                            "Reporting $contentType",
+                            style: GoogleFonts.poppins(
+                              color: Colors.redAccent,
+                              fontSize: 12.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            contentTitle,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ],
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),
@@ -125,7 +192,13 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
             SizedBox(height: 3.h),
             Text("What happened?", style: _labelStyle),
             SizedBox(height: 1.5.h),
-            Wrap(spacing: 3.w, runSpacing: 1.5.h, children: _issueTypes.map((type) => _buildTypeChip(type)).toList()),
+            Wrap(
+              spacing: 3.w,
+              runSpacing: 1.5.h,
+              children: _issueTypes
+                  .map((type) => _buildTypeChip(type))
+                  .toList(),
+            ),
 
             SizedBox(height: 3.h),
             Text("Details (Optional)", style: _labelStyle),
@@ -135,11 +208,16 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
               maxLines: 4,
               style: GoogleFonts.poppins(color: Colors.white, fontSize: 14.sp),
               decoration: InputDecoration(
-                hintText: hasContext ? "Why is this $contentType bad?" : "Tell us more...",
+                hintText: hasContext
+                    ? "Why is this $contentType bad?"
+                    : "Tell us more...",
                 hintStyle: GoogleFonts.poppins(color: Colors.white30),
                 filled: true,
                 fillColor: Colors.white.withOpacity(0.05),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
 
@@ -150,24 +228,130 @@ class _ChildReportIssueScreenState extends ConsumerState<ChildReportIssueScreen>
 
             SizedBox(height: 5.h),
             SizedBox(
-              width: double.infinity, height: 7.h,
+              width: double.infinity,
+              height: 7.h,
               child: ElevatedButton(
                 onPressed: state.isLoading ? null : _sendReport,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF00E676), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E676),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
                 child: state.isLoading
                     ? const CircularProgressIndicator(color: Colors.black)
-                    : Text("Send Alert", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.black)),
+                    : Text(
+                        "Send Alert",
+                        style: GoogleFonts.poppins(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
+                      ),
               ),
-            )
+            ),
           ],
         ),
       ),
     );
   }
 
-  // Helper widgets
-  TextStyle get _labelStyle => GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: Colors.white70);
-  Widget _buildRecipientSelector() { return Row(children: _recipients.map((r) { bool isSelected = _selectedRecipient == r; return GestureDetector(onTap: () => setState(() => _selectedRecipient = r), child: Container(margin: EdgeInsets.only(right: 3.w), padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h), decoration: BoxDecoration(color: isSelected ? Colors.blueAccent : Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: isSelected ? Colors.blue : Colors.white10)), child: Text(r, style: GoogleFonts.poppins(color: Colors.white, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)))); }).toList()); }
-  Widget _buildTypeChip(String type) { bool isSelected = _selectedIssueType == type; return GestureDetector(onTap: () => setState(() => _selectedIssueType = type), child: Container(padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h), decoration: BoxDecoration(color: isSelected ? Colors.orange : Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(20)), child: Text(type, style: GoogleFonts.poppins(color: Colors.white)))); }
-  Widget _buildScreenshotUpload() { return GestureDetector(onTap: _pickScreenshot, child: Container(width: double.infinity, height: 18.h, decoration: BoxDecoration(color: Colors.white.withOpacity(0.02), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white24), image: _screenshot != null ? DecorationImage(image: FileImage(_screenshot!), fit: BoxFit.cover) : null), child: _screenshot == null ? Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.add_photo_alternate_rounded, color: Colors.white54, size: 24.sp), SizedBox(height: 1.h), Text("Tap to upload image", style: GoogleFonts.poppins(color: Colors.white30, fontSize: 12.sp))]) : Align(alignment: Alignment.topRight, child: IconButton(icon: const Icon(Icons.close, color: Colors.red), onPressed: () => setState(() => _screenshot = null))))); }
+  TextStyle get _labelStyle => GoogleFonts.poppins(
+    fontSize: 15.sp,
+    fontWeight: FontWeight.w600,
+    color: Colors.white70,
+  );
+
+  Widget _buildRecipientSelector() {
+    return Row(
+      children: _availableRecipients.map((r) {
+        bool isSelected = _selectedRecipient == r;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedRecipient = r),
+          child: Container(
+            margin: EdgeInsets.only(right: 3.w),
+            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Colors.blueAccent
+                  : Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? Colors.blue : Colors.white10,
+              ),
+            ),
+            child: Text(
+              r,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildTypeChip(String type) {
+    bool isSelected = _selectedIssueType == type;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedIssueType = type),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.orange : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(type, style: GoogleFonts.poppins(color: Colors.white)),
+      ),
+    );
+  }
+
+  Widget _buildScreenshotUpload() {
+    return GestureDetector(
+      onTap: _pickScreenshot,
+      child: Container(
+        width: double.infinity,
+        height: 18.h,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.02),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white24),
+          image: _screenshot != null
+              ? DecorationImage(
+                  image: FileImage(_screenshot!),
+                  fit: BoxFit.cover,
+                )
+              : null,
+        ),
+        child: _screenshot == null
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_photo_alternate_rounded,
+                    color: Colors.white54,
+                    size: 24.sp,
+                  ),
+                  SizedBox(height: 1.h),
+                  Text(
+                    "Tap to upload image",
+                    style: GoogleFonts.poppins(
+                      color: Colors.white30,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ],
+              )
+            : Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  onPressed: () => setState(() => _screenshot = null),
+                ),
+              ),
+      ),
+    );
+  }
 }

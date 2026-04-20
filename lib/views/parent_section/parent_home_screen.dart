@@ -19,7 +19,6 @@ class ParentHomeScreen extends ConsumerStatefulWidget {
 
 class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
     with SingleTickerProviderStateMixin {
-
   // --- DESIGN TOKENS ---
   final Color _primaryDark = const Color(0xFF1E293B);
   final Color _accentBlue = const Color(0xFF3B82F6);
@@ -52,8 +51,10 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
 
     NotificationService().initNotifications();
 
-    Future.microtask(() =>
-        ref.read(parentSafetyViewModelProvider.notifier).fetchLinkedChildren()
+    Future.microtask(
+      () => ref
+          .read(parentSafetyViewModelProvider.notifier)
+          .fetchLinkedChildren(),
     );
   }
 
@@ -63,30 +64,97 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
     super.dispose();
   }
 
-  // --- LOGIC: REQUEST TEACHER REPORT ---
-  Future<void> _requestTeacherReport(BuildContext context, WidgetRef ref) async {
-    final childId = ref.read(parentSafetyViewModelProvider).selectedChildId;
-    if (childId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Select a child first!"), backgroundColor: Colors.red)
-      );
-      return;
+  // --- LOGIC: BATCH LINKING ---
+  Future<void> _processBatchLinking(
+    List<Map<String, TextEditingController>> entries,
+  ) async {
+    List<String> results = [];
+    bool hasError = false;
+
+    for (var entry in entries) {
+      String name = entry['name']!.text.trim();
+      String email = entry['email']!.text.trim();
+      if (name.isNotEmpty && email.isNotEmpty) {
+        try {
+          await ref
+              .read(parentSafetyViewModelProvider.notifier)
+              .linkChildByEmail(email, name);
+          results.add("$name linked successfully!");
+        } catch (e) {
+          hasError = true;
+          // Clean the error string to show just the message
+          results.add(e.toString().replaceAll("Exception: ", ""));
+        }
+      }
     }
-    try {
+
+    if (results.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Request sent to Teacher!"), backgroundColor: Colors.green)
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Failed to send request"), backgroundColor: Colors.red)
+        SnackBar(
+          content: Text(results.join("\n")),
+          backgroundColor: hasError ? Colors.orange : Colors.green,
+          duration: const Duration(seconds: 4),
+        ),
       );
     }
   }
 
-  // --- LOGIC: BATCH LINKING DIALOG ---
+  // --- LOGIC: UNLINK CONFIRMATION ---
+  void _showUnlinkDialog(String childId, String childName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          "Unlink Child",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Are you sure you want to remove $childName from your dashboard?",
+          style: GoogleFonts.poppins(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              "Cancel",
+              style: GoogleFonts.poppins(color: _textMuted),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref
+                  .read(parentSafetyViewModelProvider.notifier)
+                  .unlinkChild(childId);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("$childName unlinked successfully.")),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              "Unlink",
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- UI: LINK DIALOG ---
   void _showLinkChildDialog() {
     List<Map<String, TextEditingController>> entries = [
-      {'name': TextEditingController(), 'email': TextEditingController()}
+      {'name': TextEditingController(), 'email': TextEditingController()},
     ];
 
     showDialog(
@@ -95,9 +163,17 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
         builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            title: Text("Link New Child",
-                style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 18.sp, color: _textMain)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            title: Text(
+              "Link New Child",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 18.sp,
+                color: _textMain,
+              ),
+            ),
             content: Container(
               width: double.maxFinite,
               constraints: BoxConstraints(maxHeight: 50.h),
@@ -105,8 +181,13 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text("Enter child details to link accounts.",
-                        style: GoogleFonts.poppins(fontSize: 13.sp, color: _textMuted)),
+                    Text(
+                      "Enter child details to link accounts.",
+                      style: GoogleFonts.poppins(
+                        fontSize: 13.sp,
+                        color: _textMuted,
+                      ),
+                    ),
                     SizedBox(height: 2.h),
                     ...entries.asMap().entries.map((entry) {
                       int index = entry.key;
@@ -115,82 +196,115 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
                         margin: EdgeInsets.only(bottom: 2.h),
                         padding: EdgeInsets.all(4.w),
                         decoration: BoxDecoration(
-                            color: _bgSubtle,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: _cardBorder)
+                          color: _bgSubtle,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: _cardBorder),
                         ),
                         child: Column(
                           children: [
-                            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                              Text("Child ${index + 1}",
-                                  style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: _accentBlue)),
-                              if (entries.length > 1)
-                                InkWell(
-                                    onTap: () => setDialogState(() => entries.removeAt(index)),
-                                    child: Icon(Icons.close, color: Colors.red, size: 18.sp)
-                                )
-                            ]),
-                            SizedBox(height: 1.h),
-                            TextField(
-                                controller: controllers['name'],
-                                decoration: InputDecoration(
-                                    hintText: "Name", filled: true, fillColor: Colors.white,
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
-                                )
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  "Child ${index + 1}",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w600,
+                                    color: _accentBlue,
+                                  ),
+                                ),
+                                if (entries.length > 1)
+                                  InkWell(
+                                    onTap: () => setDialogState(
+                                      () => entries.removeAt(index),
+                                    ),
+                                    child: Icon(
+                                      Icons.close,
+                                      color: Colors.red,
+                                      size: 18.sp,
+                                    ),
+                                  ),
+                              ],
                             ),
                             SizedBox(height: 1.h),
                             TextField(
-                                controller: controllers['email'],
-                                decoration: InputDecoration(
-                                    hintText: "Email", filled: true, fillColor: Colors.white,
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none)
-                                )
+                              controller: controllers['name'],
+                              decoration: InputDecoration(
+                                hintText: "Name",
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 1.h),
+                            TextField(
+                              controller: controllers['email'],
+                              decoration: InputDecoration(
+                                hintText: "Email",
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       );
                     }),
                     TextButton.icon(
-                        onPressed: () => setDialogState(() => entries.add({'name': TextEditingController(), 'email': TextEditingController()})),
-                        icon: const Icon(Icons.add_circle_outline), label: Text("Add Another Profile", style: GoogleFonts.poppins())
+                      onPressed: () => setDialogState(
+                        () => entries.add({
+                          'name': TextEditingController(),
+                          'email': TextEditingController(),
+                        }),
+                      ),
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: Text(
+                        "Add Another Profile",
+                        style: GoogleFonts.poppins(),
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: Text("Cancel", style: TextStyle(color: _textMuted))),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text("Cancel", style: TextStyle(color: _textMuted)),
+              ),
               ElevatedButton(
-                  onPressed: () { Navigator.pop(ctx); _processBatchLinking(entries); },
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryDark,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h)
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _processBatchLinking(entries);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryDark,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text("Link Now", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold))
-              )
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 6.w,
+                    vertical: 1.5.h,
+                  ),
+                ),
+                child: Text(
+                  "Link Now",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           );
         },
       ),
     );
-  }
-
-  Future<void> _processBatchLinking(List<Map<String, TextEditingController>> entries) async {
-    int success = 0;
-    for (var entry in entries) {
-      String name = entry['name']!.text.trim();
-      String email = entry['email']!.text.trim();
-      if (name.isNotEmpty && email.isNotEmpty) {
-        try {
-          await ref.read(parentSafetyViewModelProvider.notifier).linkChildByEmail(email, name);
-          success++;
-        } catch (e) { /* Error handled in provider */ }
-      }
-    }
-    if (success > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Linked $success children!"), backgroundColor: Colors.green));
-    }
   }
 
   @override
@@ -201,23 +315,31 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
 
     if (children.isNotEmpty && safetyState.selectedChildId == null) {
       Future.microtask(() {
-        ref.read(parentSafetyViewModelProvider.notifier).selectChild(children.first['uid']);
+        ref
+            .read(parentSafetyViewModelProvider.notifier)
+            .selectChild(children.first['uid']);
       });
     }
 
     return Scaffold(
       backgroundColor: _bgSubtle,
       body: dashboardAsync.when(
-        loading: () => Center(child: CircularProgressIndicator(color: _primaryDark)),
-        error: (err, stack) => Center(child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildHeader(children, safetyState.selectedChildId),
-            const Spacer(),
-            Text("Select a child to view progress", style: GoogleFonts.poppins(color: _textMuted)),
-            const Spacer(),
-          ],
-        )),
+        loading: () =>
+            Center(child: CircularProgressIndicator(color: _primaryDark)),
+        error: (err, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildHeader(children, safetyState.selectedChildId),
+              const Spacer(),
+              Text(
+                "Select a child to view progress",
+                style: GoogleFonts.poppins(color: _textMuted),
+              ),
+              const Spacer(),
+            ],
+          ),
+        ),
         data: (data) {
           final int usageMinutes = data['usageMinutes'] ?? 0;
           final List activityList = data['recentActivity'] ?? [];
@@ -225,86 +347,155 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
               ? Map<String, double>.from(data['skills'])
               : {'Science': 0.1, 'Math': 0.1, 'Creativity': 0.1, 'Logic': 0.1};
 
-          final Map<String, dynamic> performance = data['performance'] ??
+          final Map<String, dynamic> performance =
+              data['performance'] ??
               {'quizAvg': 0, 'stemCount': 0, 'qrCount': 0};
 
-          return Stack(
-            children: [
-              Positioned(top: -100, right: -50, child: Container(width: 300, height: 300, decoration: BoxDecoration(shape: BoxShape.circle, color: _primaryDark.withOpacity(0.03)))),
-              Positioned(top: 100, left: -50, child: Container(width: 200, height: 200, decoration: BoxDecoration(shape: BoxShape.circle, color: _purple.withOpacity(0.03)))),
+          return SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: Column(
+                children: [
+                  _buildHeader(children, safetyState.selectedChildId),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 5.w,
+                        vertical: 2.h,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "Skill Growth",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: _textMain,
+                            ),
+                          ),
+                          SizedBox(height: 1.5.h),
+                          _buildSkillGrowthCard(skills),
+                          SizedBox(height: 3.h),
 
-              SafeArea(
-                child: FadeTransition(
-                  opacity: _fadeAnim,
-                  child: Column(
-                    children: [
-                      _buildHeader(children, safetyState.selectedChildId),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          Text(
+                            "Performance Breakdown",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: _textMain,
+                            ),
+                          ),
+                          SizedBox(height: 1.5.h),
+                          Row(
                             children: [
-                              Text("Skill Growth",
-                                  style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: _textMain)),
-                              SizedBox(height: 1.5.h),
-                              _buildSkillGrowthCard(skills),
-                              SizedBox(height: 3.h),
-
-                              Text("Performance Breakdown",
-                                  style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: _textMain)),
-                              SizedBox(height: 1.5.h),
-                              Row(
-                                children: [
-                                  Expanded(child: _buildPerformanceCard("Quiz", "${performance['quizAvg']}%", "Avg. Score", Icons.quiz, [const Color(0xFF6366F1), const Color(0xFF8B5CF6)])),
-                                  SizedBox(width: 3.w),
-                                  Expanded(child: _buildPerformanceCard("STEM", "${performance['stemCount']}", "Projects", Icons.science, [const Color(0xFF3B82F6), const Color(0xFF2DD4BF)])),
-                                  SizedBox(width: 3.w),
-                                  Expanded(child: _buildPerformanceCard("QR Hunt", "${performance['qrCount']}", "Solved", Icons.qr_code_scanner, [const Color(0xFF10B981), const Color(0xFF059669)])),
-                                ],
+                              Expanded(
+                                child: _buildPerformanceCard(
+                                  "Quiz",
+                                  "${performance['quizAvg']}%",
+                                  "Avg. Score",
+                                  Icons.quiz,
+                                  [
+                                    const Color(0xFF6366F1),
+                                    const Color(0xFF8B5CF6),
+                                  ],
+                                ),
                               ),
-                              SizedBox(height: 3.h),
-                              _buildScreenTimeCard(usageMinutes),
-                              SizedBox(height: 3.h),
-
-                              // --- UPDATED PARENT CONTROLS SECTION ---
-                              Text("Parent Controls",
-                                  style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: _textMain)),
-                              SizedBox(height: 1.5.h),
-                              _buildUnifiedControls(context),
-
-                              SizedBox(height: 3.h),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text("Recent Activity",
-                                      style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: _textMain)),
-                                  Text("View All",
-                                      style: GoogleFonts.poppins(fontSize: 12.sp, color: _accentBlue, fontWeight: FontWeight.w600)),
-                                ],
+                              SizedBox(width: 3.w),
+                              Expanded(
+                                child: _buildPerformanceCard(
+                                  "STEM",
+                                  "${performance['stemCount']}",
+                                  "Projects",
+                                  Icons.science,
+                                  [
+                                    const Color(0xFF3B82F6),
+                                    const Color(0xFF2DD4BF),
+                                  ],
+                                ),
                               ),
-                              SizedBox(height: 2.h),
-                              if (activityList.isEmpty) _buildEmptyState()
-                              else Column(children: activityList.map((item) => _buildActivityTile(item)).toList()),
-                              SizedBox(height: 5.h),
+                              SizedBox(width: 3.w),
+                              Expanded(
+                                child: _buildPerformanceCard(
+                                  "QR Hunt",
+                                  "${performance['qrCount']}",
+                                  "Solved",
+                                  Icons.qr_code_scanner,
+                                  [
+                                    const Color(0xFF10B981),
+                                    const Color(0xFF059669),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
-                        ),
+                          SizedBox(height: 3.h),
+                          _buildScreenTimeCard(usageMinutes),
+                          SizedBox(height: 3.h),
+
+                          Text(
+                            "Parent Controls",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                              color: _textMain,
+                            ),
+                          ),
+                          SizedBox(height: 1.5.h),
+                          _buildUnifiedControls(context),
+
+                          SizedBox(height: 3.h),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                "Recent Activity",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: _textMain,
+                                ),
+                              ),
+                              Text(
+                                "View All",
+                                style: GoogleFonts.poppins(
+                                  fontSize: 12.sp,
+                                  color: _accentBlue,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 2.h),
+                          if (activityList.isEmpty)
+                            _buildEmptyState()
+                          else
+                            Column(
+                              children: activityList
+                                  .map((item) => _buildActivityTile(item))
+                                  .toList(),
+                            ),
+                          SizedBox(height: 5.h),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           );
         },
       ),
     );
   }
 
-  // --- UPDATED HEADER WITH ENLARGED HEADING AND ADD CHILD BUTTON ---
   Widget _buildHeader(List children, String? selectedId) {
+    // FIX: Validate that selectedId actually exists in the current children list
+    // This prevents the "There should be exactly one item with [DropdownButton]'s value" crash
+    final bool idExists = children.any((c) => c['uid'] == selectedId);
+    final String? safeValue = idExists ? selectedId : (children.isNotEmpty ? children.first['uid'] : null);
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(5.w, 2.h, 5.w, 2.h),
@@ -319,66 +510,76 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                  "Parent\nDashboard",
-                  style: GoogleFonts.poppins(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1,
-                    color: _textMain,
-                    letterSpacing: -0.5,
-                  )
+              Flexible(
+                child: Text("Parent\nDashboard",
+                  style: GoogleFonts.poppins(fontSize: 24.sp, fontWeight: FontWeight.w900, height: 1.1, color: _textMain, letterSpacing: -0.5),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: _showLinkChildDialog,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-                      decoration: BoxDecoration(
-                        color: _primaryDark,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.add_circle, color: Colors.white, size: 16.sp),
-                          SizedBox(width: 1.5.w),
-                          Text(
-                              "Add Child",
-                              style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.sp)
-                          ),
-                        ],
+              Flexible(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: _showLinkChildDialog,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
+                        decoration: BoxDecoration(color: _primaryDark, borderRadius: BorderRadius.circular(15)),
+                        child: Row(
+                          children: [
+                            Icon(Icons.add_circle, color: Colors.white, size: 16.sp),
+                            SizedBox(width: 1.5.w),
+                            Text("Add Child", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.sp)),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                  SizedBox(width: 3.w),
-                  _buildNotificationIcon(),
-                ],
+                    SizedBox(width: 3.w),
+                    _buildNotificationIcon(),
+                  ],
+                ),
               ),
             ],
           ),
           SizedBox(height: 3.h),
           if (children.isNotEmpty)
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 4.w),
-              decoration: BoxDecoration(color: _bgSubtle, borderRadius: BorderRadius.circular(15), border: Border.all(color: _cardBorder)),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: selectedId,
-                  isExpanded: true,
-                  hint: Text("Select Child Profile", style: GoogleFonts.poppins()),
-                  icon: Icon(Icons.unfold_more_rounded, color: _textMuted),
-                  items: children.map((child) {
-                    return DropdownMenuItem<String>(
-                      value: child['uid'],
-                      child: Text(child['name'] ?? "Child", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: _textMain)),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) ref.read(parentSafetyViewModelProvider.notifier).selectChild(val);
-                  },
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w),
+                    decoration: BoxDecoration(color: _bgSubtle, borderRadius: BorderRadius.circular(15), border: Border.all(color: _cardBorder)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: safeValue, // Use safeValue to prevent crash
+                        isExpanded: true,
+                        hint: Text("Select Child Profile", style: GoogleFonts.poppins()),
+                        icon: Icon(Icons.unfold_more_rounded, color: _textMuted),
+                        items: children.map((child) {
+                          return DropdownMenuItem<String>(
+                            value: child['uid'],
+                            child: Text(child['name'] ?? "Child", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: _textMain)),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) ref.read(parentSafetyViewModelProvider.notifier).selectChild(val);
+                        },
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                if (safeValue != null)
+                  Padding(
+                    padding: EdgeInsets.only(left: 2.w),
+                    child: IconButton(
+                      icon: Icon(Icons.link_off, color: Colors.redAccent, size: 22.sp),
+                      onPressed: () {
+                        final child = children.firstWhere((c) => c['uid'] == safeValue);
+                        _showUnlinkDialog(safeValue, child['name'] ?? "Child");
+                      },
+                    ),
+                  )
+              ],
             )
           else
             Text("No children linked. Tap (+) to start.", style: TextStyle(color: Colors.redAccent, fontSize: 12.sp, fontWeight: FontWeight.w600)),
@@ -392,29 +593,92 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
       onTap: () => context.pushNamed('parentNotificationsScreen'),
       child: Stack(
         children: [
-          Container(padding: EdgeInsets.all(2.5.w), decoration: BoxDecoration(color: _bgSubtle, shape: BoxShape.circle), child: Icon(Icons.notifications_none_rounded, color: _textMain, size: 20.sp)),
-          Positioned(right: 0, top: 0, child: Container(width: 3.w, height: 3.w, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle))),
+          Container(
+            padding: EdgeInsets.all(2.5.w),
+            decoration: BoxDecoration(color: _bgSubtle, shape: BoxShape.circle),
+            child: Icon(
+              Icons.notifications_none_rounded,
+              color: _textMain,
+              size: 20.sp,
+            ),
+          ),
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              width: 3.w,
+              height: 3.w,
+              decoration: const BoxDecoration(
+                color: Colors.red,
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPerformanceCard(String title, String value, String subtitle, IconData icon, List<Color> gradientColors) {
+  Widget _buildPerformanceCard(
+    String title,
+    String value,
+    String subtitle,
+    IconData icon,
+    List<Color> gradientColors,
+  ) {
     return Container(
       padding: EdgeInsets.all(3.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradientColors),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradientColors,
+        ),
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: gradientColors.last.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: gradientColors.last.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(padding: EdgeInsets.all(2.w), decoration: BoxDecoration(color: Colors.white24, shape: BoxShape.circle), child: Icon(icon, color: Colors.white, size: 16.sp)),
+          Container(
+            padding: EdgeInsets.all(2.w),
+            decoration: BoxDecoration(
+              color: Colors.white24,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 16.sp),
+          ),
           SizedBox(height: 1.5.h),
-          Text(value, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.white)),
-          Text(subtitle, style: GoogleFonts.poppins(fontSize: 10.sp, color: Colors.white70, fontWeight: FontWeight.w500)),
-          Text(title, style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.white, fontWeight: FontWeight.w600)),
+          Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: GoogleFonts.poppins(
+              fontSize: 10.sp,
+              color: Colors.white70,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            title,
+            style: GoogleFonts.poppins(
+              fontSize: 11.sp,
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -426,7 +690,11 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
       width: double.infinity,
       padding: EdgeInsets.all(5.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [_primaryDark, _accentBlue], begin: Alignment.topLeft, end: Alignment.bottomRight),
+        gradient: LinearGradient(
+          colors: [_primaryDark, _accentBlue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Row(
@@ -435,61 +703,104 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Screen Time Today", style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12.sp)),
-              Text("${hours.toStringAsFixed(1)} hrs", style: GoogleFonts.poppins(color: Colors.white, fontSize: 22.sp, fontWeight: FontWeight.bold)),
+              Text(
+                "Screen Time Today",
+                style: GoogleFonts.poppins(
+                  color: Colors.white70,
+                  fontSize: 12.sp,
+                ),
+              ),
+              Text(
+                "${hours.toStringAsFixed(1)} hrs",
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 22.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               Container(
                 margin: EdgeInsets.only(top: 1.h),
                 padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.4.h),
-                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(8)),
-                child: Text("Healthy Limits ✅", style: GoogleFonts.poppins(color: Colors.white, fontSize: 10.sp)),
+                decoration: BoxDecoration(
+                  color: Colors.white24,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  "Healthy Limits ✅",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 10.sp,
+                  ),
+                ),
               ),
             ],
           ),
-          Icon(Icons.hourglass_bottom_rounded, color: Colors.white, size: 24.sp),
+          Icon(
+            Icons.hourglass_bottom_rounded,
+            color: Colors.white,
+            size: 24.sp,
+          ),
         ],
       ),
     );
   }
 
-  // --- UPDATED: TWO ELONGATED BEAUTIFUL BUTTONS (SCREEN TIME & CONTENT FILTERS) ---
   Widget _buildUnifiedControls(BuildContext context) {
     return Column(
       children: [
         _buildElongatedActionCard(
-            "Screen Time Control",
-            "Manage playtime limits & bedtime",
-            Icons.timer_outlined,
-            [const Color(0xFF3B82F6), const Color(0xFF1E40AF)],
-                () => context.pushNamed('parentScreenTimeScreen')
+          "Screen Time Control",
+          "Manage playtime limits & bedtime",
+          Icons.timer_outlined,
+          [const Color(0xFF3B82F6), const Color(0xFF1E40AF)],
+          () => context.pushNamed('parentScreenTimeScreen'),
         ),
         SizedBox(height: 2.h),
         _buildElongatedActionCard(
-            "Content Filters",
-            "Restrict apps & core module access",
-            Icons.security_rounded,
-            [const Color(0xFF10B981), const Color(0xFF065F46)],
-                () => context.pushNamed('parentContentFiltersScreen')
+          "Content Filters",
+          "Restrict apps & core module access",
+          Icons.security_rounded,
+          [const Color(0xFF10B981), const Color(0xFF065F46)],
+          () => context.pushNamed('parentContentFiltersScreen'),
         ),
       ],
     );
   }
 
-  // NEW UI HELPER FOR ELONGATED BUTTONS
-  Widget _buildElongatedActionCard(String title, String subtitle, IconData icon, List<Color> gradientColors, VoidCallback onTap) {
+  Widget _buildElongatedActionCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    List<Color> gradientColors,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: EdgeInsets.all(5.w),
         decoration: BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.centerLeft, end: Alignment.centerRight, colors: gradientColors),
+          gradient: LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: gradientColors,
+          ),
           borderRadius: BorderRadius.circular(22),
-          boxShadow: [BoxShadow(color: gradientColors.last.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6))],
+          boxShadow: [
+            BoxShadow(
+              color: gradientColors.last.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
               padding: EdgeInsets.all(3.w),
-              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Icon(icon, color: Colors.white, size: 20.sp),
             ),
             SizedBox(width: 4.w),
@@ -497,12 +808,30 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.white)),
-                  Text(subtitle, style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.white70, fontWeight: FontWeight.w500)),
+                  Text(
+                    title,
+                    style: GoogleFonts.poppins(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.poppins(
+                      fontSize: 11.sp,
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, color: Colors.white54, size: 14.sp),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white54,
+              size: 14.sp,
+            ),
           ],
         ),
       ),
@@ -513,10 +842,23 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
     return Container(
       height: 38.h,
       padding: EdgeInsets.all(5.w),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: _cardBorder)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: _cardBorder),
+      ),
       child: Row(
         children: [
-          Expanded(flex: 3, child: CustomPaint(size: Size.infinite, painter: SkillPieChartPainter(skills: skills, colors: _skillColors))),
+          Expanded(
+            flex: 3,
+            child: CustomPaint(
+              size: Size.infinite,
+              painter: SkillPieChartPainter(
+                skills: skills,
+                colors: _skillColors,
+              ),
+            ),
+          ),
           SizedBox(width: 4.w),
           Expanded(
             flex: 2,
@@ -532,8 +874,37 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [Container(width: 12, height: 12, decoration: BoxDecoration(color: _skillColors[index % _skillColors.length], shape: BoxShape.circle)), SizedBox(width: 2.w), Text(key, style: GoogleFonts.poppins(fontSize: 11.sp, fontWeight: FontWeight.w600, color: _textMain))]),
-                      Padding(padding: EdgeInsets.only(left: 12 + 2.w), child: Text("${(value * 100).toInt()}%", style: GoogleFonts.poppins(fontSize: 10.sp, color: _textMuted))),
+                      Row(
+                        children: [
+                          Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: _skillColors[index % _skillColors.length],
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          SizedBox(width: 2.w),
+                          Text(
+                            key,
+                            style: GoogleFonts.poppins(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w600,
+                              color: _textMain,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Padding(
+                        padding: EdgeInsets.only(left: 12 + 2.w),
+                        child: Text(
+                          "${(value * 100).toInt()}%",
+                          style: GoogleFonts.poppins(
+                            fontSize: 10.sp,
+                            color: _textMuted,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -550,22 +921,65 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
     return Container(
       margin: EdgeInsets.only(bottom: 1.5.h),
       padding: EdgeInsets.all(3.w),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _cardBorder)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _cardBorder),
+      ),
       child: Row(
         children: [
-          Container(padding: EdgeInsets.all(2.5.w), decoration: BoxDecoration(color: (isVideo ? Colors.red : _accentBlue).withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(isVideo ? Icons.play_arrow_rounded : Icons.book_rounded, color: isVideo ? Colors.red : _accentBlue, size: 16.sp)),
+          Container(
+            padding: EdgeInsets.all(2.5.w),
+            decoration: BoxDecoration(
+              color: (isVideo ? Colors.red : _accentBlue).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              isVideo ? Icons.play_arrow_rounded : Icons.book_rounded,
+              color: isVideo ? Colors.red : _accentBlue,
+              size: 16.sp,
+            ),
+          ),
           SizedBox(width: 3.w),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(item['title'] ?? 'Unknown', maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 13.sp, fontWeight: FontWeight.w600, color: _textMain)),
-            Text(timeago.format(DateTime.parse(item['timestamp'])), style: GoogleFonts.poppins(fontSize: 10.sp, color: _textMuted)),
-          ])),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item['title'] ?? 'Unknown',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                    color: _textMain,
+                  ),
+                ),
+                Text(
+                  timeago.format(DateTime.parse(item['timestamp'])),
+                  style: GoogleFonts.poppins(
+                    fontSize: 10.sp,
+                    color: _textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    return Center(child: Padding(padding: EdgeInsets.all(2.h), child: Text("No recent activity.", style: GoogleFonts.poppins(color: _textMuted))));
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(2.h),
+        child: Text(
+          "No recent activity.",
+          style: GoogleFonts.poppins(color: _textMuted),
+        ),
+      ),
+    );
   }
 }
 
@@ -584,15 +998,17 @@ class SkillPieChartPainter extends CustomPainter {
     int i = 0;
     skills.forEach((key, value) {
       final sweepAngle = (value / total) * 2 * math.pi;
-      final paint = Paint()..color = colors[i % colors.length]..style = PaintingStyle.fill;
+      final paint = Paint()
+        ..color = colors[i % colors.length]
+        ..style = PaintingStyle.fill;
       canvas.drawArc(rect, startAngle + 0.02, sweepAngle - 0.04, true, paint);
       startAngle += sweepAngle;
       i++;
     });
     final holePaint = Paint()..color = Colors.white;
     canvas.drawCircle(center, radius * 0.5, holePaint);
-    final shadowPaint = Paint()..color = Colors.black.withOpacity(0.05)..style = PaintingStyle.stroke..strokeWidth = 2;
-    canvas.drawCircle(center, radius * 0.5, shadowPaint);
   }
-  @override bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

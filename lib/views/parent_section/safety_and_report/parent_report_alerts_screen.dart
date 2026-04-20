@@ -23,9 +23,15 @@ class ParentReportAlertsScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 20.sp), onPressed: () => context.pop()),
+        leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 20.sp),
+            onPressed: () => context.pop()
+        ),
         centerTitle: true,
-        title: Text("Reports & Alerts", style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp)),
+        title: Text(
+            "Reports & Alerts",
+            style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp)
+        ),
       ),
       body: alerts.isEmpty
           ? Center(child: Text("No alerts found.", style: GoogleFonts.poppins(color: Colors.grey)))
@@ -49,25 +55,93 @@ class ParentReportAlertsScreen extends ConsumerWidget {
       icon = Icons.flag_rounded;
     } else if(alert.title.contains("Time")){icon = Icons.timer_rounded;}
 
-    return GestureDetector( // FIX: Wrapped in GestureDetector for Navigation
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque, // Ensures the entire area captures the tap
       onTap: () {
-        // Navigate to Detail Screen
+        print("CLICKED: ${alert.title}"); // Debug check
         context.pushNamed('parentReportDetailScreen', extra: alert);
       },
       child: Container(
         padding: EdgeInsets.all(5.w),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 5))], border: Border.all(color: Colors.grey.shade100)),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.grey.withOpacity(0.06),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5)
+              )
+            ],
+            border: Border.all(color: Colors.grey.shade100)
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Row(children: [Icon(icon, color: Colors.grey, size: 18.sp), SizedBox(width: 2.w), Text(alert.title, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w700, color: const Color(0xFF1B2559)))]), Text(timeago.format(alert.timestamp), style: GoogleFonts.poppins(fontSize: 11.sp, color: Colors.grey, fontWeight: FontWeight.w500))]),
+            Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                      children: [
+                        Icon(icon, color: Colors.grey, size: 18.sp),
+                        SizedBox(width: 2.w),
+                        Text(
+                            alert.title,
+                            style: GoogleFonts.poppins(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF1B2559)
+                            )
+                        )
+                      ]
+                  ),
+                  Text(
+                      timeago.format(alert.timestamp),
+                      style: GoogleFonts.poppins(
+                          fontSize: 11.sp,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500
+                      )
+                  )
+                ]
+            ),
             SizedBox(height: 1.5.h),
-            Text(alert.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 12.sp, color: const Color(0xFF546E7A), height: 1.5)),
+            Text(
+                alert.description,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.poppins(
+                    fontSize: 12.sp,
+                    color: const Color(0xFF546E7A),
+                    height: 1.5
+                )
+            ),
             SizedBox(height: 3.h),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Container(padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.6.h), decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Text(alert.status, style: GoogleFonts.poppins(color: statusColor, fontWeight: FontWeight.w700, fontSize: 11.sp))),
-              Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey.shade400, size: 16.sp) // Indicator that it's clickable
-            ]),
+            Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.6.h),
+                      decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20)
+                      ),
+                      child: Text(
+                          alert.status,
+                          style: GoogleFonts.poppins(
+                              color: statusColor,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11.sp
+                          )
+                      )
+                  ),
+                  Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.grey.shade400,
+                      size: 16.sp
+                  )
+                ]
+            ),
           ],
         ),
       ),

@@ -67,8 +67,8 @@ class _EngineeringSubmitScreenState
 
     // 2. Get User Details (Name & Pic)
     String studentName =
-        await SharedPreferencesHelper.instance.getUserName() ?? "Student";
-    String? studentPic = await SharedPreferencesHelper.instance.getImageUrl();
+        SharedPreferencesHelper.instance.getUserName() ?? "Student";
+    String? studentPic = SharedPreferencesHelper.instance.getUserImgUrl();
 
     // 3. Create Model with ALL DATA (Snapshots)
     final submission = StemSubmissionModel(

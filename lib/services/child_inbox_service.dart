@@ -8,7 +8,7 @@ import '../models/parent_safety_settings_model.dart'; // Reuse existing model
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart'; // Direct usage for sync
 
-class ChildSafetyService {
+class ChildInboxService{
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -31,11 +31,9 @@ class ChildSafetyService {
   void _monitorAuthState() {
     _authSubscription?.cancel();
 
-    // Emit initial 0 minutes for UI
     if (!_usageController.isClosed) _usageController.add(0);
 
     _authSubscription = _auth.authStateChanges().listen((user) async {
-      // Use Firebase UID if available, otherwise fallback to SharedPreferences
       String? uid =
           user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
       if (uid == null) {
@@ -49,11 +47,9 @@ class ChildSafetyService {
   }
 
   Future<void> _startTrackingSequence(String uid) async {
-    // 1️⃣ Fetch Role
     String? role = await SharedPreferencesHelper.instance.getUserRole();
 
     if (role == null) {
-      // Try Firestore fallback
       try {
         final doc = await _firestore.collection('users').doc(uid).get();
         role = doc.data()?['role'];
@@ -93,7 +89,6 @@ class ChildSafetyService {
       minutes = prefs.getInt(_keyUsageMinutes) ?? 0;
     }
 
-    // Emit initial usage for UI
     if (!_usageController.isClosed) _usageController.add(minutes);
     _syncToFirebase(uid, minutes);
 
@@ -141,15 +136,9 @@ class ChildSafetyService {
       final data = reportWithMeta.toMap();
       data['id'] = newKey;
 
-      // 1. Save to Child's Alerts (Standard)
       await _database.ref('safety_alerts/$uid/$newKey').set(data);
 
-      // 2. NEW: If Recipient is Teacher, Copy to Teacher Notifications
       if (report.recipient == 'Teacher') {
-        // Need Teacher ID
-        // Reuse _getTeacherId() logic or fetch from profile
-        // Assuming _getTeacherId() is available in this class (it is)
-        // We'll reimplement a quick fetch here for robustness
         final doc = await _firestore.collection('users').doc(uid).get();
         final teacherId = doc.data()?['teacher_id'];
 
@@ -160,7 +149,7 @@ class ChildSafetyService {
             'type': 'Safety',
             'timestamp': DateTime.now().toIso8601String(),
             'isRead': false,
-            'reportId': newKey // Link to full report
+            'reportId': newKey
           });
         }
       }
@@ -201,8 +190,6 @@ class ChildSafetyService {
       String? uid =
           user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
 
-      // 1. No User ID found -> Return Safe Default
-
       if (uid == null) {
         yield ParentSafetySettingsModel.fromMap({
           'daily_limit_hours': 24.0,
@@ -211,16 +198,13 @@ class ChildSafetyService {
         });
         return;
       }
-      // 2. Listen to Database
 
       yield* _database.ref('parent_settings/$uid').onValue.map((event) {
         final data = event.snapshot.value;
 
-        // A. IF DATA IS NULL (New/Unlinked User) -> FORCE ALLOW
-
         if (data == null) {
           return ParentSafetySettingsModel.fromMap({
-            'daily_limit_hours': 24.0, // Full Access
+            'daily_limit_hours': 24.0,
             'bedtime_start': "00:00",
             'bedtime_end': "00:00",
             'block_scary_content': false,
@@ -229,17 +213,14 @@ class ChildSafetyService {
           });
         }
 
-        // B. IF DATA EXISTS (Linked User) -> Parse Carefully
-
         try {
           final Map<dynamic, dynamic> rawMap = data as Map<dynamic, dynamic>;
           final Map<String, dynamic> safeMap = {};
           rawMap.forEach((key, value) {
             String stringKey = key.toString();
-            // FIX: Handle Number Conversion (Int -> Double)
             if (stringKey == 'daily_limit_hours') {
               if (value is int) {
-                safeMap[stringKey] = value.toDouble(); // Convert 4 -> 4.0
+                safeMap[stringKey] = value.toDouble();
               } else if (value is String) {
                 safeMap[stringKey] = double.tryParse(value) ?? 24.0;
               } else {
@@ -253,7 +234,6 @@ class ChildSafetyService {
           return ParentSafetySettingsModel.fromMap(safeMap);
         } catch (e) {
           print("❌ Error parsing settings: $e");
-          // Only return default if parsing fails completely
           return ParentSafetySettingsModel.fromMap({
             'daily_limit_hours': 24.0,
             'bedtime_start': "00:00",

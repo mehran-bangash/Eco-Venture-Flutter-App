@@ -1,81 +1,90 @@
-import 'package:eco_venture/views/auth/forgot_password_screen.dart';
-import 'package:eco_venture/views/auth/sign_up_screen.dart';
-import 'package:eco_venture/views/splash_screen/splash_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
-
+import '../../viewmodels/auth/auth_state.dart';
+import '../../views/auth/forgot_password_screen.dart';
+import '../../views/auth/sign_up_screen.dart';
+import '../../views/splash_screen/splash_screen.dart';
 import '../constants/route_names.dart';
 import 'child_router.dart';
 import 'parent_router.dart';
 import 'teacher_router.dart';
-
-// Import shared screens
 import '../../views/landing/landing_screen.dart';
 import '../../views/auth/login_screen.dart';
 
 
 class AppRouter {
-  static GoRouter router = GoRouter(
-    initialLocation: RouteNames.splash,
-    routes: [
-      // Splash
-      GoRoute(
-        path: RouteNames.splash,
-        name: 'splash',
-        builder: (context, state) =>const SplashScreen(),
-      ),
+  static List<RouteBase> routes = [
+    GoRoute(
+      path: RouteNames.splash,
+      name: 'splash',
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.landing,
+      name: 'landing',
+      builder: (context, state) => const LandingScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.login,
+      name: 'login',
+      builder: (context, state) {
+        final role = state.extra as String?;
+        return LoginScreen(selectRole: role);
+      },
+    ),
+    // Signup
+    GoRoute(
+      path: RouteNames.signup,
+      name: 'signup',
+      builder: (context, state) => const SignUpScreen(),
+    ),
 
-      // Landing
-      // Landing
-      GoRoute(
-        path: RouteNames.landing,
-        name: 'landing',
-        pageBuilder: (context, state) {
-          return CustomTransitionPage(
-            key: state.pageKey,
-            child: const LandingScreen(),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
-            },
-          );
-        },
-      ),
+    //forgot Password
+    // Login
+    GoRoute(
+      path: RouteNames.forgotPassword,
+      name: 'forgotPassword',
+      builder: (context, state) => ForgotPasswordScreen(),
+    ),
+    ChildRouter.routes,
+    ParentRouter.routes,
+    TeacherRouter.routes,
+  ];
 
-      // Login
-      GoRoute(
-        path: RouteNames.login,
-        name: 'login',
-        builder: (context, state) {
-          final role =state.extra as String?;
-          return LoginScreen(selectRole: role,);
-        },
-      ),
+  static String? redirect(BuildContext context, GoRouterState state, AuthState authState) {
+    final bool isFirstTime = authState.isFirstTime;
+    final String? userId = authState.userId;
+    final String? role = authState.role;
 
-      // Signup
-      GoRoute(
-        path: RouteNames.signup,
-        name: 'signup',
-        builder: (context, state) => const SignUpScreen(),
-      ),
+    // If on splash screen
+    if (state.matchedLocation == RouteNames.splash) {
+      // Still first time — let them see splash
+      if (isFirstTime) return null;
+      // Finished onboarding — send to role dashboard or landing
+      if (userId != null && role != null) return _getRoleRoute(role);
+      return RouteNames.login;
+    }
 
-      //forgot Password
-      // Login
-      GoRoute(
-        path: RouteNames.forgotPassword,
-        name: 'forgotPassword',
-        builder: (context, state) => ForgotPasswordScreen(),
-      ),
-      // Child role routes
-      ChildRouter.routes,
+    // If on auth pages but already logged in — skip to dashboard
+    final bool isAuthPage =
+        state.matchedLocation == RouteNames.landing ||
+            state.matchedLocation == RouteNames.login ||
+            state.matchedLocation == RouteNames.signup;
 
-      // Parent role routes
-      ParentRouter.routes,
+    if (isAuthPage && userId != null && role != null) {
+      return _getRoleRoute(role);
+    }
 
-      // Teacher role routes
-      TeacherRouter.routes,
-    ],
-  );
+    return null;
+  }
+
+  static String _getRoleRoute(String role) {
+    // Issue #5: Handle empty or unexpected role strings safely
+    switch (role.toLowerCase()) {
+      case 'child': return RouteNames.bottomNavChild;
+      case 'parent': return RouteNames.bottomNavParent;
+      case 'teacher': return RouteNames.bottomNavTeacher;
+      default: return RouteNames.landing;
+    }
+  }
 }

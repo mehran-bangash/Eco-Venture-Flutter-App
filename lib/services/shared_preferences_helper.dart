@@ -3,8 +3,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SharedPreferencesHelper {
   SharedPreferencesHelper._();
 
-  static SharedPreferencesHelper instance =
-  SharedPreferencesHelper._();
+  static final SharedPreferencesHelper instance = SharedPreferencesHelper._();
+
+  // Issue #4 Solved: Single instance to avoid repeated disk access
+  static SharedPreferences? _prefs;
+
+  // Call this in main.dart: await SharedPreferencesHelper.init();
+  static Future<void> init() async {
+    _prefs ??= await SharedPreferences.getInstance();
+  }
+
+  // Helper to access the initialized instance safely
+  SharedPreferences get _p => _prefs!;
+
+  // Keys
   static String userIdKey = 'USERIDKEY';
   static String userNameKey = 'USERNAMEKEY';
   static String userEmailKey = 'USEREMAILKEY';
@@ -13,164 +25,79 @@ class SharedPreferencesHelper {
   static String userImgUrlKey = 'USERIMGURLKEY';
   static String userDOBKey = 'USERDOBKEY';
   static String userTokenKey = 'USERTOKENKEY';
-  static String userImageUrlKey='USERIMAGEURLKEY';
-  static String userAgeGroupKey = 'USERAGEGROUPKEY'; // Added Age Group Key
+  static String userAgeGroupKey = 'USERAGEGROUPKEY';
   static const String childTeacherIdKey = 'child_teacher_id';
   static const String isTeacherAddedKey = 'is_teacher_added';
   static const String childNameKey = 'child_name';
   static const String childEmailKey = 'child_email';
+  static const String isFirstTimeKey = 'ISFIRSTTIMEKEY';
 
+  // --- Onboarding ---
+  Future<bool> saveIsFirstTime(bool isFirstTime) async =>
+      await _p.setBool(isFirstTimeKey, isFirstTime);
+  bool getIsFirstTime() => _p.getBool(isFirstTimeKey) ?? true;
 
-  Future<bool> saveUserId(String userId) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(userIdKey, userId);
-  }
-  Future<bool> saveUserImgUrl(String imgUrl)async{
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(userImgUrlKey, imgUrl);
-  }
-  Future<bool> saveUserName(String userName) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(userNameKey, userName);
-  }
+  // --- Setters (Save) ---
+  Future<bool> saveUserId(String userId) async =>
+      await _p.setString(userIdKey, userId);
+  Future<bool> saveUserName(String userName) async =>
+      await _p.setString(userNameKey, userName);
+  Future<bool> saveUserEmail(String userEmail) async =>
+      await _p.setString(userEmailKey, userEmail);
+  Future<bool> saveUserRole(String userRole) async =>
+      await _p.setString(userRoleKey, userRole);
+  Future<bool> saveUserAgeGroup(String ageGroup) async =>
+      await _p.setString(userAgeGroupKey, ageGroup);
+  Future<bool> saveUserImgUrl(String imgUrl) async =>
+      await _p.setString(userImgUrlKey, imgUrl);
+  Future<bool> saveUserDOB(String dOB) async =>
+      await _p.setString(userDOBKey, dOB);
+  Future<bool> saveUserToken(String userToken) async =>
+      await _p.setString(userTokenKey, userToken);
+  Future<bool> saveUserPhoneNumber(String userPhoneNumber) async =>
+      await _p.setString(userPhoneNumberKey, userPhoneNumber);
 
-  Future<bool> saveUserEmail(String userEmail) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(userEmailKey, userEmail);
-  }
-  Future<bool> saveUserDOB(String dOB) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(userDOBKey, dOB);
-  }
+  // --- Getters (Read - Now Synchronous for Performance) ---
+  String? getUserId() => _p.getString(userIdKey);
+  String? getUserEmail() => _p.getString(userEmailKey);
+  String? getUserName() => _p.getString(userNameKey);
+  String? getUserRole() => _p.getString(userRoleKey);
+  String? getUserAgeGroup() => _p.getString(userAgeGroupKey);
+  String? getUserImgUrl() => _p.getString(userImgUrlKey);
+  String? getUserPhoneNumber() => _p.getString(userPhoneNumberKey);
+  String? getUserDOB() => _p.getString(userDOBKey);
 
-  Future<bool> saveUserRole(String userRole) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(userRoleKey, userRole);
-  }
+  // --- Child/Teacher Logic ---
+  Future<bool> saveChildName(String name) async =>
+      await _p.setString(childNameKey, name);
+  String? getChildName() => _p.getString(childNameKey);
 
-  // --- NEW: Save Age Group ---
-  Future<bool> saveUserAgeGroup(String ageGroup) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(userAgeGroupKey, ageGroup);
-  }
+  Future<bool> saveChildEmail(String email) async =>
+      await _p.setString(childEmailKey, email);
+  String? getChildEmail() => _p.getString(childEmailKey);
 
-  Future<bool> saveUserToken(String userToken) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(userTokenKey, userToken);
-  }
+  Future<bool> saveChildTeacherId(String teacherId) async =>
+      await _p.setString(childTeacherIdKey, teacherId);
+  String? getChildTeacherId() => _p.getString(childTeacherIdKey);
 
-  Future<bool> saveUserPhoneNumber(String userPhoneNumber) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(userPhoneNumberKey, userPhoneNumber);
-  }
+  Future<bool> saveIsTeacherAdded(bool isAdded) async =>
+      await _p.setBool(isTeacherAddedKey, isAdded);
+  bool getIsTeacherAdded() => _p.getBool(isTeacherAddedKey) ?? false;
 
-
-  Future<String?> getUserId() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(userIdKey);
-  }
-
-  Future<String?> getUserEmail() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(userEmailKey);
-  }
-
-  Future<String?> getUserName() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(userNameKey);
-  }
-
-  Future<String?> getUserPhoneNumber() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(userPhoneNumberKey);
-  }
-
-  Future<String?> getUserRole() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(userRoleKey);
-  }
-
-  // --- NEW: Get Age Group ---
-  Future<String?> getUserAgeGroup() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(userAgeGroupKey);
-  }
-
-  Future<String?> getImageUrl() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(userImgUrlKey);
-  }
-  Future<String?> getUserDOB() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(userDOBKey);
-  }
-
-  Future<String?> getUserImgUrl() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(userImgUrlKey);
-  }
-
-  // Children Added By Teacher
-
-  Future<bool> saveChildName(String name) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(childNameKey, name);
-  }
-
-  Future<String?> getChildName() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(childNameKey);
-  }
-
-  // 2. Save/Get Child Email
-  Future<bool> saveChildEmail(String email) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(childEmailKey, email);
-  }
-
-  Future<String?> getChildEmail() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(childEmailKey);
-  }
-
-  // 3. Save the ID of the Teacher who added this child
-  Future<bool> saveChildTeacherId(String teacherId) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setString(childTeacherIdKey, teacherId);
-  }
-
-  // 4. Get that Teacher's ID (Used to fetch teacher's quizzes)
-  Future<String?> getChildTeacherId() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getString(childTeacherIdKey);
-  }
-
-  // 5. Flag: Was this child added by a teacher?
-  Future<bool> saveIsTeacherAdded(bool isAdded) async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.setBool(isTeacherAddedKey, isAdded);
-  }
-
-  Future<bool> getIsTeacherAdded() async {
-    final pref = await SharedPreferences.getInstance();
-    return pref.getBool(isTeacherAddedKey) ?? false;
-  }
-
+  // --- Cleanup ---
   Future<void> clearAll() async {
-    final pref = await SharedPreferences.getInstance();
-    await pref.remove(userIdKey);
-    await pref.remove(userNameKey);
-    await pref.remove(userEmailKey);
-    await pref.remove(userRoleKey);
-    await pref.remove(userPhoneNumberKey);
-    await pref.remove(userImgUrlKey);
-    await pref.remove(userDOBKey);
-    await pref.remove(userTokenKey);
-    await pref.remove(userAgeGroupKey); // Clear age group on logout
-    await pref.remove(childTeacherIdKey);
-    await pref.remove(isTeacherAddedKey);
-    await pref.remove(childNameKey);
-    await pref.remove(childEmailKey);
+    await _p.remove(userIdKey);
+    await _p.remove(userNameKey);
+    await _p.remove(userEmailKey);
+    await _p.remove(userRoleKey);
+    await _p.remove(userPhoneNumberKey);
+    await _p.remove(userImgUrlKey);
+    await _p.remove(userDOBKey);
+    await _p.remove(userTokenKey);
+    await _p.remove(userAgeGroupKey);
+    await _p.remove(childTeacherIdKey);
+    await _p.remove(isTeacherAddedKey);
+    await _p.remove(childNameKey);
+    await _p.remove(childEmailKey);
   }
-
 }

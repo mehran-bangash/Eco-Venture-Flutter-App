@@ -345,7 +345,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                                     context.goNamed('bottomNavTeacher');
                                                     break;
                                                   case 'parent':
-                                                    context.goNamed('parentChildSection');
+                                                    context.goNamed('bottomNavParent');
                                                     break;
                                                 }
                                               },

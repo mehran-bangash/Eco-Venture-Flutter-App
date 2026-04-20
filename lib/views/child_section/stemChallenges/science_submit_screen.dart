@@ -71,7 +71,7 @@ class _ScienceSubmitScreenState extends ConsumerState<ScienceSubmitScreen> {
     // 2. Get User Details (Name & Pic)
     String studentName =
         await SharedPreferencesHelper.instance.getUserName() ?? "Student";
-    String? studentPic = await SharedPreferencesHelper.instance.getImageUrl();
+    String? studentPic = await SharedPreferencesHelper.instance.getUserImgUrl();
 
     // 3. Create Model with ALL DATA (Snapshots)
     final submission = StemSubmissionModel(

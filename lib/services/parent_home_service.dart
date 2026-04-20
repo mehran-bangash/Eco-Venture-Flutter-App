@@ -130,4 +130,67 @@ class ParentHomeService {
     else if (c.contains('tech') || c.contains('eng')) skills['Creativity'] = (skills['Creativity']! + 1);
     else skills['Logic'] = (skills['Logic']! + 1);
   }
+
+  Future<String> linkChildAccount(
+      String parentUid,
+      String childEmail,
+      String childName,
+      ) async {
+    final query = await _firestore
+        .collection('users')
+        .where('email', isEqualTo: childEmail)
+        .where('role', isEqualTo: 'child')
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) throw Exception("No child found with this email.");
+
+    final childDoc = query.docs.first;
+    final childData = childDoc.data();
+    final childUid = childDoc.id;
+
+    // 1. NEW LOGIC: Check if already linked
+    final existingCheck = await _database.ref('parent_children/$parentUid/$childUid').get();
+    if (existingCheck.exists) {
+      throw Exception("${childData['name'] ?? 'Child'} is already in your list.");
+    }
+
+    String realName = childData['name'] ?? '';
+    if (realName.toLowerCase().trim() != childName.toLowerCase().trim()) {
+      throw Exception("Child found, but name does not match.");
+    }
+
+    await _database.ref('parent_children/$parentUid/$childUid').set({
+      'name': realName,
+      'uid': childUid,
+      'email': childEmail,
+      'linkedAt': DateTime.now().toIso8601String(),
+    });
+
+    await _firestore.collection('users').doc(childUid).update({
+      'parent_id': parentUid,
+    });
+
+    return childUid;
+  }
+
+  Future<List<Map<String, dynamic>>> getLinkedChildren(String parentUid) async {
+    final snapshot = await _database.ref('parent_children/$parentUid').get();
+    if (snapshot.exists && snapshot.value is Map) {
+      final data = Map<String, dynamic>.from(snapshot.value as Map);
+      return data.values
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList();
+    }
+    return [];
+  }
+
+  Future<void> unlinkChildAccount(String parentUid, String childUid) async {
+    // 1. Remove from RTDB
+    await _database.ref('parent_children/$parentUid/$childUid').remove();
+    // 2. Remove parent_id from Firestore user doc
+    await _firestore.collection('users').doc(childUid).update({
+      'parent_id': FieldValue.delete(),
+    });
+  }
 }
