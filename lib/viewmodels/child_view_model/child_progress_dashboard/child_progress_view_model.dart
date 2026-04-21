@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../repositories/child_progress_repository.dart';
+import '../../../repositories/child/child_progress_repository.dart';
 import 'child_progress_state.dart';
 import 'package:timeago/timeago.dart' as timeago; // Add timeago package for "2 hrs ago"
 

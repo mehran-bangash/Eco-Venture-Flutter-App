@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/teacher_safety_service.dart';
-import '../../repositories/teacher_safety_repository.dart';
+import '../../services/teacher/teacher_safety_service.dart';
+import '../../repositories/teacher/teacher_safety_repository.dart';
 import 'teacher_safety_view_model.dart';
 import 'teacher_safety_state.dart';
 

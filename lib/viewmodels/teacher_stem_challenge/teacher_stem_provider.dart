@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/firebase_teacher_database.dart';
+import '../../services/teacher/firebase_teacher_database.dart';
 import '../../services/cloudinary_service.dart';
-import '../../repositories/teacher_stem_repository.dart';
+import '../../repositories/teacher/teacher_stem_repository.dart';
 import 'teacher_stem_view_model.dart';
 import 'teacher_stem_state.dart';
 

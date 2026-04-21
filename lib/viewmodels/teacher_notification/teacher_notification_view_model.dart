@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:eco_venture/viewmodels/teacher_notification/teacher_notification_state.dart';
 import 'package:state_notifier/state_notifier.dart';
-import '../../repositories/teacher_notification_repository.dart';
+import '../../repositories/teacher/teacher_notification_repository.dart';
 
 class TeacherNotificationViewModel extends StateNotifier<TeacherNotificationState> {
   final TeacherNotificationRepository _repository;

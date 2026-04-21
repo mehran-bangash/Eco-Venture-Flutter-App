@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher_repoistory.dart';
+import '../../repositories/teacher/teacher_repoistory.dart';
 import 'teacher_auth_view_model.dart';
 import 'teacher_auth_state.dart';
 

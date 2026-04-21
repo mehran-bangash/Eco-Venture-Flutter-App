@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../repositories/child_qr_hunt_repository.dart';
-import '../../../services/child_qr_hunt_service.dart';
+import '../../../repositories/child/child_qr_hunt_repository.dart';
+import '../../../services/child/child_qr_hunt_service.dart';
 import 'child_qr_hunt_state.dart';
 import 'child_qr_hunt_view_model.dart';
 

@@ -265,8 +265,9 @@ class _ParentSettingsState extends State<ParentSettings>
                           // Step 2: If confirmed, call ViewModel
                           if (confirmed == true) {
                             await authVM.signOut();
+                            if (context.mounted) context.goNamed('login');
 
-                            // Step 3: Show feedback to user
+                            // Step 4: Show feedback to user
                             Utils.showDelightToast(
                               context,
                               "User successfully logged out",
@@ -278,8 +279,7 @@ class _ParentSettingsState extends State<ParentSettings>
                               iconColor: Colors.white,
                             );
 
-                            // Step 4: Navigate to login page
-                            context.goNamed('login');
+
                           }
                         },
                       );

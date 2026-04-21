@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/stem_challenge_model.dart';
-import '../../repositories/teacher_stem_repository.dart';
+import '../../repositories/teacher/teacher_stem_repository.dart';
 import '../../services/cloudinary_service.dart';
 import 'teacher_stem_state.dart'; // Ensure this file exists
 

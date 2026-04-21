@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher_home_repository.dart';
+import '../../repositories/teacher/teacher_home_repository.dart';
 import 'teacher_home_state.dart';
 
 class TeacherHomeViewModel extends StateNotifier<TeacherHomeState> {

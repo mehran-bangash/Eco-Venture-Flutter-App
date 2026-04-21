@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/parent_safety_settings_model.dart';
-import '../../../repositories/child_safety_repository.dart';
-import '../../../services/child_inbox_service.dart';
+import '../../../repositories/child/child_safety_repository.dart';
+import '../../../services/child/child_inbox_service.dart';
 import '../../../services/cloudinary_service.dart';
 import 'child_report_state.dart';
 import 'child_report_view_model.dart';

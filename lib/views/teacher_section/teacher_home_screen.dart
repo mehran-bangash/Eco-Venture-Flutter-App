@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:eco_venture/models/user_model.dart';
-import 'package:eco_venture/repositories/teacher_repoistory.dart';
+import 'package:eco_venture/repositories/teacher/teacher_repoistory.dart';
 import 'package:eco_venture/viewmodels/teacher_home/teacher_home_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

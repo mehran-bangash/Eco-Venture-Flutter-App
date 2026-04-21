@@ -1,8 +1,8 @@
 import 'package:eco_venture/viewmodels/teacher_quiz/teacher_quiz_view_model.dart';
 import 'package:eco_venture/viewmodels/teacher_quiz/teacher_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher_quiz_repoistory.dart';
-import '../../services/firebase_teacher_database.dart';
+import '../../repositories/teacher/teacher_quiz_repoistory.dart';
+import '../../services/teacher/firebase_teacher_database.dart';
 import '../../services/cloudinary_service.dart';
 
 

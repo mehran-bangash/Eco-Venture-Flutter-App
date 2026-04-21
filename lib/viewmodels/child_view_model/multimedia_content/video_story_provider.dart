@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../services/video_story_service.dart';
-import '../../../repositories/video_StoryRepo.dart';
+import '../../../services/child/video_story_service.dart';
+import '../../../repositories/child/video_StoryRepo.dart';
 import 'video_view_model.dart';
 import 'video_state.dart';
 import 'story_view_model.dart';

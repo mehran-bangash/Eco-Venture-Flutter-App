@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../repositories/parent_home_repository.dart';
-import '../../../services/parent_home_service.dart';
+import '../../../repositories/parent/parent_home_repository.dart';
+import '../../../services/parent/parent_home_service.dart';
 import '../report_safety/parent_safety_provider.dart';
 
 final parentHomeServiceProvider = Provider((ref) => ParentHomeService());

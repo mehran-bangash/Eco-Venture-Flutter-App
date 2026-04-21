@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/qr_hunt_read_model.dart';
-import '../../../repositories/child_qr_hunt_repository.dart';
+import '../../../repositories/child/child_qr_hunt_repository.dart';
 import '../../../services/shared_preferences_helper.dart'; // Logic: Required for Age Group retrieval
 import 'child_qr_hunt_state.dart';
 

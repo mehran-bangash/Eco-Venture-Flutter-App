@@ -7,6 +7,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../services/notification_service.dart';
+import '../../services/shared_preferences_helper.dart';
 import '../../viewmodels/parent_section/parent_home/parent_home_provider.dart';
 import '../../viewmodels/parent_section/report_safety/parent_safety_provider.dart';
 
@@ -28,6 +29,7 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
   final Color _textMuted = const Color(0xFF64748B);
   final Color _purple = const Color(0xFF7B1FA2);
   final Color _green = const Color(0xFF00C853);
+  String _parentName = '';
 
   final List<Color> _skillColors = [
     const Color(0xFF3B82F6),
@@ -50,6 +52,8 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
 
     NotificationService().initNotifications();
+    final name = SharedPreferencesHelper.instance.getUserName();
+    if (mounted) setState(() => _parentName = name ?? 'Parent');
 
     Future.microtask(
       () => ref
@@ -64,37 +68,56 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
     super.dispose();
   }
 
-  // --- LOGIC: BATCH LINKING ---
+  // --- FIX: BATCH LINKING (Separated Success and Error logic) ---
   Future<void> _processBatchLinking(
     List<Map<String, TextEditingController>> entries,
   ) async {
-    List<String> results = [];
-    bool hasError = false;
+    List<String> successNames = [];
+    List<String> errorMessages = [];
 
     for (var entry in entries) {
       String name = entry['name']!.text.trim();
       String email = entry['email']!.text.trim();
       if (name.isNotEmpty && email.isNotEmpty) {
         try {
+          // Await the operation so the catch block actually triggers on failure
           await ref
               .read(parentSafetyViewModelProvider.notifier)
               .linkChildByEmail(email, name);
-          results.add("$name linked successfully!");
+          successNames.add(name);
         } catch (e) {
-          hasError = true;
-          // Clean the error string to show just the message
-          results.add(e.toString().replaceAll("Exception: ", ""));
+          // Capture the specific error (e.g., "Child is already in your list" or "No child found")
+          errorMessages.add(e.toString().replaceAll("Exception: ", ""));
         }
       }
     }
 
-    if (results.isNotEmpty) {
+    // Show SUCCESS SnackBar only if children were actually added
+    if (successNames.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(results.join("\n")),
-          backgroundColor: hasError ? Colors.orange : Colors.green,
-          duration: const Duration(seconds: 4),
+          content: Text("Linked successfully: ${successNames.join(', ')}"),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
         ),
+      );
+    }
+
+    // Show ERROR SnackBar if duplicates or non-existent accounts were found
+    if (errorMessages.isNotEmpty) {
+      Future.delayed(
+        Duration(milliseconds: successNames.isNotEmpty ? 500 : 0),
+        () {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(errorMessages.join("\n")),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        },
       );
     }
   }
@@ -309,6 +332,7 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // FIX: Optimized Loading Logic (Header stays, content area loads professionally)
     final dashboardAsync = ref.watch(parentDashboardStreamProvider);
     final safetyState = ref.watch(parentSafetyViewModelProvider);
     final children = safetyState.linkedChildren;
@@ -323,178 +347,175 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
 
     return Scaffold(
       backgroundColor: _bgSubtle,
-      body: dashboardAsync.when(
-        loading: () =>
-            Center(child: CircularProgressIndicator(color: _primaryDark)),
-        error: (err, stack) => Center(
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnim,
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              // Header stays visible at all times to prevent white screen flickers
               _buildHeader(children, safetyState.selectedChildId),
-              const Spacer(),
-              Text(
-                "Select a child to view progress",
-                style: GoogleFonts.poppins(color: _textMuted),
+
+              Expanded(
+                child: dashboardAsync.when(
+                  loading: () {
+                    // Only show circle if we have no dashboard data yet
+                    if (!dashboardAsync.hasValue) {
+                      return Center(
+                        child: CircularProgressIndicator(color: _primaryDark),
+                      );
+                    }
+                    // If switching children, keep showing previous content to avoid empty screen
+                    return _buildMainContent(context, dashboardAsync.value!);
+                  },
+                  error: (err, stack) => Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          "Select a child profile above",
+                          style: GoogleFonts.poppins(
+                            color: _textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  data: (data) => _buildMainContent(context, data),
+                ),
               ),
-              const Spacer(),
             ],
           ),
         ),
-        data: (data) {
-          final int usageMinutes = data['usageMinutes'] ?? 0;
-          final List activityList = data['recentActivity'] ?? [];
-          final Map<String, double> skills = data['skills'] != null
-              ? Map<String, double>.from(data['skills'])
-              : {'Science': 0.1, 'Math': 0.1, 'Creativity': 0.1, 'Logic': 0.1};
+      ),
+    );
+  }
 
-          final Map<String, dynamic> performance =
-              data['performance'] ??
-              {'quizAvg': 0, 'stemCount': 0, 'qrCount': 0};
+  // Professional dashboard content builder
+  Widget _buildMainContent(BuildContext context, Map<String, dynamic> data) {
+    final int usageMinutes = data['usageMinutes'] ?? 0;
+    final List activityList = data['recentActivity'] ?? [];
+    final Map<String, double> skills = data['skills'] != null
+        ? Map<String, double>.from(data['skills'])
+        : {'Science': 0.1, 'Math': 0.1, 'Creativity': 0.1, 'Logic': 0.1};
 
-          return SafeArea(
-            child: FadeTransition(
-              opacity: _fadeAnim,
-              child: Column(
-                children: [
-                  _buildHeader(children, safetyState.selectedChildId),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 5.w,
-                        vertical: 2.h,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Skill Growth",
-                            style: GoogleFonts.poppins(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                              color: _textMain,
-                            ),
-                          ),
-                          SizedBox(height: 1.5.h),
-                          _buildSkillGrowthCard(skills),
-                          SizedBox(height: 3.h),
+    final Map<String, dynamic> performance =
+        data['performance'] ?? {'quizAvg': 0, 'stemCount': 0, 'qrCount': 0};
 
-                          Text(
-                            "Performance Breakdown",
-                            style: GoogleFonts.poppins(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                              color: _textMain,
-                            ),
-                          ),
-                          SizedBox(height: 1.5.h),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildPerformanceCard(
-                                  "Quiz",
-                                  "${performance['quizAvg']}%",
-                                  "Avg. Score",
-                                  Icons.quiz,
-                                  [
-                                    const Color(0xFF6366F1),
-                                    const Color(0xFF8B5CF6),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(width: 3.w),
-                              Expanded(
-                                child: _buildPerformanceCard(
-                                  "STEM",
-                                  "${performance['stemCount']}",
-                                  "Projects",
-                                  Icons.science,
-                                  [
-                                    const Color(0xFF3B82F6),
-                                    const Color(0xFF2DD4BF),
-                                  ],
-                                ),
-                              ),
-                              SizedBox(width: 3.w),
-                              Expanded(
-                                child: _buildPerformanceCard(
-                                  "QR Hunt",
-                                  "${performance['qrCount']}",
-                                  "Solved",
-                                  Icons.qr_code_scanner,
-                                  [
-                                    const Color(0xFF10B981),
-                                    const Color(0xFF059669),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 3.h),
-                          _buildScreenTimeCard(usageMinutes),
-                          SizedBox(height: 3.h),
-
-                          Text(
-                            "Parent Controls",
-                            style: GoogleFonts.poppins(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                              color: _textMain,
-                            ),
-                          ),
-                          SizedBox(height: 1.5.h),
-                          _buildUnifiedControls(context),
-
-                          SizedBox(height: 3.h),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "Recent Activity",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: _textMain,
-                                ),
-                              ),
-                              Text(
-                                "View All",
-                                style: GoogleFonts.poppins(
-                                  fontSize: 12.sp,
-                                  color: _accentBlue,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 2.h),
-                          if (activityList.isEmpty)
-                            _buildEmptyState()
-                          else
-                            Column(
-                              children: activityList
-                                  .map((item) => _buildActivityTile(item))
-                                  .toList(),
-                            ),
-                          SizedBox(height: 5.h),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "Skill Growth",
+            style: GoogleFonts.poppins(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: _textMain,
             ),
-          );
-        },
+          ),
+          SizedBox(height: 1.5.h),
+          _buildSkillGrowthCard(skills),
+          SizedBox(height: 3.h),
+          Text(
+            "Performance Breakdown",
+            style: GoogleFonts.poppins(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: _textMain,
+            ),
+          ),
+          SizedBox(height: 1.5.h),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPerformanceCard(
+                  "Quiz",
+                  "${performance['quizAvg']}%",
+                  "Avg. Score",
+                  Icons.quiz,
+                  [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
+                ),
+              ),
+              SizedBox(width: 3.w),
+              Expanded(
+                child: _buildPerformanceCard(
+                  "STEM",
+                  "${performance['stemCount']}",
+                  "Projects",
+                  Icons.science,
+                  [const Color(0xFF3B82F6), const Color(0xFF2DD4BF)],
+                ),
+              ),
+              SizedBox(width: 3.w),
+              Expanded(
+                child: _buildPerformanceCard(
+                  "QR Hunt",
+                  "${performance['qrCount']}",
+                  "Solved",
+                  Icons.qr_code_scanner,
+                  [const Color(0xFF10B981), const Color(0xFF059669)],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 3.h),
+          _buildScreenTimeCard(usageMinutes),
+          SizedBox(height: 3.h),
+          Text(
+            "Parent Controls",
+            style: GoogleFonts.poppins(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: _textMain,
+            ),
+          ),
+          SizedBox(height: 1.5.h),
+          _buildUnifiedControls(context),
+          SizedBox(height: 3.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Recent Activity",
+                style: GoogleFonts.poppins(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: _textMain,
+                ),
+              ),
+              Text(
+                "View All",
+                style: GoogleFonts.poppins(
+                  fontSize: 12.sp,
+                  color: _accentBlue,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 2.h),
+          if (activityList.isEmpty)
+            _buildEmptyState()
+          else
+            Column(
+              children: activityList
+                  .map((item) => _buildActivityTile(item))
+                  .toList(),
+            ),
+          SizedBox(height: 5.h),
+        ],
       ),
     );
   }
 
   Widget _buildHeader(List children, String? selectedId) {
-    // FIX: Validate that selectedId actually exists in the current children list
-    // This prevents the "There should be exactly one item with [DropdownButton]'s value" crash
     final bool idExists = children.any((c) => c['uid'] == selectedId);
-    final String? safeValue = idExists ? selectedId : (children.isNotEmpty ? children.first['uid'] : null);
+    final String? safeValue = idExists
+        ? selectedId
+        : (children.isNotEmpty ? children.first['uid'] : null);
 
     return Container(
       width: double.infinity,
@@ -502,7 +523,13 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,11 +537,30 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Flexible(
-                child: Text("Parent\nDashboard",
-                  style: GoogleFonts.poppins(fontSize: 24.sp, fontWeight: FontWeight.w900, height: 1.1, color: _textMain, letterSpacing: -0.5),
-                  overflow: TextOverflow.ellipsis,
-                ),
+              // AFTER:
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Welcome back,",
+                    style: GoogleFonts.poppins(
+                      fontSize: 14.sp,
+                      color: _textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Text(
+                    _parentName,
+                    style: GoogleFonts.poppins(
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.w900,
+                      height: 1.1,
+                      color: _textMain,
+                      letterSpacing: -0.5,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
               Flexible(
                 child: Row(
@@ -523,13 +569,30 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
                     GestureDetector(
                       onTap: _showLinkChildDialog,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-                        decoration: BoxDecoration(color: _primaryDark, borderRadius: BorderRadius.circular(15)),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 3.w,
+                          vertical: 1.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _primaryDark,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
                         child: Row(
                           children: [
-                            Icon(Icons.add_circle, color: Colors.white, size: 16.sp),
+                            Icon(
+                              Icons.add_circle,
+                              color: Colors.white,
+                              size: 16.sp,
+                            ),
                             SizedBox(width: 1.5.w),
-                            Text("Add Child", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.sp)),
+                            Text(
+                              "Add Child",
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13.sp,
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -548,21 +611,40 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
                 Expanded(
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 4.w),
-                    decoration: BoxDecoration(color: _bgSubtle, borderRadius: BorderRadius.circular(15), border: Border.all(color: _cardBorder)),
+                    decoration: BoxDecoration(
+                      color: _bgSubtle,
+                      borderRadius: BorderRadius.circular(15),
+                      border: Border.all(color: _cardBorder),
+                    ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: safeValue, // Use safeValue to prevent crash
+                        value: safeValue,
                         isExpanded: true,
-                        hint: Text("Select Child Profile", style: GoogleFonts.poppins()),
-                        icon: Icon(Icons.unfold_more_rounded, color: _textMuted),
+                        hint: Text(
+                          "Select Child Profile",
+                          style: GoogleFonts.poppins(),
+                        ),
+                        icon: Icon(
+                          Icons.unfold_more_rounded,
+                          color: _textMuted,
+                        ),
                         items: children.map((child) {
                           return DropdownMenuItem<String>(
                             value: child['uid'],
-                            child: Text(child['name'] ?? "Child", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: _textMain)),
+                            child: Text(
+                              child['name'] ?? "Child",
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w600,
+                                color: _textMain,
+                              ),
+                            ),
                           );
                         }).toList(),
                         onChanged: (val) {
-                          if (val != null) ref.read(parentSafetyViewModelProvider.notifier).selectChild(val);
+                          if (val != null)
+                            ref
+                                .read(parentSafetyViewModelProvider.notifier)
+                                .selectChild(val);
                         },
                       ),
                     ),
@@ -572,17 +654,30 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
                   Padding(
                     padding: EdgeInsets.only(left: 2.w),
                     child: IconButton(
-                      icon: Icon(Icons.link_off, color: Colors.redAccent, size: 22.sp),
+                      icon: Icon(
+                        Icons.link_off,
+                        color: Colors.redAccent,
+                        size: 22.sp,
+                      ),
                       onPressed: () {
-                        final child = children.firstWhere((c) => c['uid'] == safeValue);
+                        final child = children.firstWhere(
+                          (c) => c['uid'] == safeValue,
+                        );
                         _showUnlinkDialog(safeValue, child['name'] ?? "Child");
                       },
                     ),
-                  )
+                  ),
               ],
             )
           else
-            Text("No children linked. Tap (+) to start.", style: TextStyle(color: Colors.redAccent, fontSize: 12.sp, fontWeight: FontWeight.w600)),
+            Text(
+              "No children linked. Tap (+) to start.",
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
         ],
       ),
     );

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher_class_report_repository.dart';
-import '../../services/teacher_class_report_seervice.dart';
+import '../../repositories/teacher/teacher_class_report_repository.dart';
+import '../../services/teacher/teacher_class_report_seervice.dart';
 import 'teacher_class_report_view_model.dart';
 import 'teacher_class_report_state.dart';
 

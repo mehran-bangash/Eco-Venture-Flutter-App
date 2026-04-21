@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher_class_report_repository.dart';
+import '../../repositories/teacher/teacher_class_report_repository.dart';
 import 'teacher_class_report_state.dart';
 
 class TeacherClassReportViewModel extends StateNotifier<TeacherClassReportState> {

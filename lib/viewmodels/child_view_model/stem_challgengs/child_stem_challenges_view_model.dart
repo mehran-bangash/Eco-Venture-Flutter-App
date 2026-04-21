@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/stem_submission_model.dart';
-import '../../../repositories/child_stem_challenge_repository.dart';
+import '../../../repositories/child/child_stem_challenge_repository.dart';
 import '../../../services/cloudinary_service.dart';
 import '../../../services/shared_preferences_helper.dart'; // Added for age group retrieval
 import 'child_stem_challenges_state.dart';

@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/auth_repo.dart';
+import '../../repositories/auth/auth_repo.dart';
 import '../../services/shared_preferences_helper.dart';
 import 'auth_state.dart';
 import 'auth_view_model.dart';

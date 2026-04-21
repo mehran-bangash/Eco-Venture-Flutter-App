@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher_safety_repository.dart';
+import '../../repositories/teacher/teacher_safety_repository.dart';
 import 'teacher_safety_state.dart';
 
 class TeacherSafetyViewModel extends StateNotifier<TeacherSafetyState> {

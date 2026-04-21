@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:eco_venture/services/shared_preferences_helper.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/auth_repo.dart';
+import '../../repositories/auth/auth_repo.dart';
 import 'auth_state.dart';
 
 class AuthViewModel extends StateNotifier<AuthState> {
@@ -57,6 +57,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
       await SharedPreferencesHelper.instance.saveUserId(user.uid);
       await SharedPreferencesHelper.instance.saveUserAgeGroup(user.ageGroup);
       await SharedPreferencesHelper.instance.saveUserRole(user.role);
+      await SharedPreferencesHelper.instance.saveUserName(user.displayName);
 
       // Update state and trigger navigation
       state = state.copyWith(
@@ -97,6 +98,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
       await SharedPreferencesHelper.instance.saveUserId(user.uid);
       await SharedPreferencesHelper.instance.saveUserAgeGroup(user.ageGroup);
       await SharedPreferencesHelper.instance.saveUserRole(user.role);
+      await SharedPreferencesHelper.instance.saveUserName(user.displayName);
 
       state = state.copyWith(
         isSignInLoading: false,
@@ -153,6 +155,7 @@ class AuthViewModel extends StateNotifier<AuthState> {
       await SharedPreferencesHelper.instance.saveUserId(user.uid);
       await SharedPreferencesHelper.instance.saveUserAgeGroup(user.ageGroup);
       await SharedPreferencesHelper.instance.saveUserRole(user.role);
+      await SharedPreferencesHelper.instance.saveUserName(user.displayName);
 
       state = state.copyWith(
         isGoogleLoading: false,

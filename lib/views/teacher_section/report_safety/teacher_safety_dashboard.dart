@@ -203,24 +203,23 @@ class _TeacherSafetyDashboardState extends ConsumerState<TeacherSafetyDashboard>
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
-            onPressed: () => context.pop(),
-          ),
-          SizedBox(width: 2.w),
+
+          SizedBox(width: 2.5.w),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Communication Hub",
-                  style: GoogleFonts.poppins(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                Text(
-                  "Inbox for student alerts and parent reports",
-                  style: GoogleFonts.poppins(fontSize: 13.sp, color: Colors.white.withOpacity(0.8)),
-                ),
-              ],
+            child: Center(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Communication Hub",
+                    style: GoogleFonts.poppins(fontSize: 20.sp, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  Text(
+                    "Inbox for student alerts and parent reports",
+                    style: GoogleFonts.poppins(fontSize: 13.sp, color: Colors.white.withOpacity(0.8)),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/child_progress_model.dart';
-import '../../../repositories/child_quiz_repository.dart';
+import '../../../repositories/child/child_quiz_repository.dart';
 import '../../../services/shared_preferences_helper.dart'; // Added for Age Group
 import 'child_quiz_state.dart';
 

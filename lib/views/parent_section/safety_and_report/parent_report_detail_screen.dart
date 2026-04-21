@@ -22,27 +22,41 @@ class _ParentReportDetailScreenState
   final TextEditingController _noteController = TextEditingController();
   final Color _bg = const Color(0xFFF5F7FA);
 
-  void _escalate(String target) {
+  // Updated to handle errors and show UI feedback
+  Future<void> _escalate(String target) async {
     final childId = ref.read(parentSafetyViewModelProvider).selectedChildId;
     if (childId == null) return;
 
-    if (target == 'Teacher') {
-      ref
-          .read(parentSafetyServiceProvider)
-          .escalateReportToTeacher(childId, widget.alert, _noteController.text);
-    } else {
-      ref
-          .read(parentSafetyServiceProvider)
-          .escalateReportToAdmin(childId, widget.alert, _noteController.text);
-    }
+    try {
+      if (target == 'Teacher') {
+        await ref
+            .read(parentSafetyServiceProvider)
+            .escalateReportToTeacher(childId, widget.alert, _noteController.text);
+      } else {
+        await ref
+            .read(parentSafetyServiceProvider)
+            .escalateReportToAdmin(childId, widget.alert, _noteController.text);
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Report forwarded to $target"),
-        backgroundColor: Colors.green,
-      ),
-    );
-    context.pop();
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Report forwarded to $target"),
+          backgroundColor: Colors.green,
+        ),
+      );
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      // Show the specific error message from the service
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString().replaceAll("Exception: ", "")),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override

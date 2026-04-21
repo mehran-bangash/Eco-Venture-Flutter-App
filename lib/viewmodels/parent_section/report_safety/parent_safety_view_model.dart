@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../repositories/parent_safety_repository.dart';
+import '../../../repositories/parent/parent_safety_repository.dart';
 import '../../../services/shared_preferences_helper.dart';
 import 'parent_safety_state.dart';
 
@@ -46,6 +46,7 @@ class ParentSafetyViewModel extends StateNotifier<ParentSafetyState> {
       selectChild(childUid);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      rethrow;
     }
   }
 

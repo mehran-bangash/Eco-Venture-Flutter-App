@@ -239,22 +239,23 @@ class _TeacherSettingsState extends State<TeacherSettings>
                               ],
                             ),
                           );
-
                           if (confirmed == true) {
                             await authVM.signOut();
-                            if (context.mounted) {
-                              Utils.showDelightToast(
-                                context,
-                                "User successfully logged out",
-                                duration: const Duration(seconds: 3),
-                                textColor: Colors.white,
-                                bgColor: Colors.green,
-                                position: DelightSnackbarPosition.bottom,
-                                icon: Icons.check,
-                                iconColor: Colors.white,
-                              );
-                              context.goNamed('login');
-                            }
+                            if (context.mounted) context.goNamed('login');
+
+                            // Step 4: Show feedback to user
+                            Utils.showDelightToast(
+                              context,
+                              "User successfully logged out",
+                              duration: Duration(seconds: 3),
+                              textColor: Colors.white,
+                              bgColor: Colors.green,
+                              position: DelightSnackbarPosition.bottom,
+                              icon: Icons.check,
+                              iconColor: Colors.white,
+                            );
+
+
                           }
                         },
                       );

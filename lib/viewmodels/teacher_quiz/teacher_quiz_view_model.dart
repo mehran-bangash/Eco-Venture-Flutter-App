@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:eco_venture/viewmodels/teacher_quiz/teacher_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/quiz_topic_model.dart';
-import '../../repositories/teacher_quiz_repoistory.dart';
+import '../../repositories/teacher/teacher_quiz_repoistory.dart';
 import '../../services/cloudinary_service.dart';
 
 

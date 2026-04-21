@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher_home_repository.dart';
-import '../../services/teacher_home_service.dart';
+import '../../repositories/teacher/teacher_home_repository.dart';
+import '../../services/teacher/teacher_home_service.dart';
 import 'teacher_home_state.dart';
 import 'teacher_home_view_model.dart';
 

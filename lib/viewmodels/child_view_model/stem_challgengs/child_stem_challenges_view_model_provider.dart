@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../repositories/child_stem_challenge_repository.dart';
-import '../../../services/child_stem_challenges_service.dart';
+import '../../../repositories/child/child_stem_challenge_repository.dart';
+import '../../../services/child/child_stem_challenges_service.dart';
 import '../../../services/cloudinary_service.dart';
 import 'child_stem_challenges_view_model.dart';
 import 'child_stem_challenges_state.dart';

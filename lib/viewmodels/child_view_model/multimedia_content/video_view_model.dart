@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:state_notifier/state_notifier.dart';
 import '../../../models/video_model.dart';
-import '../../../repositories/video_StoryRepo.dart';
+import '../../../repositories/child/video_StoryRepo.dart';
 import '../../../services/shared_preferences_helper.dart';
 import 'video_state.dart';
 

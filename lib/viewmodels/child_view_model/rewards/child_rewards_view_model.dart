@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:state_notifier/state_notifier.dart';
 
-import '../../../services/child_rewards_service.dart';
+import '../../../services/child/child_rewards_service.dart';
 import 'child_rewards_state.dart';
 
 class ChildRewardsViewModel extends StateNotifier<ChildRewardsState> {

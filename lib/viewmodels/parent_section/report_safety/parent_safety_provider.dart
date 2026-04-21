@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../repositories/parent_safety_repository.dart';
-import '../../../services/parent_safety_service.dart';
+import '../../../repositories/parent/parent_safety_repository.dart';
+import '../../../services/parent/parent_safety_service.dart';
 import 'parent_safety_view_model.dart';
 import 'parent_safety_state.dart';
 

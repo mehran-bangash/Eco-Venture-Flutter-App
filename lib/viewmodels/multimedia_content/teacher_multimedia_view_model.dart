@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/story_model.dart';
 import '../../models/video_model.dart';
-import '../../repositories/teacher_multimedia_repository.dart';
+import '../../repositories/teacher/teacher_multimedia_repository.dart';
 import '../../services/cloudinary_service.dart';
 import 'teacher_multimedia_state.dart';
 

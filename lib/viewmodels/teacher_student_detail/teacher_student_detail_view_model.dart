@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:eco_venture/viewmodels/teacher_student_detail/teacher_student_detail_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher_student_repository.dart';
+import '../../repositories/teacher/teacher_student_repository.dart';
 
 class TeacherStudentDetailViewModel
     extends StateNotifier<TeacherStudentDetailState> {

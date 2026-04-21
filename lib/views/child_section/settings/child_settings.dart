@@ -265,7 +265,10 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                           // Step 2: If confirmed, call ViewModel
                           if (confirmed == true) {
                             await authVM.signOut();
-                            // Step 3: Show feedback to user
+
+                            //step:3
+                            if (context.mounted) context.goNamed('login');
+                            // Step 4: Show feedback to user
                             Utils.showDelightToast(
                               context,
                               "User successfully logged out",
@@ -277,8 +280,7 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                               iconColor: Colors.white,
                             );
 
-                            // Step 4: Navigate to login page
-                            context.goNamed('login');
+
                           }
                         },
                       );
