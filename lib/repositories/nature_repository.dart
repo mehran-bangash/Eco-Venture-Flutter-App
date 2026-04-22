@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:uuid/uuid.dart';
-import '../models/nature_fact_{sqllite}.dart';
-import '../models/nature_photo_predictiion{ai}.dart';
+import '../models/child/nature_fact_{sqllite}.dart';
+import '../models/child/nature_photo_predictiion{ai}.dart';
 import '../services/nature_photo_modal_service.dart';
 import '../services/cloudinary_service.dart';
 import '../services/nature_photo_sqlflite.dart';
-import '../models/nature_photo_upload_model.dart';
+import '../models/child/nature_photo_upload_model.dart';
 
 class NatureRepository {
   final ModalService _modalService = ModalService();

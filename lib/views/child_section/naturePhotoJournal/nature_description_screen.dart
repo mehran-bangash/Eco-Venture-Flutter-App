@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart'; // Added Riverpod
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:intl/intl.dart';
-import '../../../models/nature_fact_{sqllite}.dart';
-import '../../../models/nature_photo_upload_model.dart';// Verify path to natureProvider
+import '../../../models/child/nature_fact_{sqllite}.dart';
+import '../../../models/child/nature_photo_upload_model.dart';// Verify path to natureProvider
 import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/child_view_model/nature_photo_view_model/nature_photo_provider.dart'; // Verify path to SharedPrefs
 

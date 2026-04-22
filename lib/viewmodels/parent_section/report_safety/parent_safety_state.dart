@@ -1,5 +1,5 @@
-import '../../../models/parent_alert_model.dart';
-import '../../../models/parent_safety_settings_model.dart';
+import '../../../models/parent/parent_alert_model.dart';
+import '../../../models/parent/parent_safety_settings_model.dart';
 
 
 class ParentSafetyState {

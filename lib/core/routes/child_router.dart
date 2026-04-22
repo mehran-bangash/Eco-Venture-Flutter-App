@@ -33,8 +33,8 @@ import 'package:eco_venture/views/child_section/treasureHunt/qr_hunt_play_screen
 import 'package:eco_venture/views/child_section/treasureHunt/qR_scanner_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
-import '../../models/child_progress_model.dart';
-import '../../models/nature_photo_upload_model.dart';
+import '../../models/child/child_progress_model.dart';
+import '../../models/child/nature_photo_upload_model.dart';
 import '../../models/qr_hunt_read_model.dart';
 import '../../models/story_model.dart';
 import '../../models/video_model.dart';

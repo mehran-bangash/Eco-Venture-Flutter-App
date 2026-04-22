@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../models/teacher_report_model.dart';
+import '../../../models/teacher/teacher_report_model.dart';
 import '../../../viewmodels/teacher_safety_report/teacher_safety_provider.dart';
 
 class TeacherReportDetailScreen extends ConsumerWidget {
@@ -18,7 +18,10 @@ class TeacherReportDetailScreen extends ConsumerWidget {
 
     // Logic: Determine if this is a content-related alert or a generic one
     final bool isContentReport = reportData.contentId != null && reportData.contentId!.isNotEmpty;
-    final bool isPending = reportData.status.toLowerCase().contains('pending');
+
+    // FIX: Include 'escalated' so the button shows for Parent reports too
+    final statusLower = reportData.status.toLowerCase();
+    final bool isPendingOrEscalated = statusLower.contains('pending') || statusLower.contains('escalated');
 
     return Scaffold(
       backgroundColor: _bg,
@@ -52,10 +55,10 @@ class TeacherReportDetailScreen extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                       radius: 22.sp,
-                      backgroundColor: (isPending ? Colors.orange : Colors.green).withOpacity(0.1),
+                      backgroundColor: (isPendingOrEscalated ? Colors.orange : Colors.green).withOpacity(0.1),
                       child: Icon(
-                          isPending ? Icons.pending_actions_rounded : Icons.check_circle_rounded,
-                          color: isPending ? Colors.orange : Colors.green
+                          isPendingOrEscalated ? Icons.pending_actions_rounded : Icons.check_circle_rounded,
+                          color: isPendingOrEscalated ? Colors.orange : Colors.green
                       )
                   ),
                   SizedBox(width: 4.w),
@@ -72,6 +75,27 @@ class TeacherReportDetailScreen extends ConsumerWidget {
               ),
             ),
             SizedBox(height: 4.h),
+
+            // --- IMAGE SECTION (NEW) ---
+            if (reportData.imageUrl != null && reportData.imageUrl!.isNotEmpty) ...[
+              _buildSectionLabel("Attached Image"),
+              SizedBox(height: 1.h),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  reportData.imageUrl!,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 20.h,
+                    width: double.infinity,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  ),
+                ),
+              ),
+              SizedBox(height: 3.h),
+            ],
 
             // --- CONTEXT SECTION ---
             if (isContentReport) ...[
@@ -114,7 +138,7 @@ class TeacherReportDetailScreen extends ConsumerWidget {
             SizedBox(height: 6.h),
 
             // --- RESOLUTION ACTION ---
-            if (isPending)
+            if (isPendingOrEscalated)
               SizedBox(
                 width: double.infinity,
                 height: 7.5.h,
@@ -125,7 +149,6 @@ class TeacherReportDetailScreen extends ConsumerWidget {
                       style: GoogleFonts.poppins(fontWeight: FontWeight.bold, letterSpacing: 1, color: Colors.white)
                   ),
                   onPressed: () async {
-                    // Logic: Now correctly calling the newly added ViewModel method
                     await ref.read(teacherSafetyViewModelProvider.notifier).markResolved(reportData.id, reportData.childId);
                     if (context.mounted) context.pop();
                   },

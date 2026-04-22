@@ -5,7 +5,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import '../../../models/parent_alert_model.dart'; // Import the model
+import '../../../models/parent/parent_alert_model.dart'; // Import the model
 import '../../../viewmodels/parent_section/report_safety/parent_safety_provider.dart';
 
 final childUsageStreamProvider = StreamProvider.autoDispose.family<int, String>((ref, childId) {

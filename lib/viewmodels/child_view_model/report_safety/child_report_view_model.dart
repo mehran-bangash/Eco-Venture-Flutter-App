@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:eco_venture/core/config/api_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
-import '../../../models/child_report_model.dart';
+import '../../../models/child/child_report_model.dart';
 import '../../../repositories/child/child_safety_repository.dart';
 import '../../../services/shared_preferences_helper.dart';
 import 'child_report_state.dart';

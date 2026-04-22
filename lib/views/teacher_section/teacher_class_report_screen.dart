@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../models/teacher_class_report_model.dart';
+import '../../models/teacher/teacher_class_report_model.dart';
 import '../../viewmodels/teacher_class_report/teacher_class_report_provider.dart';
 
 

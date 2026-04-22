@@ -5,8 +5,8 @@ import 'package:rxdart/rxdart.dart';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../models/child_report_model.dart';
-import '../../models/parent_safety_settings_model.dart';
+import '../../models/child/child_report_model.dart';
+import '../../models/parent/parent_safety_settings_model.dart';
 import '../shared_preferences_helper.dart'; // Direct usage for sync
 
 class ChildInboxService{

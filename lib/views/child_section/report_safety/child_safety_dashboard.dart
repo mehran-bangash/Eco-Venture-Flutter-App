@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import '../../../models/child_report_model.dart';
+import '../../../models/child/child_report_model.dart';
 import '../../../viewmodels/child_view_model/report_safety/child_safety_provider.dart';
 import '../../../services/shared_preferences_helper.dart';
 

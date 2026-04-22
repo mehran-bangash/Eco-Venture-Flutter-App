@@ -3,9 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rxdart/rxdart.dart';
-import '../../models/child_progress_model.dart';
+import '../../models/child/child_progress_model.dart';
 import '../../models/quiz_topic_model.dart';
-import '../../models/parent_safety_settings_model.dart';
+import '../../models/parent/parent_safety_settings_model.dart';
 import '../shared_preferences_helper.dart';
 
 class ChildQuizService {

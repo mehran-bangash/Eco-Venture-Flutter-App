@@ -1,6 +1,6 @@
 
 
-import '../../../models/child_progress_model.dart';
+import '../../../models/child/child_progress_model.dart';
 import '../../../models/quiz_topic_model.dart';
 
 class ChildQuizState {

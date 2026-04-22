@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/nature_photo_predictiion{ai}.dart';
+import '../models/child/nature_photo_predictiion{ai}.dart';
 import 'nature_photo_sqlflite.dart'; // Import your LocalDBService
 
 class ModalService {

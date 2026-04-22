@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import '../../../models/child_progress_model.dart';
+import '../../../models/child/child_progress_model.dart';
 import '../../../models/quiz_topic_model.dart';
 import '../../../viewmodels/child_view_model/interactive_quiz/child_quiz_provider.dart';
 

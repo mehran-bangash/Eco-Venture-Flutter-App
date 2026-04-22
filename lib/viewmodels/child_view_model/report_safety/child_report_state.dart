@@ -1,5 +1,5 @@
 
-import '../../../models/child_report_model.dart';
+import '../../../models/child/child_report_model.dart';
 
 class ChildReportState {
   final bool isLoading;

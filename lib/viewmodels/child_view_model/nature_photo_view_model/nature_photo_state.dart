@@ -1,4 +1,4 @@
-import '../../../models/nature_photo_upload_model.dart';
+import '../../../models/child/nature_photo_upload_model.dart';
 
 // 1. THE STATE: What the UI looks like at any moment
 class NatureState {

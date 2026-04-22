@@ -1,5 +1,5 @@
 import '../../services/teacher/teacher_safety_service.dart';
-import '../../models/teacher_report_model.dart';
+import '../../models/teacher/teacher_report_model.dart';
 
 
 class TeacherSafetyRepository {

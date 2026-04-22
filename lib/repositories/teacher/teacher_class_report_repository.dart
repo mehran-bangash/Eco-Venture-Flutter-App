@@ -1,4 +1,4 @@
-import '../../models/teacher_class_report_model.dart';
+import '../../models/teacher/teacher_class_report_model.dart';
 import '../../services/teacher/teacher_class_report_seervice.dart';
 
 class TeacherClassReportRepository {

@@ -28,7 +28,7 @@ import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_
 import 'package:eco_venture/views/teacher_section/view_student_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../models/teacher_report_model.dart';
+import '../../models/teacher/teacher_report_model.dart';
 import '../../views/child_section/rewards_screen.dart';
 import '../../views/teacher_section/quiz_module/teacher_edit_quiz_screen.dart';
 import '../../views/teacher_section/stem_challenges_module/teacher_add_stem_challenge_Screen.dart';

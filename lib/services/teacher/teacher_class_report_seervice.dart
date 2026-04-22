@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rxdart/rxdart.dart';
-import '../../models/teacher_class_report_model.dart';
+import '../../models/teacher/teacher_class_report_model.dart';
 import '../shared_preferences_helper.dart';
 
 class TeacherClassReportService {

@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-import '../../../models/child_progress_model.dart';
+import '../../../models/child/child_progress_model.dart';
 
 class QuizCompletionScreen extends StatelessWidget {
   final String correctStr;

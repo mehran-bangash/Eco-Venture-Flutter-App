@@ -1,4 +1,4 @@
-import '../../models/teacher_class_report_model.dart';
+import '../../models/teacher/teacher_class_report_model.dart';
 
 class TeacherClassReportState {
   final bool isLoading;

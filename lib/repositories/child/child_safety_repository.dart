@@ -1,6 +1,6 @@
 import 'dart:io';
-import '../../models/child_report_model.dart';
-import '../../models/parent_safety_settings_model.dart';
+import '../../models/child/child_report_model.dart';
+import '../../models/parent/parent_safety_settings_model.dart';
 import '../../services/child/child_inbox_service.dart';
 import '../../services/cloudinary_service.dart';
 class ChildSafetyRepository {

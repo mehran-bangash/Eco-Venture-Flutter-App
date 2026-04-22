@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:eco_venture/core/config/api_constants.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:http/http.dart' as http;
-import '../../models/parent_safety_settings_model.dart';
-import '../../models/parent_alert_model.dart';
+import '../../models/parent/parent_safety_settings_model.dart';
+import '../../models/parent/parent_alert_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ParentSafetyService {
@@ -167,54 +167,101 @@ class ParentSafetyService {
   }
 
   Future<void> escalateReportToTeacher(
-    String childId,
-    ParentAlertModel alert,
-    String note,
-  ) async {
+      String childId,
+      ParentAlertModel alert,
+      String note,
+      ) async {
     try {
+      // 1. Fetch child and parent names from Firestore
       final childDoc = await _firestore.collection('users').doc(childId).get();
       if (!childDoc.exists) throw Exception("Student profile not found.");
 
-      final data = childDoc.data();
-      final String? teacherId = data?['teacher_id'];
+      final childData = childDoc.data();
+      final String? teacherId = childData?['teacher_id'];
+      final String childName = childData?['name'] ?? "Unknown Student";
+      final String? parentId = childData?['parent_id'];
+
+      String parentName = "Parent";
+      if (parentId != null) {
+        final parentDoc = await _firestore.collection('users').doc(parentId).get();
+        parentName = parentDoc.data()?['name'] ?? "Parent";
+      }
 
       if (teacherId == null || teacherId.trim().isEmpty) {
-        throw Exception(
-          "This student is not assigned to a teacher. Escalation cancelled.",
-        );
+        throw Exception("This student is not assigned to a teacher. Escalation cancelled.");
       }
 
       final newKey = _database.ref('parent_to_teacher_reports').push().key!;
 
+      // 2. Send with names included
       await _database.ref('parent_to_teacher_reports/$newKey').set({
         'teacherId': teacherId,
         'childId': childId,
+        'childName': childName,       // Included child name
+        'parentId': parentId,
+        'fromName': parentName,       // Included parent name
         'originalReportId': alert.id,
         'title': alert.title,
         'description': alert.description,
         'parentNote': note,
         'status': 'Escalated',
+        'isTeacherEscalated': true,
+        'teacherStatus': 'Pending',
         'timestamp': DateTime.now().toIso8601String(),
         'type': 'Safety',
         'senderName': 'Parent',
       });
+
+      await _database.ref('safety_alerts/$childId/${alert.id}').update({
+        'teacherStatus': 'Escalated',
+      });
+
     } catch (e) {
       throw Exception(e.toString().replaceAll("Exception: ", ""));
     }
   }
 
   Future<void> escalateReportToAdmin(
-    String childId,
-    ParentAlertModel alert,
-    String note,
-  ) async {
-    final newKey = _database.ref('parent_to_admin_reports').push().key!;
-    await _database.ref('parent_to_admin_reports/$newKey').set({
-      'childId': childId,
-      'issue': alert.title,
-      'details': alert.description,
-      'parentNote': note,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
+      String childId,
+      ParentAlertModel alert,
+      String note,
+      ) async {
+    try {
+      // 1. Fetch child and parent details
+      final childDoc = await _firestore.collection('users').doc(childId).get();
+      final childData = childDoc.data();
+      final String childName = childData?['name'] ?? "Unknown Student";
+      final String? parentId = childData?['parent_id'];
+
+      String parentName = "Parent";
+      if (parentId != null) {
+        final parentDoc = await _firestore.collection('users').doc(parentId).get();
+        parentName = parentDoc.data()?['name'] ?? "Parent";
+      }
+
+      final newKey = _database.ref('parent_to_admin_reports').push().key!;
+
+      // 2. Send with tracking flags and names
+      await _database.ref('parent_to_admin_reports/$newKey').set({
+        'childId': childId,
+        'childName': childName,       // Included child name
+        'parentId': parentId,
+        'fromName': parentName,       // Included parent name
+        'originalReportId': alert.id,
+        'issue': alert.title,
+        'details': alert.description,
+        'parentNote': note,
+        'status': 'Escalated',
+        'isAdminEscalated': true,
+        'adminStatus': 'Pending',
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+
+      await _database.ref('safety_alerts/$childId/${alert.id}').update({
+        'adminStatus': 'Escalated',
+      });
+    } catch (e) {
+      throw Exception(e.toString().replaceAll("Exception: ", ""));
+    }
   }
 }

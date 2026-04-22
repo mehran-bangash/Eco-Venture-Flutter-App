@@ -11,7 +11,7 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
-import '../../../models/nature_photo_upload_model.dart';
+import '../../../models/child/nature_photo_upload_model.dart';
 
 import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/child_view_model/nature_photo_view_model/nature_photo_provider.dart'; // Your SharedPrefs helper

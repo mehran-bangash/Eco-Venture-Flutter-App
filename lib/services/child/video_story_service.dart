@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../../models/parent_safety_settings_model.dart';
+import '../../models/parent/parent_safety_settings_model.dart';
 import '../../models/video_model.dart';
 import '../../models/story_model.dart';
 import '../shared_preferences_helper.dart';

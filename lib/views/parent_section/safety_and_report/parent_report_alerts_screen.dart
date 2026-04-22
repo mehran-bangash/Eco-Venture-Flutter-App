@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import '../../../models/parent_alert_model.dart';
+import '../../../models/parent/parent_alert_model.dart';
 import '../../../viewmodels/parent_section/report_safety/parent_safety_provider.dart';
 
 class ParentReportAlertsScreen extends ConsumerWidget {

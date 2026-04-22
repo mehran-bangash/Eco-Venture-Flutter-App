@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../models/nature_photo_upload_model.dart';
+import '../../../models/child/nature_photo_upload_model.dart';
 import '../../../repositories/nature_repository.dart';
 import 'nature_photo_state.dart';
 

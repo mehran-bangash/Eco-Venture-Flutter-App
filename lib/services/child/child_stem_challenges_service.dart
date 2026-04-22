@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:rxdart/rxdart.dart';
 import '../../models/stem_challenge_read_model.dart';
 import '../../models/stem_submission_model.dart';
-import '../../models/parent_safety_settings_model.dart';
+import '../../models/parent/parent_safety_settings_model.dart';
 import '../shared_preferences_helper.dart';
 
 class ChildStemChallengesService {

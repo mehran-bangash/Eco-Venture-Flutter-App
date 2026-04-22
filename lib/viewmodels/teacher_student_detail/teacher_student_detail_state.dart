@@ -1,5 +1,5 @@
 
-import '../../models/teacher_student_detail_model.dart';
+import '../../models/teacher/teacher_student_detail_model.dart';
 
 class TeacherStudentDetailState {
   final bool isLoading;

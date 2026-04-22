@@ -1,4 +1,4 @@
-import 'package:eco_venture/models/parent_alert_model.dart';
+import 'package:eco_venture/models/parent/parent_alert_model.dart';
 import 'package:eco_venture/navigation/bottom_nav_parent.dart';
 import 'package:eco_venture/views/parent_section/notification/parent_notification_screen.dart';
 import 'package:eco_venture/views/parent_section/profile/parent_edit_profile_screen.dart';

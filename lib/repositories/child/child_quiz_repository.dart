@@ -1,4 +1,4 @@
-import '../../models/child_progress_model.dart';
+import '../../models/child/child_progress_model.dart';
 import '../../models/quiz_topic_model.dart';
 import '../../services/child/child_quiz_service.dart';
 
