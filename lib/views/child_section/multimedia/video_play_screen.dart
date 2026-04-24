@@ -39,7 +39,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   }
 
   Future<void> _loadUser() async {
-    _localUserId = await SharedPreferencesHelper.instance.getUserId() ?? "";
+    _localUserId = SharedPreferencesHelper.instance.getUserId() ?? "";
     if (mounted) setState(() {});
   }
 
@@ -91,7 +91,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
     final videoState = ref.watch(videoViewModelProvider);
 
     // Get fresh data from state
-    final video = videoState.videos?.firstWhereOrNull((v) => v.id == widget.videoData.id) ?? widget.videoData;
+    final video = videoState.videos.firstWhereOrNull((v) => v.id == widget.videoData.id) ?? widget.videoData;
 
     // Determine active colors
     final isLiked = video.userLikes[_localUserId] == true;

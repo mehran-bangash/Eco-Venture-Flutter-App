@@ -1,4 +1,4 @@
-import 'dart:io'; // FIX: Added import for File
+// FIX: Added import for File
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -46,7 +46,7 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
 
   Future<void> _loadInitialData() async {
     ref.read(storyViewModelProvider.notifier).incrementView(widget.story);
-    final id = await SharedPreferencesHelper.instance.getUserId();
+    final id = SharedPreferencesHelper.instance.getUserId();
     if (mounted) setState(() => _userId = id);
   }
 

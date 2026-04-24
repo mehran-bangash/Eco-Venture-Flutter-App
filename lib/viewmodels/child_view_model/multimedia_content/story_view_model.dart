@@ -18,7 +18,7 @@ class StoryViewModel extends StateNotifier<StoryState> {
     _sub?.cancel();
 
     // 1. Retrieve the student's age classification
-    final String ageGroup = await SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
+    final String ageGroup = SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
 
     // 2. Initiate the filtered stream from the repository
     _sub = _repo.getStories(ageGroup).listen(

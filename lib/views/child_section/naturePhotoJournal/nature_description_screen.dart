@@ -74,7 +74,7 @@ class _NatureDescriptionScreenState extends ConsumerState<NatureDescriptionScree
                 if (newDescription.isEmpty) return;
 
                 // 1. Get Real User ID
-                final userId = await SharedPreferencesHelper.instance.getUserId();
+                final userId = SharedPreferencesHelper.instance.getUserId();
 
                 if (userId != null) {
                   // 2. Create Updated Objects

@@ -1,9 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher/teacher_repoistory.dart';
-import '../../services/shared_preferences_helper.dart';
+import '../../../services/shared_preferences_helper.dart';
+import '../../../core/config/api_constants.dart';
+import '../../repositories/teacher/teacher_repoistory.dart'; // Added repository import
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'teacher_auth_state.dart';
 
 class TeacherAuthViewModel extends StateNotifier<TeacherAuthState> {
+  // RESTORED: Accept repository in constructor
   final TeacherRepository _repository;
 
   TeacherAuthViewModel(this._repository) : super(TeacherAuthState());
@@ -12,37 +16,51 @@ class TeacherAuthViewModel extends StateNotifier<TeacherAuthState> {
     required String name,
     required String email,
     required String password,
-    required String ageGroup,
+    required String age,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      // FIXED: Added parameter names to match the named parameters in TeacherRepository
-      await _repository.addStudent(
-        name: name,
-        email: email,
-        password: password,
-        ageGroup: ageGroup,
-      );
+      final String? teacherId = SharedPreferencesHelper.instance.getUserId();
 
-      // 2. Save Child Info locally
-      await SharedPreferencesHelper.instance.saveChildName(name);
-      await SharedPreferencesHelper.instance.saveChildEmail(email);
-
-      // Save the teacher's ID as the "Child's Teacher"
-      String? currentTeacherId = await SharedPreferencesHelper.instance.getUserId();
-      if (currentTeacherId != null) {
-        await SharedPreferencesHelper.instance.saveChildTeacherId(currentTeacherId);
-        await SharedPreferencesHelper.instance.saveIsTeacherAdded(true);
+      if (teacherId == null || teacherId.isEmpty) {
+        throw Exception("Teacher session expired. Please re-login.");
       }
 
-      state = state.copyWith(isLoading: false, isSuccess: true);
+      final url = Uri.parse(ApiConstants.createStudentEndpoint);
+
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "name": name,
+          "email": email,
+          "password": password,
+          "age": age,
+          "teacherId": teacherId,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201) {
+        // Save Child Info locally
+        await SharedPreferencesHelper.instance.saveChildName(name);
+        await SharedPreferencesHelper.instance.saveChildEmail(email);
+        await SharedPreferencesHelper.instance.saveChildTeacherId(teacherId);
+        await SharedPreferencesHelper.instance.saveIsTeacherAdded(true);
+
+        state = state.copyWith(isLoading: false, isSuccess: true);
+      } else {
+        state = state.copyWith(
+            isLoading: false,
+            errorMessage: data['error'] ?? "Failed to register student"
+        );
+      }
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 
-  void resetState() {
-    state = TeacherAuthState();
-  }
+  void resetState() => state = TeacherAuthState();
 }

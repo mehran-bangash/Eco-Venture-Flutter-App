@@ -57,7 +57,7 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
     );
 
     if (confirmed == true) {
-      final uid = await SharedPreferencesHelper.instance.getUserId();
+      final uid = SharedPreferencesHelper.instance.getUserId();
 
       if (uid != null) {
         try {
@@ -97,11 +97,11 @@ class _TeacherProfileScreenState extends ConsumerState<TeacherProfileScreen> {
 
 
   Future<void> _loadSharedPreferences() async {
-    final name = await SharedPreferencesHelper.instance.getUserName();
-    final email= await SharedPreferencesHelper.instance.getUserEmail();
-    final dob=await SharedPreferencesHelper.instance.getUserDOB();
-    final phone=await SharedPreferencesHelper.instance.getUserPhoneNumber();
-    final image=await SharedPreferencesHelper.instance.getUserImgUrl();
+    final name = SharedPreferencesHelper.instance.getUserName();
+    final email= SharedPreferencesHelper.instance.getUserEmail();
+    final dob=SharedPreferencesHelper.instance.getUserDOB();
+    final phone=SharedPreferencesHelper.instance.getUserPhoneNumber();
+    final image=SharedPreferencesHelper.instance.getUserImgUrl();
 
     setState(() {
       username = name ?? "Guest";

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:eco_venture/core/config/api_constants.dart';
+import 'package:eco_venture/core/config/app_constants.dart'; // IMPORTED
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,9 +35,8 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
   String _selectedCategory = 'Science';
   final List<String> _categories = ['Science', 'Maths', 'Animals', 'Ecosystem'];
 
-  // --- NEW: Age Selection State ---
-  String? _selectedYear;
-  final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
+  // FIX: Changed from _selectedYear to _selectedAgeGroup
+  String? _selectedAgeGroup;
 
   final List<QuizLevelModel> _levels = [];
   bool _isSensitive = false;
@@ -48,19 +48,6 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
     super.dispose();
   }
 
-  // Logic: Map the individual year selection to the broad backend classes
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) {
-      return "6 - 8";
-    } else if (age >= 9 && age <= 10) {
-      return "8 - 10";
-    } else if (age >= 11 && age <= 12) {
-      return "10 - 12";
-    }
-    return "6 - 8"; // Default fallback
-  }
-
   // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(
       String teacherId,
@@ -70,7 +57,7 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
     const String backendUrl = ApiConstants.notifyChildClassEndPoints;
 
     try {
-      final response = await http.post(
+      await http.post(
         Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
@@ -78,26 +65,21 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
           "type": "Quiz",
           "title": "New Quiz: $topicName 🧠",
           "body": "A new quiz for Group $ageGroup is ready!",
-          "ageGroup": ageGroup, // Pass ageGroup so backend knows who to notify
+          "ageGroup": ageGroup,
         }),
       );
-
-      if (response.statusCode == 200) {
-        print("✅ Class Notification sent successfully");
-      } else {
-        print("❌ Notification failed: ${response.body}");
-      }
     } catch (e) {
-      print("❌ Error calling backend: $e");
+      debugPrint("Notification Error: $e");
     }
   }
 
   // --- SAVE LOGIC ---
   Future<void> _saveQuiz() async {
-    if (_topicController.text.trim().isEmpty || _selectedYear == null) {
+    // FIX: Check for _selectedAgeGroup
+    if (_topicController.text.trim().isEmpty || _selectedAgeGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please enter a Topic Name and select Target Age"),
+          content: Text("Please enter a Topic Name and select Target Class"),
           backgroundColor: Colors.red,
         ),
       );
@@ -114,28 +96,15 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
       return;
     }
 
-    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
-    if (teacherId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Error: No Teacher ID. Re-login."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) return;
 
-    // Process Age Mapping
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
-
-    // Process tags
     List<String> tagsList = _tagsController.text
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
 
-    // Sensitivity logic
     if (_isSensitive && !tagsList.contains('scary')) {
       tagsList.add('scary');
     }
@@ -151,15 +120,13 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
       levels: _levels,
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: mappedAgeGroup, // Successfully passed to model
+      ageGroup: _selectedAgeGroup!, // Directly use selected group
     );
 
-    // 1. Add to Firebase via Provider
     await ref.read(teacherQuizViewModelProvider.notifier).addQuiz(newTopic);
 
-    // 2. Trigger Notification (Only if not sensitive)
     if (!_isSensitive) {
-      _sendClassNotification(teacherId, newTopic.topicName, mappedAgeGroup);
+      _sendClassNotification(teacherId, newTopic.topicName, _selectedAgeGroup!);
     }
   }
 
@@ -169,22 +136,8 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
 
     ref.listen(teacherQuizViewModelProvider, (previous, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Quiz Published & Class Notified!"),
-            backgroundColor: Colors.green,
-          ),
-        );
         ref.read(teacherQuizViewModelProvider.notifier).resetSuccess();
         Navigator.pop(context);
-      }
-      if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: ${next.errorMessage}"),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     });
 
@@ -264,12 +217,11 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
                   hint: "e.g. Solar System",
                 ),
 
-                // --- NEW: Target Age Dropdown ---
+                // --- NEW: Dynamic Age Selection Dropdown ---
                 SizedBox(height: 2.5.h),
-                _buildLabel("Target Age (Years)"),
-                _buildAgeDropdown(),
+                _buildLabel("Target Class / Age Group"),
+                _buildDynamicAgeDropdown(),
 
-                // --- Tags Field ---
                 SizedBox(height: 2.5.h),
                 _buildLabel("Tags (comma-separated)"),
                 _buildTextField(
@@ -277,7 +229,6 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
                   hint: "e.g. history, fun",
                 ),
 
-                // --- Sensitivity Switch ---
                 SizedBox(height: 2.5.h),
                 Container(
                   decoration: BoxDecoration(
@@ -309,7 +260,6 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
 
                 SizedBox(height: 4.h),
 
-                // Levels Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -346,7 +296,6 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
                 ),
                 SizedBox(height: 2.h),
 
-                // Levels List
                 if (_levels.isEmpty)
                   Container(
                     padding: EdgeInsets.all(5.w),
@@ -378,7 +327,6 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
 
                 SizedBox(height: 5.h),
 
-                // Save Button
                 SizedBox(
                   width: double.infinity,
                   height: 7.h,
@@ -413,9 +361,8 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
     );
   }
 
-  // --- WIDGETS ---
-
-  Widget _buildAgeDropdown() {
+  // --- DYNAMIC DROPDOWN FOR QUIZ ---
+  Widget _buildDynamicAgeDropdown() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
       decoration: BoxDecoration(
@@ -425,19 +372,19 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedYear,
+          value: _selectedAgeGroup,
           hint: Text(
-            "Select Age",
+            "Select Class Group",
             style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14.sp),
           ),
           isExpanded: true,
           icon: Icon(Icons.keyboard_arrow_down_rounded, color: _primary),
-          items: _individualYears
+          items: AppConstants.teacherClassRanges
               .map(
-                (y) => DropdownMenuItem(
-              value: y,
+                (range) => DropdownMenuItem(
+              value: range,
               child: Text(
-                "$y Years Old",
+                "Group $range",
                 style: GoogleFonts.poppins(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w600,
@@ -446,7 +393,7 @@ class _TeacherAddQuizScreenState extends ConsumerState<TeacherAddQuizScreen> {
             ),
           )
               .toList(),
-          onChanged: (val) => setState(() => _selectedYear = val),
+          onChanged: (val) => setState(() => _selectedAgeGroup = val),
         ),
       ),
     );

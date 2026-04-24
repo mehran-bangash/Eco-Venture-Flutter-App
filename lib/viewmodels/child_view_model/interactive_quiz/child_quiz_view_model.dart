@@ -35,7 +35,7 @@ class ChildQuizViewModel extends StateNotifier<ChildQuizState> {
     _adminTopicSub?.cancel();
 
     // 1. Retrieve age group "Hall Pass"
-    final String ageGroup = await SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
+    final String ageGroup = SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
 
     // 2. Listen for age-filtered topics
     _adminTopicSub = _repository.getAdminTopics(category, ageGroup).listen((topics) {
@@ -47,7 +47,7 @@ class ChildQuizViewModel extends StateNotifier<ChildQuizState> {
     _teacherTopicSub?.cancel();
 
     // 1. Retrieve age group "Hall Pass"
-    final String ageGroup = await SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
+    final String ageGroup = SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
 
     // 2. Listen for age-filtered topics
     _teacherTopicSub = _repository.getTeacherTopics(category, ageGroup).listen((topics) {

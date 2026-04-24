@@ -12,7 +12,7 @@ class ChildRewardsService {
   Stream<Map<String, dynamic>> getRealTimeStats() {
 
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? SharedPreferencesHelper.instance.getUserId();
 
       if (uid == null) {
         yield {'points': 0, 'quizCount': 0, 'stemCount': 0, 'qrCount': 0};

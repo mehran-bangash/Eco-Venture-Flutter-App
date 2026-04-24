@@ -17,7 +17,7 @@ class VideoStoryService {
   Future<String?> _getTeacherId() async {
     try {
       // 1. Get Current User
-      final user = await SharedPreferencesHelper.instance.getUserId();
+      final user = SharedPreferencesHelper.instance.getUserId();
 
       if (user == null) {
         print("DEBUG: No User Logged In (Prefs). Cannot fetch Teacher ID.");
@@ -50,7 +50,7 @@ class VideoStoryService {
 
   Stream<ParentSafetySettingsModel> _getSafetySettings() {
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? SharedPreferencesHelper.instance.getUserId();
       if (uid == null) {
         yield ParentSafetySettingsModel(); // Default: No restrictions
       } else {
@@ -76,7 +76,7 @@ class VideoStoryService {
     try {
       // 1. Get Child ID
       String? childId = _auth.currentUser?.uid;
-      childId ??= await SharedPreferencesHelper.instance.getUserId();
+      childId ??= SharedPreferencesHelper.instance.getUserId();
       if (childId == null) return;
 
       // 2. Create Log Entry
@@ -201,13 +201,11 @@ class VideoStoryService {
     }
 
     // 4. Check description if available
-    if (video.description != null) {
-      final descLower = video.description.toLowerCase();
-      if (inappropriateVideoKeywords.any((word) => descLower.contains(word))) {
-        return true;
-      }
+    final descLower = video.description.toLowerCase();
+    if (inappropriateVideoKeywords.any((word) => descLower.contains(word))) {
+      return true;
     }
-
+  
     return false;
   }
 
@@ -455,7 +453,7 @@ class VideoStoryService {
     ];
 
     // Check category (if available in story model)
-    final storyCategory = story.category?.toLowerCase() ?? '';
+    final storyCategory = story.category.toLowerCase() ?? '';
 
     final isEducationalCategory = educationalStoryCategories.any(
             (eduCat) => storyCategory.contains(eduCat.toLowerCase())

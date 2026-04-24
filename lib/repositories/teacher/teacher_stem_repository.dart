@@ -1,8 +1,8 @@
 import '../../models/stem_challenge_model.dart';
-import '../../services/teacher/firebase_teacher_database.dart';
+import '../../services/teacher/teacher_all_module_service.dart';
 
 class TeacherStemRepository {
-  final FirebaseTeacherDatabase _db;
+  final TeacherAllModuleService _db;
 
   TeacherStemRepository(this._db);
 

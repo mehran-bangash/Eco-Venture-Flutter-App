@@ -1,4 +1,3 @@
-import 'package:eco_venture/core/constants/route_names.dart';
 import 'package:eco_venture/core/utils/validators.dart';
 import 'package:eco_venture/viewmodels/auth/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -316,7 +315,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                         onTap: () async {
                                           if (_formKey.currentState!.validate()) {
                                             final selectedRole =
-                                            await SharedPreferencesHelper.instance.getUserRole();
+                                            SharedPreferencesHelper.instance.getUserRole();
                                             await SharedPreferencesHelper.instance.saveUserPhoneNumber(_phoneController.text);
                                             if (selectedRole == null) {
                                               //  Stop process here

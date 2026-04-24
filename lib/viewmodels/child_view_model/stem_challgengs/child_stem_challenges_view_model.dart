@@ -28,7 +28,7 @@ class ChildStemChallengesViewModel extends StateNotifier<ChildStemChallengesStat
 
     // 1. Retrieve the age group stored during login or registration
     // Defaulting to "6 - 8" as a safe fallback if no group is found
-    final String ageGroup = await SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
+    final String ageGroup = SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
 
     // 2. Pass both category and ageGroup to the repository for dual-layer filtering
     _adminSub = _repository.getAdminChallenges(category, ageGroup).listen(

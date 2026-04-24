@@ -20,15 +20,14 @@ class ChildReportViewModel extends StateNotifier<ChildReportState> {
   // Here we keep it manual via loadReports to control lifecycle
   void loadReports() {
     _reportSub?.cancel();
-    state = state.copyWith(isLoading: true);
+    // Logic: Explicitly clear reports list when starting a load
+    state = state.copyWith(isLoading: true, reports: []);
 
     _reportSub = _repository.getReports().listen(
             (data) {
-          // Update state with new list
           state = state.copyWith(isLoading: false, reports: data);
         },
         onError: (e) {
-          print("Report Stream Error: $e");
           state = state.copyWith(isLoading: false, errorMessage: e.toString());
         }
     );
@@ -70,7 +69,7 @@ class ChildReportViewModel extends StateNotifier<ChildReportState> {
 
   Future<void> _notifyParent(ChildReportModel report) async {
     try {
-      final childId = await SharedPreferencesHelper.instance.getUserId();
+      final childId = SharedPreferencesHelper.instance.getUserId();
       if (childId == null) return;
 
       final url = Uri.parse(ApiConstants.notifyParentEndPoint);

@@ -1,7 +1,5 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,7 +17,7 @@ import '../../../viewmodels/child_view_model/nature_photo_view_model/nature_phot
 // 1. STREAM PROVIDER: Listens to Firebase using SharedPrefs ID
 final journalStreamProvider = StreamProvider<List<JournalEntry>>((ref) async* {
   // A. WAIT: Get the real User ID from local storage
-  final userId = await SharedPreferencesHelper.instance.getUserId();
+  final userId = SharedPreferencesHelper.instance.getUserId();
 
   // B. CHECK: If empty/null, return empty list (stop here)
   if (userId == null || userId.isEmpty) {
@@ -337,7 +335,7 @@ class _NaturePhotoJournalScreenState extends ConsumerState<NaturePhotoJournalScr
       ),
       onDismissed: (direction) async {
         // Get ID and Delete
-        final userId = await SharedPreferencesHelper.instance.getUserId();
+        final userId = SharedPreferencesHelper.instance.getUserId();
         if (userId != null) {
           ref.read(natureProvider.notifier).deleteEntry(userId, entry.id);
 

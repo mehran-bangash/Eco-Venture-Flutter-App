@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui'; // Required for CustomPainter
+import 'dart:ui';
+import 'package:eco_venture/core/config/app_constants.dart'; // IMPORTED
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,29 +22,24 @@ class TeacherAddStoryScreen extends ConsumerStatefulWidget {
 }
 
 class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
-  // --- PRO COLORS ---
-  final Color _primaryPurple = const Color(0xFF8E2DE2); // Story Theme Purple
+  final Color _primaryPurple = const Color(0xFF8E2DE2);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
   final Color _borderGrey = const Color(0xFFE0E0E0);
   final Color _dashedBorderColor = const Color(0xFFBDBDBD);
 
-  // --- CONTROLLERS ---
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _tagsController = TextEditingController();
-  final TextEditingController _categoryController =
-  TextEditingController(); // NEW: Category controller
+  final TextEditingController _categoryController = TextEditingController();
 
-  // --- NEW: Age Selection State ---
-  String? _selectedYear;
-  final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
+  // FIX: Changed from _selectedYear to _selectedAgeGroup
+  String? _selectedAgeGroup;
 
   File? _coverImage;
   bool _isSensitive = false;
   final List<StoryPage> _pages = [];
 
-  // Categories for dropdown
   final List<String> _storyCategories = [
     'Moral Stories',
     'Fairy Tales',
@@ -57,7 +53,7 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
     'Culture',
     'General',
   ];
-  String _selectedCategory = 'General'; // Default category
+  String _selectedCategory = 'General';
 
   @override
   void dispose() {
@@ -68,25 +64,13 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
     super.dispose();
   }
 
-  // Logic: Map the individual year selection to the broad backend classes
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) {
-      return "6 - 8";
-    } else if (age >= 9 && age <= 10) {
-      return "8 - 10";
-    } else if (age >= 11 && age <= 12) {
-      return "10 - 12";
-    }
-    return "6 - 8"; // Default fallback
-  }
-
   // --- SAVE LOGIC ---
   Future<void> _saveStory() async {
-    if (_titleController.text.trim().isEmpty || _selectedYear == null) {
+    // FIX: Check for _selectedAgeGroup
+    if (_titleController.text.trim().isEmpty || _selectedAgeGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Please enter a story title and select target age"),
+          content: Text("Please enter a story title and select target class"),
           backgroundColor: Colors.red,
         ),
       );
@@ -102,22 +86,9 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
       return;
     }
 
-    // Get teacher ID for notification
-    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
-    if (teacherId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Error: No Teacher ID. Re-login."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) return;
 
-    // Process Mapping
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
-
-    // Process Tags
     List<String> tagsList = _tagsController.text
         .split(',')
         .map((e) => e.trim())
@@ -127,59 +98,51 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
 
     final newStory = StoryModel(
       id: '',
-      adminId: '', // Filled by service
+      adminId: '',
       title: _titleController.text.trim(),
       description: _descController.text.trim(),
       thumbnailUrl: _coverImage?.path,
       pages: _pages,
       uploadedAt: DateTime.now(),
-      likes: 0,
-      dislikes: 0,
-      views: 0,
       tags: tagsList,
       isSensitive: _isSensitive,
       category: _selectedCategory,
-      ageGroup: mappedAgeGroup, // Pass mapped classification to model
+      ageGroup: _selectedAgeGroup!, // Directly use the selected group
     );
 
     await ref
         .read(teacherMultimediaViewModelProvider.notifier)
         .addStory(newStory);
 
-    // Send notification only if not sensitive
     if (!_isSensitive) {
-      await _sendClassNotification(teacherId, newStory.title, mappedAgeGroup);
+      await _sendClassNotification(
+        teacherId,
+        newStory.title,
+        _selectedAgeGroup!,
+      );
     }
   }
 
-  // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(
-      String teacherId,
-      String storyTitle,
-      String ageGroup,
-      ) async {
+    String teacherId,
+    String storyTitle,
+    String ageGroup,
+  ) async {
     const String backendUrl = ApiConstants.notifyChildClassEndPoints;
-
     try {
-      final response = await http.post(
+      await http.post(
         Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "teacherId": teacherId,
           "type": "Story",
           "title": "New Story: $storyTitle 📖",
-          "body": "A new story for Group $ageGroup is ready! Read it now!",
-          "ageGroup": ageGroup, // Logic: Send age group to backend for targeting
+          "body": "A new story for Group $ageGroup is ready!",
+          "ageGroup": ageGroup,
         }),
       );
-
-      if (response.statusCode == 200) {
-        print("✅ Story Notification sent successfully");
-      } else {
-        print("❌ Notification failed: ${response.body}");
-      }
     } catch (e) {
-      print("❌ Error calling notification backend: $e");
+      debugPrint("Notification Error: $e");
     }
   }
 
@@ -195,26 +158,8 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
 
     ref.listen(teacherMultimediaViewModelProvider, (prev, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isSensitive
-                  ? "Story Published! (No notification - marked sensitive)"
-                  : "Story Published & Class Notified!",
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
         ref.read(teacherMultimediaViewModelProvider.notifier).resetSuccess();
         Navigator.pop(context);
-      }
-      if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: ${next.errorMessage}"),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     });
 
@@ -224,7 +169,7 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 20.sp),
+          icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 18.sp),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -244,7 +189,6 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- SECTION 1: STORY INFO ---
                 _buildSectionHeader("Story Details"),
                 SizedBox(height: 2.h),
                 Container(
@@ -270,50 +214,13 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
                       ),
                       SizedBox(height: 2.h),
 
-                      // --- NEW: Target Age Dropdown ---
-                      _buildLabel("Target Age (Years)"),
-                      _buildAgeDropdown(),
-                      SizedBox(height: 2.h),
+                      // REUSABLE DROPDOWN CALL
+                      _buildLabel("Target Class / Age Group"),
+                      _buildDynamicAgeDropdown(),
 
+                      SizedBox(height: 2.h),
                       _buildLabel("Story Category"),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 4.w),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8F9FA),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _borderGrey),
-                        ),
-                        child: DropdownButton<String>(
-                          value: _selectedCategory,
-                          isExpanded: true,
-                          underline: const SizedBox(),
-                          icon: Icon(
-                            Icons.arrow_drop_down,
-                            color: _primaryPurple,
-                            size: 24.sp,
-                          ),
-                          style: GoogleFonts.poppins(
-                            fontSize: 15.sp,
-                            color: _textDark,
-                          ),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedCategory = newValue!;
-                            });
-                          },
-                          items: _storyCategories.map<DropdownMenuItem<String>>(
-                                (String value) {
-                              return DropdownMenuItem<String>(
-                                value: value,
-                                child: Text(
-                                  value,
-                                  style: GoogleFonts.poppins(fontSize: 15.sp),
-                                ),
-                              );
-                            },
-                          ).toList(),
-                        ),
-                      ),
+                      _buildCategoryDropdown(),
                       SizedBox(height: 2.h),
                       _buildLabel("Description"),
                       _buildTextField(
@@ -328,8 +235,6 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
                   ),
                 ),
                 SizedBox(height: 4.h),
-
-                // --- SECTION 2: CONTENT SAFETY ---
                 _buildSectionHeader("Content Safety"),
                 SizedBox(height: 1.5.h),
                 Container(
@@ -340,30 +245,20 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
                     border: Border.all(color: _borderGrey),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel("Tags (comma separated)"),
                       _buildTextField(
                         controller: _tagsController,
                         hint: "e.g. animals, fun, magic",
                       ),
-                      SizedBox(height: 2.h),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        activeColor: Colors.redAccent,
                         title: Text(
                           "Contains Suspense/Scary Content?",
                           style: GoogleFonts.poppins(
                             fontSize: 15.sp,
                             fontWeight: FontWeight.w600,
                             color: _textDark,
-                          ),
-                        ),
-                        subtitle: Text(
-                          "Marks this as 'Scary' for parent filters.",
-                          style: GoogleFonts.poppins(
-                            fontSize: 12.sp,
-                            color: Colors.grey,
                           ),
                         ),
                         value: _isSensitive,
@@ -373,112 +268,28 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
                   ),
                 ),
                 SizedBox(height: 4.h),
-
-                // --- SECTION 3: PAGES ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildSectionHeader("Pages (${_pages.length})"),
-                    InkWell(
-                      onTap: () => _showPageEditor(),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 3.w,
-                          vertical: 0.8.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _primaryPurple.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.add, size: 16.sp, color: _primaryPurple),
-                            SizedBox(width: 1.w),
-                            Text(
-                              "Add Page",
-                              style: GoogleFonts.poppins(
-                                fontSize: 12.sp,
-                                color: _primaryPurple,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    _buildAddPageBtn(),
                   ],
                 ),
                 SizedBox(height: 2.h),
-
-                if (_pages.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(4.h),
-                      child: Text(
-                        "Start writing your story...",
-                        style: GoogleFonts.poppins(
-                          color: Colors.grey,
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _pages.length,
-                    separatorBuilder: (c, i) => SizedBox(height: 2.h),
-                    itemBuilder: (context, index) => _buildPageCard(index),
-                  ),
-
+                _buildPagesList(),
                 SizedBox(height: 5.h),
-
-                // --- SAVE BUTTON ---
-                SizedBox(
-                  width: double.infinity,
-                  height: 7.h,
-                  child: ElevatedButton(
-                    onPressed: state.isLoading ? null : _saveStory,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryPurple,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 5,
-                    ),
-                    child: state.isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                      "Publish Story",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
+                _buildPublishBtn(state.isLoading),
                 SizedBox(height: 5.h),
               ],
             ),
           ),
-          if (state.isLoading)
-            Container(
-              color: Colors.black26,
-              child: const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
-            ),
         ],
       ),
     );
   }
 
-  // --- WIDGETS ---
-
-  Widget _buildAgeDropdown() {
+  // --- THE REUSABLE FUNCTION FOR ALL MODULES ---
+  Widget _buildDynamicAgeDropdown() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w),
       decoration: BoxDecoration(
@@ -488,20 +299,49 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedYear,
+          value: _selectedAgeGroup,
           isExpanded: true,
-          hint: Text("Select Age", style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.grey)),
+          hint: Text(
+            "Select Class Group",
+            style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.grey),
+          ),
           icon: Icon(Icons.keyboard_arrow_down, color: _primaryPurple),
-          items: _individualYears
+          items: AppConstants.teacherClassRanges
               .map(
-                (y) => DropdownMenuItem(
-              value: y,
-              child: Text("$y Years Old", style: GoogleFonts.poppins(fontSize: 15.sp)),
-            ),
-          )
+                (range) => DropdownMenuItem(
+                  value: range,
+                  child: Text(
+                    "Group $range",
+                    style: GoogleFonts.poppins(fontSize: 15.sp),
+                  ),
+                ),
+              )
               .toList(),
-          onChanged: (v) => setState(() => _selectedYear = v!),
+          onChanged: (v) => setState(() => _selectedAgeGroup = v),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryDropdown() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 4.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _borderGrey),
+      ),
+      child: DropdownButton<String>(
+        value: _selectedCategory,
+        isExpanded: true,
+        underline: const SizedBox(),
+        icon: Icon(Icons.arrow_drop_down, color: _primaryPurple, size: 24.sp),
+        style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark),
+        onChanged: (String? newValue) =>
+            setState(() => _selectedCategory = newValue!),
+        items: _storyCategories.map<DropdownMenuItem<String>>((String value) {
+          return DropdownMenuItem<String>(value: value, child: Text(value));
+        }).toList(),
       ),
     );
   }
@@ -571,45 +411,98 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
           width: double.infinity,
           decoration: _coverImage == null
               ? BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-          )
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                )
               : null,
           child: _coverImage != null
               ? ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.file(
-              _coverImage!,
-              fit: BoxFit.cover,
-              width: double.infinity,
-            ),
-          )
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(_coverImage!, fit: BoxFit.cover),
+                )
               : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.image_rounded, size: 32.sp, color: Colors.grey),
-              SizedBox(height: 1.h),
-              Text(
-                "Upload Cover Art",
-                style: GoogleFonts.poppins(
-                  fontSize: 14.sp,
-                  color: Colors.grey,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.image_rounded, size: 30.sp, color: Colors.grey),
+                    Text(
+                      "Upload Cover Art",
+                      style: GoogleFonts.poppins(
+                        fontSize: 14.sp,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 
+  Widget _buildAddPageBtn() => InkWell(
+    onTap: () => _showPageEditor(),
+    child: Container(
+      padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.8.h),
+      decoration: BoxDecoration(
+        color: _primaryPurple.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.add, size: 16.sp, color: _primaryPurple),
+          Text(
+            "Add Page",
+            style: GoogleFonts.poppins(
+              fontSize: 12.sp,
+              color: _primaryPurple,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _buildPagesList() {
+    if (_pages.isEmpty)
+      return Center(
+        child: Text(
+          "Start writing your story...",
+          style: GoogleFonts.poppins(color: Colors.grey, fontSize: 14.sp),
+        ),
+      );
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _pages.length,
+      separatorBuilder: (c, i) => SizedBox(height: 2.h),
+      itemBuilder: (context, index) => _buildPageCard(index),
+    );
+  }
+
+  Widget _buildPublishBtn(bool loading) => SizedBox(
+    width: double.infinity,
+    height: 7.h,
+    child: ElevatedButton(
+      onPressed: loading ? null : _saveStory,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _primaryPurple,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      child: loading
+          ? const CircularProgressIndicator(color: Colors.white)
+          : Text(
+              "Publish Story",
+              style: GoogleFonts.poppins(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+    ),
+  );
+
   Widget _buildPageCard(int index) {
     final page = _pages[index];
-    ImageProvider? pageImgProvider;
-    if (page.imageUrl.isNotEmpty) {
-      pageImgProvider = FileImage(File(page.imageUrl));
-    }
-
     return Container(
       padding: EdgeInsets.all(4.w),
       decoration: BoxDecoration(
@@ -620,7 +513,6 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
         ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
             radius: 14.sp,
@@ -630,47 +522,25 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
               style: TextStyle(
                 color: _primaryPurple,
                 fontWeight: FontWeight.bold,
-                fontSize: 14.sp,
               ),
             ),
           ),
           SizedBox(width: 4.w),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  page.text,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(fontSize: 14.sp, color: _textDark),
-                ),
-                if (pageImgProvider != null) ...[
-                  SizedBox(height: 1.h),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image(
-                      image: pageImgProvider,
-                      height: 8.h,
-                      width: 15.w,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ],
-              ],
+            child: Text(
+              page.text,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(fontSize: 14.sp, color: _textDark),
             ),
           ),
-          Column(
-            children: [
-              IconButton(
-                icon: Icon(Icons.edit, color: Colors.blue, size: 18.sp),
-                onPressed: () => _showPageEditor(existingIndex: index),
-              ),
-              IconButton(
-                icon: Icon(Icons.delete, color: Colors.red, size: 18.sp),
-                onPressed: () => setState(() => _pages.removeAt(index)),
-              ),
-            ],
+          IconButton(
+            icon: Icon(Icons.edit, color: Colors.blue, size: 18.sp),
+            onPressed: () => _showPageEditor(existingIndex: index),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete, color: Colors.red, size: 18.sp),
+            onPressed: () => setState(() => _pages.removeAt(index)),
           ),
         ],
       ),
@@ -682,184 +552,134 @@ class _TeacherAddStoryScreenState extends ConsumerState<TeacherAddStoryScreen> {
       text: existingIndex != null ? _pages[existingIndex].text : "",
     );
     File? pageImage;
-    if (existingIndex != null && _pages[existingIndex].imageUrl.isNotEmpty) {
+    if (existingIndex != null && _pages[existingIndex].imageUrl.isNotEmpty)
       pageImage = File(_pages[existingIndex].imageUrl);
-    }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          ImageProvider? editorImgProvider;
-          if (pageImage != null) editorImgProvider = FileImage(pageImage!);
-
-          return Container(
-            height: 85.h,
-            padding: EdgeInsets.fromLTRB(
-              5.w,
-              2.h,
-              5.w,
-              MediaQuery.of(context).viewInsets.bottom + 2.h,
-            ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 15.w,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+        builder: (context, setModalState) => Container(
+          height: 85.h,
+          padding: EdgeInsets.fromLTRB(
+            5.w,
+            2.h,
+            5.w,
+            MediaQuery.of(context).viewInsets.bottom + 2.h,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          child: Column(
+            children: [
+              Text(
+                existingIndex == null
+                    ? "Add New Page"
+                    : "Edit Page ${existingIndex + 1}",
+                style: GoogleFonts.poppins(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: _textDark,
                 ),
-                SizedBox(height: 2.h),
-                Text(
-                  existingIndex == null
-                      ? "Add New Page"
-                      : "Edit Page ${existingIndex + 1}",
-                  style: GoogleFonts.poppins(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: _textDark,
-                  ),
-                ),
-                SizedBox(height: 3.h),
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel("Story Text"),
-                        TextField(
-                          controller: textCtrl,
-                          maxLines: 5,
-                          style: TextStyle(fontSize: 15.sp),
-                          decoration: InputDecoration(
-                            hintText: "Once upon a time...",
-                            filled: true,
-                            fillColor: const Color(0xFFF8F9FA),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
+              ),
+              SizedBox(height: 3.h),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildLabel("Story Text"),
+                      TextField(
+                        controller: textCtrl,
+                        maxLines: 5,
+                        decoration: InputDecoration(
+                          hintText: "Once upon a time...",
+                          filled: true,
+                          fillColor: const Color(0xFFF8F9FA),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
                           ),
                         ),
-                        SizedBox(height: 3.h),
-
-                        _buildLabel("Illustration (Optional)"),
-                        InkWell(
-                          onTap: () async {
-                            final ImagePicker picker = ImagePicker();
-                            final XFile? img = await picker.pickImage(
-                              source: ImageSource.gallery,
-                            );
-                            if (img != null) {
-                              setModalState(() => pageImage = File(img.path));
-                            }
-                          },
-                          child: Container(
-                            height: 20.h,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade300),
-                              image: editorImgProvider != null
-                                  ? DecorationImage(
-                                image: editorImgProvider,
-                                fit: BoxFit.cover,
-                              )
-                                  : null,
-                            ),
-                            child: editorImgProvider == null
-                                ? Center(
-                              child: Column(
-                                mainAxisAlignment:
-                                MainAxisAlignment.center,
-                                children: [
-                                  Icon(
+                      ),
+                      SizedBox(height: 3.h),
+                      _buildLabel("Illustration (Optional)"),
+                      InkWell(
+                        onTap: () async {
+                          final XFile? img = await ImagePicker().pickImage(
+                            source: ImageSource.gallery,
+                          );
+                          if (img != null)
+                            setModalState(() => pageImage = File(img.path));
+                        },
+                        child: Container(
+                          height: 20.h,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade300),
+                            image: pageImage != null
+                                ? DecorationImage(
+                                    image: FileImage(pageImage!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                          ),
+                          child: pageImage == null
+                              ? Center(
+                                  child: Icon(
                                     Icons.add_photo_alternate,
                                     color: _primaryPurple,
                                     size: 24.sp,
                                   ),
-                                  Text(
-                                    "Add Image",
-                                    style: TextStyle(
-                                      color: _primaryPurple,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                                : null,
-                          ),
+                                )
+                              : null,
                         ),
-                        if (pageImage != null)
-                          Padding(
-                            padding: EdgeInsets.only(top: 1.h),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: () =>
-                                    setModalState(() => pageImage = null),
-                                child: const Text(
-                                  "Remove Image",
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-
-                SizedBox(height: 2.h),
-                SizedBox(
-                  width: double.infinity,
-                  height: 7.h,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (textCtrl.text.trim().isEmpty && pageImage == null)
-                        return;
+              ),
+              SizedBox(
+                width: double.infinity,
+                height: 7.h,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (textCtrl.text.trim().isEmpty && pageImage == null)
+                      return;
+                    setState(() {
                       final newPage = StoryPage(
                         text: textCtrl.text,
                         imageUrl: pageImage?.path ?? "",
                       );
-                      setState(() {
-                        if (existingIndex != null)
-                          _pages[existingIndex] = newPage;
-                        else
-                          _pages.add(newPage);
-                      });
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryPurple,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
+                      if (existingIndex != null)
+                        _pages[existingIndex] = newPage;
+                      else
+                        _pages.add(newPage);
+                    });
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primaryPurple,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15),
                     ),
-                    child: Text(
-                      "Save Page",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                  ),
+                  child: const Text(
+                    "Save Page",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              ],
-            ),
-          );
-        },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -889,8 +709,7 @@ class DashedRectPainter extends CustomPainter {
           Radius.circular(radius),
         ),
       );
-    PathMetrics pathMetrics = path.computeMetrics();
-    for (PathMetric pathMetric in pathMetrics) {
+    for (PathMetric pathMetric in path.computeMetrics()) {
       double distance = 0.0;
       while (distance < pathMetric.length) {
         canvas.drawPath(

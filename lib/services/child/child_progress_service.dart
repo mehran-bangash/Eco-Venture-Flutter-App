@@ -12,7 +12,7 @@ class ChildProgressService {
   // --- MAIN AGGREGATION STREAM ---
   Stream<Map<String, dynamic>> getProgressStream() {
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? SharedPreferencesHelper.instance.getUserId();
 
       if (uid == null) {
         yield {};

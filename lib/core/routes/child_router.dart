@@ -12,8 +12,6 @@ import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_descri
 import 'package:eco_venture/views/child_section/naturePhotoJournal/nature_photo_explore_screen.dart';
 import 'package:eco_venture/views/child_section/child_progress_dashboard.dart';
 import 'package:eco_venture/views/child_section/notifications/child_notification_screen.dart';
-import 'package:eco_venture/views/child_section/report_safety/child_report_issue_screen.dart';
-import 'package:eco_venture/views/child_section/report_safety/child_safety_dashboard.dart';
 import 'package:eco_venture/views/child_section/settings/child_settings.dart';
 import 'package:eco_venture/views/child_section/settings/profile/child_profile_screen.dart';
 import 'package:eco_venture/views/child_section/settings/profile/edit_profile_screen.dart';
@@ -42,6 +40,8 @@ import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
 import '../../views/child_section/child_home_screen.dart';
 import '../../views/child_section/child_safety_enforcer.dart';
+import '../../views/child_section/inbox_report/child_report_issue_screen.dart';
+import '../../views/child_section/inbox_report/child_safety_dashboard.dart';
 import '../../views/child_section/multimedia/child_multimedia_screen.dart';
 import '../../views/child_section/multimedia/story_screen.dart';
 import '../../views/child_section/multimedia/video_screen.dart';

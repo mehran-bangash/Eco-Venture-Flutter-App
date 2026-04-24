@@ -1,3 +1,4 @@
+import 'package:eco_venture/core/config/app_constants.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:eco_venture/core/config/api_constants.dart';
@@ -42,8 +43,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
   late bool _isSensitive;
 
   // --- NEW: Age Selection State ---
-  String? _selectedYear;
-  final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
+  String? _selectedAgeGroup;
 
   @override
   void initState() {
@@ -62,16 +62,8 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     _levels = List<QuizLevelModel>.from(_topic.levels);
     _isSensitive = _topic.isSensitive;
 
-    // --- NEW: Initialize selected year from existing range string ---
-    if (_topic.ageGroup == "6 - 8") {
-      _selectedYear = "6";
-    } else if (_topic.ageGroup == "8 - 10") {
-      _selectedYear = "9";
-    } else if (_topic.ageGroup == "10 - 12") {
-      _selectedYear = "11";
-    } else {
-      _selectedYear = "6";
-    }
+    // --- NEW: Initialize selected age group from existing range string ---
+    _selectedAgeGroup = _topic.ageGroup;
   }
 
   @override
@@ -81,18 +73,6 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     super.dispose();
   }
 
-  // Logic: Map the individual year selection to the broad backend classes
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) {
-      return "6 - 8";
-    } else if (age >= 9 && age <= 10) {
-      return "8 - 10";
-    } else if (age >= 11 && age <= 12) {
-      return "10 - 12";
-    }
-    return "6 - 8";
-  }
 
   // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(String teacherId, String topicName, String ageGroup) async {
@@ -117,7 +97,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
 
   // --- UPDATE LOGIC ---
   Future<void> _updateTopic() async {
-    if (_topicNameController.text.trim().isEmpty || _selectedYear == null) {
+    if (_topicNameController.text.trim().isEmpty || _selectedAgeGroup == null) {
       _showError("Please enter a Topic Name and select Target Age");
       return;
     }
@@ -126,10 +106,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
       return;
     }
 
-    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
-
-    // Mapping year to category
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
 
     List<String> tagsList = _tagsController.text
         .split(',')
@@ -150,13 +127,13 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
       levels: _levels,
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: mappedAgeGroup, // Pass updated age group
+      ageGroup: _selectedAgeGroup!, // Pass updated age group
     );
 
     await ref.read(teacherQuizViewModelProvider.notifier).updateQuiz(updatedTopic);
 
     if (!_isSensitive && teacherId != null) {
-      _sendClassNotification(teacherId, updatedTopic.topicName, mappedAgeGroup);
+      _sendClassNotification(teacherId, updatedTopic.topicName, _selectedAgeGroup!);
     }
   }
 
@@ -360,6 +337,11 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
   // --- PRO WIDGETS ---
 
   Widget _buildAgeDropdown() {
+    final items = [...AppConstants.teacherClassRanges];
+    if (_selectedAgeGroup != null && !items.contains(_selectedAgeGroup)) {
+      items.add(_selectedAgeGroup!);
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w),
       decoration: BoxDecoration(
@@ -369,14 +351,14 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedYear,
+          value: _selectedAgeGroup,
           isExpanded: true,
           icon: Icon(Icons.keyboard_arrow_down_rounded, color: _textDark, size: 24.sp),
-          items: _individualYears.map((y) => DropdownMenuItem(
-              value: y,
-              child: Text("$y Years Old", style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w600))
+          items: items.map((range) => DropdownMenuItem(
+              value: range,
+              child: Text("Group $range", style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w600))
           )).toList(),
-          onChanged: (val) => setState(() => _selectedYear = val!),
+          onChanged: (val) => setState(() => _selectedAgeGroup = val!),
         ),
       ),
     );
@@ -573,7 +555,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
                               ],
                             ),
                           ),
-                        )).toList(),
+                        )),
                       SizedBox(height: 10.h),
                     ],
                   ),
@@ -596,8 +578,11 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
                           questions: tempQuestions,
                         );
                         setState(() {
-                          if (index != null) _levels[index] = newLevel;
-                          else _levels.add(newLevel);
+                          if (index != null) {
+                            _levels[index] = newLevel;
+                          } else {
+                            _levels.add(newLevel);
+                          }
                           _levels.sort((a, b) => a.order.compareTo(b.order));
                         });
                         Navigator.pop(context);

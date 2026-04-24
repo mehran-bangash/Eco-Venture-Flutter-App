@@ -17,7 +17,7 @@ class TeacherSafetyService {
 
   Future<String?> _getTeacherId() async {
     String? id = _auth.currentUser?.uid;
-    id ??= await SharedPreferencesHelper.instance.getUserId();
+    id ??= SharedPreferencesHelper.instance.getUserId();
     return id;
   }
   Future<void> _notifyChild(String childUid, String title, String body) async {

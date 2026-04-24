@@ -1,5 +1,5 @@
+import 'package:eco_venture/core/config/app_constants.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -34,8 +34,7 @@ class _TeacherEditTreasureHuntScreenState
   final List<TextEditingController> _clueControllers = [];
 
   // --- NEW: Age Selection State ---
-  String? _selectedYear;
-  final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
+  String? _selectedAgeGroup;
 
   bool _isSensitive = false;
 
@@ -79,16 +78,8 @@ class _TeacherEditTreasureHuntScreenState
       _clueControllers.add(TextEditingController(text: clue));
     }
 
-    // --- NEW: Initialize selected year based on existing ageGroup range ---
-    if (_hunt.ageGroup == "6 - 8") {
-      _selectedYear = "6";
-    } else if (_hunt.ageGroup == "8 - 10") {
-      _selectedYear = "9";
-    } else if (_hunt.ageGroup == "10 - 12") {
-      _selectedYear = "11";
-    } else {
-      _selectedYear = "6"; // Default fallback
-    }
+    // --- NEW: Initialize selected age group based on existing model value ---
+    _selectedAgeGroup = _hunt.ageGroup;
   }
 
   @override
@@ -102,25 +93,14 @@ class _TeacherEditTreasureHuntScreenState
     super.dispose();
   }
 
-  // Logic: Map individual year selection to broad backend ranges
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) return "6 - 8";
-    if (age >= 9 && age <= 10) return "8 - 10";
-    if (age >= 11 && age <= 12) return "10 - 12";
-    return "6 - 8";
-  }
 
   Future<void> _updateHunt() async {
-    if (_titleController.text.isEmpty || _selectedYear == null) {
+    if (_titleController.text.isEmpty || _selectedAgeGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Title and Target Age are required")),
       );
       return;
     }
-
-    // Perform mapping for assignment logic
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
 
     List<String> clues = _clueControllers
         .where((c) => c.text.isNotEmpty)
@@ -136,7 +116,7 @@ class _TeacherEditTreasureHuntScreenState
     if (_isSensitive && !tagsList.contains('scary')) tagsList.add('scary');
     if (!_isSensitive) tagsList.remove('scary');
 
-    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
     if (teacherId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -154,7 +134,7 @@ class _TeacherEditTreasureHuntScreenState
       clues: clues,
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: mappedAgeGroup, // Pass updated classification
+      ageGroup: _selectedAgeGroup!, // Pass updated classification
     );
 
     // Update in Firebase
@@ -164,7 +144,7 @@ class _TeacherEditTreasureHuntScreenState
 
     // Send notification targeting specific group
     if (!_isSensitive) {
-      await _sendClassNotification(teacherId, updatedHunt.title, mappedAgeGroup);
+      await _sendClassNotification(teacherId, updatedHunt.title, _selectedAgeGroup!);
     }
   }
 
@@ -484,6 +464,11 @@ class _TeacherEditTreasureHuntScreenState
   }
 
   Widget _buildAgeDropdown() {
+    final items = [...AppConstants.teacherClassRanges];
+    if (_selectedAgeGroup != null && !items.contains(_selectedAgeGroup)) {
+      items.add(_selectedAgeGroup!);
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w),
       decoration: BoxDecoration(
@@ -493,22 +478,22 @@ class _TeacherEditTreasureHuntScreenState
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedYear,
+          value: _selectedAgeGroup,
           isExpanded: true,
           hint: Text(
             "Select Age",
             style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.grey),
           ),
-          items: _individualYears
+          items: items
               .map(
-                (y) => DropdownMenuItem(
-              value: y,
-              child: Text("$y Years Old",
+                (range) => DropdownMenuItem(
+              value: range,
+              child: Text("Group $range",
                   style: GoogleFonts.poppins(fontSize: 15.sp)),
             ),
           )
               .toList(),
-          onChanged: (v) => setState(() => _selectedYear = v!),
+          onChanged: (v) => setState(() => _selectedAgeGroup = v!),
         ),
       ),
     );

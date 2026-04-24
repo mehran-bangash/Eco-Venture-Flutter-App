@@ -1,9 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
-import 'package:lottie/lottie.dart'; // Optional: If you have animations, otherwise use Icon
+// Optional: If you have animations, otherwise use Icon
 
 class QRSuccessScreen extends StatefulWidget {
   final int rewardCoins;

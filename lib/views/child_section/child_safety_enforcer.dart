@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../viewmodels/child_view_model/report_safety/child_safety_provider.dart';
+import '../../viewmodels/child_view_model/inbox_report/child_safety_provider.dart';
 import 'blocked_screen/app_locked_screen.dart';
 
 

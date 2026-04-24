@@ -1,3 +1,4 @@
+import 'package:eco_venture/core/config/app_constants.dart'; // IMPORTED
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -28,9 +29,8 @@ class _TeacherAddTreasureHuntScreenState
   String _difficulty = 'Easy';
   final List<String> _difficultyLevels = ['Easy', 'Medium', 'Hard'];
 
-  // --- NEW: Age Selection State ---
-  String? _selectedYear;
-  final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
+  // FIX: Changed from _selectedYear to _selectedAgeGroup
+  String? _selectedAgeGroup;
 
   final List<TextEditingController> _clueControllers = [
     TextEditingController(),
@@ -57,15 +57,6 @@ class _TeacherAddTreasureHuntScreenState
     super.dispose();
   }
 
-  // Logic: Map the individual year selection to the broad backend classes
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) return "6 - 8";
-    if (age >= 9 && age <= 10) return "8 - 10";
-    if (age >= 11 && age <= 12) return "10 - 12";
-    return "6 - 8";
-  }
-
   // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(
       String teacherId,
@@ -75,31 +66,28 @@ class _TeacherAddTreasureHuntScreenState
     const String backendUrl = ApiConstants.notifyChildClassEndPoints;
 
     try {
-      final response = await http.post(
+      await http.post(
         Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "teacherId": teacherId,
           "type": "QR Hunt",
           "title": "New Treasure Hunt: $huntTitle 🗺️",
-          "body": "A new treasure hunt for Group $ageGroup is ready! Start exploring!",
+          "body": "A new treasure hunt for Group $ageGroup is ready!",
           "ageGroup": ageGroup,
         }),
       );
-
-      if (response.statusCode == 200) {
-        print("✅ QR Hunt Notification sent successfully");
-      }
     } catch (e) {
-      print("❌ Error calling notification backend: $e");
+      debugPrint("Notification Error: $e");
     }
   }
 
-  // --- 1. SAVE LOGIC ---
+  // --- SAVE LOGIC ---
   Future<void> _saveHunt() async {
-    if (_titleController.text.isEmpty || _pointsController.text.isEmpty || _selectedYear == null) {
+    // FIX: Check for _selectedAgeGroup
+    if (_titleController.text.isEmpty || _pointsController.text.isEmpty || _selectedAgeGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Please fill all fields including Target Age"),
+          content: Text("Please fill all fields including Target Class"),
           backgroundColor: Colors.red));
       return;
     }
@@ -115,8 +103,8 @@ class _TeacherAddTreasureHuntScreenState
       return;
     }
 
-    // Process Mapping
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) return;
 
     List<String> tagsList = _tagsController.text
         .split(',')
@@ -131,14 +119,6 @@ class _TeacherAddTreasureHuntScreenState
       tagsList.remove('scary');
     }
 
-    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
-    if (teacherId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Error: No Teacher ID. Re-login."),
-          backgroundColor: Colors.red));
-      return;
-    }
-
     final newHunt = QrHuntModel(
       id: _tempHuntId,
       title: _titleController.text.trim(),
@@ -149,7 +129,7 @@ class _TeacherAddTreasureHuntScreenState
       adminId: teacherId,
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: mappedAgeGroup, // Pass mapped classification to model
+      ageGroup: _selectedAgeGroup!, // Directly use selected group
     );
 
     await ref
@@ -157,11 +137,11 @@ class _TeacherAddTreasureHuntScreenState
         .addHunt(newHunt, null);
 
     if (!_isSensitive) {
-      await _sendClassNotification(teacherId, newHunt.title, mappedAgeGroup);
+      await _sendClassNotification(teacherId, newHunt.title, _selectedAgeGroup!);
     }
   }
 
-  // --- 2. GENERATE & PRINT PDF (MULTI QRs) ---
+  // --- GENERATE & PRINT PDF ---
   Future<void> _generateAndPrintPdf() async {
     if (_titleController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -202,11 +182,6 @@ class _TeacherAddTreasureHuntScreenState
                         pw.SizedBox(height: 40),
                         pw.Text("Hide this QR code at location #${i + 1}",
                             style: pw.TextStyle(fontSize: 18)),
-                        pw.SizedBox(height: 10),
-                        pw.Text(
-                            "Players must find this to unlock Clue #${i + 2} (or finish).",
-                            style: const pw.TextStyle(
-                                fontSize: 14, color: PdfColors.grey)),
                       ],
                     ),
                   );
@@ -218,11 +193,7 @@ class _TeacherAddTreasureHuntScreenState
         },
       );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Error generating PDF: $e"),
-            backgroundColor: Colors.red));
-      }
+      debugPrint("PDF Error: $e");
     }
   }
 
@@ -232,19 +203,8 @@ class _TeacherAddTreasureHuntScreenState
 
     ref.listen(teacherTreasureHuntViewModelProvider, (prev, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(_isSensitive
-              ? "QR Hunt Created! (No notification sent - marked sensitive)"
-              : "QR Hunt Created & Class Notified!"),
-          backgroundColor: Colors.green,
-        ));
         ref.read(teacherTreasureHuntViewModelProvider.notifier).resetSuccess();
         Navigator.pop(context);
-      }
-      if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text("Error: ${next.errorMessage}"),
-            backgroundColor: Colors.red));
       }
     });
 
@@ -280,9 +240,9 @@ class _TeacherAddTreasureHuntScreenState
 
             SizedBox(height: 2.h),
 
-            // --- NEW: Target Age Field ---
-            _buildLabel("Target Age (Years)"),
-            _buildAgeDropdown(),
+            // --- NEW: Dynamic Target Class Selection ---
+            _buildLabel("Target Class / Age Group"),
+            _buildDynamicAgeDropdown(),
             SizedBox(height: 2.h),
 
             _buildLabel("Points"),
@@ -419,12 +379,6 @@ class _TeacherAddTreasureHuntScreenState
                               BorderRadius.circular(12))),
                     ),
                   ),
-                  SizedBox(height: 1.h),
-                  Text(
-                      "Generates ${_clueControllers.length} unique codes.",
-                      style: GoogleFonts.poppins(
-                          fontSize: 12.sp,
-                          color: Colors.blueGrey)),
                 ],
               ),
             ),
@@ -458,7 +412,8 @@ class _TeacherAddTreasureHuntScreenState
     );
   }
 
-  Widget _buildAgeDropdown() {
+  // --- DYNAMIC DROPDOWN FOR QR HUNT ---
+  Widget _buildDynamicAgeDropdown() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w),
       decoration: BoxDecoration(
@@ -467,17 +422,17 @@ class _TeacherAddTreasureHuntScreenState
           border: Border.all(color: _border)),
       child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
-            value: _selectedYear,
+            value: _selectedAgeGroup,
             isExpanded: true,
-            hint: Text("Select Age", style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.grey)),
-            items: _individualYears
-                .map((y) => DropdownMenuItem(
-              value: y,
-              child: Text("$y Years Old",
+            hint: Text("Select Class Group", style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.grey)),
+            items: AppConstants.teacherClassRanges
+                .map((range) => DropdownMenuItem(
+              value: range,
+              child: Text("Group $range",
                   style: GoogleFonts.poppins(fontSize: 15.sp)),
             ))
                 .toList(),
-            onChanged: (v) => setState(() => _selectedYear = v!),
+            onChanged: (v) => setState(() => _selectedAgeGroup = v),
           )),
     );
   }

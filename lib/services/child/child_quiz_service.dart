@@ -16,7 +16,7 @@ class ChildQuizService {
   // --- HELPER: FIND TEACHER ID ---
   Future<String?> _getTeacherId() async {
     try {
-      final user = await SharedPreferencesHelper.instance.getUserId();
+      final user = SharedPreferencesHelper.instance.getUserId();
       if (user == null) return null;
 
       final doc = await _firestore.collection('users').doc(user).get();
@@ -37,7 +37,7 @@ class ChildQuizService {
   // --- HELPER: GET SAFETY SETTINGS STREAM ---
   Stream<ParentSafetySettingsModel> _getSafetySettings() {
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? SharedPreferencesHelper.instance.getUserId();
       if (uid == null) {
         yield ParentSafetySettingsModel();
       } else {
@@ -176,7 +176,7 @@ class ChildQuizService {
   // --- PROGRESS LOGIC (Unchanged) ---
   Stream<Map<String, ChildQuizProgressModel>> getProgressStream() {
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? SharedPreferencesHelper.instance.getUserId();
       if (uid == null) { yield {}; } else {
         yield* _database.ref('child_quiz_progress/$uid').onValue.map((event) {
           final data = event.snapshot.value;
@@ -213,7 +213,7 @@ class ChildQuizService {
   }
 
   Future<void> saveLevelResult(ChildQuizProgressModel progress) async {
-    String? childId = await SharedPreferencesHelper.instance.getUserId();
+    String? childId = SharedPreferencesHelper.instance.getUserId();
     childId ??= _auth.currentUser?.uid;
     if (childId == null) throw Exception("Child not logged in");
 

@@ -1,3 +1,4 @@
+import 'package:eco_venture/core/config/app_constants.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui'; // Required for PathMetrics
@@ -42,8 +43,7 @@ class _TeacherEditStoryScreenState
   bool _isSensitive = false;
 
   // --- NEW: Age Selection State ---
-  String? _selectedYear;
-  final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
+  String? _selectedAgeGroup;
 
   final List<String> _storyCategories = [
     "Adventure",
@@ -54,7 +54,9 @@ class _TeacherEditStoryScreenState
     "Family",
     "Funny",
     "Education",
+    "Educational", // Added this to match your error log exactly
   ];
+
 
   late String _selectedCategory;
 
@@ -68,18 +70,22 @@ class _TeacherEditStoryScreenState
     _pages = List.from(widget.storyData.pages);
     _tagsController.text = widget.storyData.tags.join(', ');
     _isSensitive = widget.storyData.isSensitive;
-    _selectedCategory = widget.storyData.category;
 
-    // --- NEW: Initialize selected year based on existing ageGroup range ---
-    if (widget.storyData.ageGroup == "6 - 8") {
-      _selectedYear = "6";
-    } else if (widget.storyData.ageGroup == "8 - 10") {
-      _selectedYear = "9";
-    } else if (widget.storyData.ageGroup == "10 - 12") {
-      _selectedYear = "11";
+    // --- FIX: Handle Dropdown value mismatch to prevent crash ---
+    final String dbCategory = widget.storyData.category;
+    // We check if the list contains the exact string from DB
+    if (_storyCategories.contains(dbCategory)) {
+      _selectedCategory = dbCategory;
     } else {
-      _selectedYear = "6"; // Default fallback
+      // If not found, try to find case-insensitive match or default to first item
+      _selectedCategory = _storyCategories.firstWhere(
+            (cat) => cat.toLowerCase() == dbCategory.toLowerCase(),
+        orElse: () => _storyCategories.first,
+      );
     }
+
+    // --- NEW: Initialize selected age group based on existing model value ---
+    _selectedAgeGroup = widget.storyData.ageGroup;
   }
 
   @override
@@ -90,14 +96,6 @@ class _TeacherEditStoryScreenState
     super.dispose();
   }
 
-  // Logic: Map individual year selection to broad backend range strings
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) return "6 - 8";
-    if (age >= 9 && age <= 10) return "8 - 10";
-    if (age >= 11 && age <= 12) return "10 - 12";
-    return "6 - 8";
-  }
 
   // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(
@@ -129,7 +127,7 @@ class _TeacherEditStoryScreenState
   }
 
   Future<void> _updateStory() async {
-    if (_titleController.text.isEmpty || _selectedYear == null) {
+    if (_titleController.text.isEmpty || _selectedAgeGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Title and Target Age are required"),
@@ -139,7 +137,7 @@ class _TeacherEditStoryScreenState
       return;
     }
 
-    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
     if (teacherId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -149,9 +147,6 @@ class _TeacherEditStoryScreenState
       );
       return;
     }
-
-    // Process Mapping
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
 
     // Process Tags
     List<String> tagsList = _tagsController.text
@@ -170,7 +165,7 @@ class _TeacherEditStoryScreenState
       tags: tagsList,
       isSensitive: _isSensitive,
       category: _selectedCategory,
-      ageGroup: mappedAgeGroup, // Pass updated classification
+      ageGroup: _selectedAgeGroup!, // Pass updated classification
     );
 
     await ref
@@ -178,7 +173,7 @@ class _TeacherEditStoryScreenState
         .updateStory(updatedStory);
 
     if (!_isSensitive) {
-      await _sendClassNotification(teacherId, updatedStory.title, mappedAgeGroup);
+      await _sendClassNotification(teacherId, updatedStory.title, _selectedAgeGroup!);
     }
   }
 
@@ -360,7 +355,7 @@ class _TeacherEditStoryScreenState
                         ),
                         value: _isSensitive,
                         onChanged: (val) => setState(() => _isSensitive = val),
-                        activeColor: Colors.redAccent,
+                        activeThumbColor: Colors.redAccent,
                       ),
                     ],
                   ),
@@ -467,6 +462,11 @@ class _TeacherEditStoryScreenState
   }
 
   Widget _buildAgeDropdown() {
+    final items = [...AppConstants.teacherClassRanges];
+    if (_selectedAgeGroup != null && !items.contains(_selectedAgeGroup)) {
+      items.add(_selectedAgeGroup!);
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 3.w),
       decoration: BoxDecoration(
@@ -476,20 +476,20 @@ class _TeacherEditStoryScreenState
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedYear,
+          value: _selectedAgeGroup,
           isExpanded: true,
-          items: _individualYears.map((y) {
+          items: items.map((range) {
             return DropdownMenuItem(
-              value: y,
+              value: range,
               child: Text(
-                "$y Years Old",
+                "Group $range",
                 style: GoogleFonts.poppins(fontSize: 15.sp),
               ),
             );
           }).toList(),
           onChanged: (value) {
             if (value != null) {
-              setState(() => _selectedYear = value);
+              setState(() => _selectedAgeGroup = value);
             }
           },
         ),
@@ -552,7 +552,9 @@ class _TeacherEditStoryScreenState
     if (_coverImage != null) {
       imgProvider = FileImage(_coverImage!);
     } else if (_existingCoverUrl != null && _existingCoverUrl!.isNotEmpty) {
-      imgProvider = NetworkImage(_existingCoverUrl!);
+      imgProvider = _existingCoverUrl!.startsWith('http')
+          ? NetworkImage(_existingCoverUrl!)
+          : FileImage(File(_existingCoverUrl!)) as ImageProvider;
     }
 
     return CustomPaint(
@@ -706,8 +708,11 @@ class _TeacherEditStoryScreenState
           ImageProvider? editorImgProvider;
           if (pageImageFile != null) {
             editorImgProvider = FileImage(pageImageFile!);
-          } else if (pageImageUrl != null)
-            editorImgProvider = NetworkImage(pageImageUrl!);
+          } else if (pageImageUrl != null) {
+            editorImgProvider = pageImageUrl!.startsWith('http')
+                ? NetworkImage(pageImageUrl!)
+                : FileImage(File(pageImageUrl!)) as ImageProvider;
+          }
 
           return Container(
             height: 85.h,
@@ -847,8 +852,9 @@ class _TeacherEditStoryScreenState
                     onPressed: () {
                       if (textCtrl.text.trim().isEmpty &&
                           pageImageFile == null &&
-                          pageImageUrl == null)
+                          pageImageUrl == null) {
                         return;
+                      }
 
                       final String newPath =
                           pageImageFile?.path ?? pageImageUrl ?? "";
@@ -859,10 +865,11 @@ class _TeacherEditStoryScreenState
                       );
 
                       setState(() {
-                        if (existingIndex != null)
+                        if (existingIndex != null) {
                           _pages[existingIndex] = newPage;
-                        else
+                        } else {
                           _pages.add(newPage);
+                        }
                       });
                       Navigator.pop(context);
                     },

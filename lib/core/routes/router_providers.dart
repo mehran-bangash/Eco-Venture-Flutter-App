@@ -2,7 +2,6 @@ import 'package:eco_venture/core/routes/router_notifier.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../viewmodels/auth/auth_provider.dart';
-import '../constants/route_names.dart';
 import 'app_router.dart';
 
 final goRouterProvider = Provider<GoRouter>((ref) {

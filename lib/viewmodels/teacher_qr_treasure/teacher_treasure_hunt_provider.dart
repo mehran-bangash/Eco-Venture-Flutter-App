@@ -1,12 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/teacher/firebase_teacher_database.dart';
+import '../../services/teacher/teacher_all_module_service.dart';
 import '../../services/cloudinary_service.dart';
 import '../../repositories/teacher/teacher_treasure_hunt_repository.dart';
 import 'teacher_treasure_hunt_view_model.dart';
 import 'teacher_treasure_hunt_state.dart';
 
 // 1. Services
-final firebaseTeacherDbProvider = Provider((ref) => FirebaseTeacherDatabase());
+final firebaseTeacherDbProvider = Provider((ref) => TeacherAllModuleService());
 final cloudinaryServiceProvider = Provider((ref) => CloudinaryService());
 
 // 2. Repository

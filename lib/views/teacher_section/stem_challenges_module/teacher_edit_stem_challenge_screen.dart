@@ -1,3 +1,4 @@
+import 'package:eco_venture/core/config/app_constants.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui'; // Required for PathMetrics
@@ -49,8 +50,7 @@ class _TeacherEditStemChallengeScreenState
   final List<String> _difficultyLevels = ['Easy', 'Medium', 'Hard'];
 
   // --- AGE SELECTION STATE ---
-  String? _selectedYear;
-  final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
+  String? _selectedAgeGroup;
 
   File? _newImageFile;
   String? _existingImageUrl;
@@ -98,16 +98,8 @@ class _TeacherEditStemChallengeScreenState
     _existingImageUrl = _challenge.imageUrl;
     _isSensitive = _challenge.isSensitive;
 
-    // 4. Initialize selected year based on current database ageGroup range
-    if (_challenge.ageGroup == "6 - 8") {
-      _selectedYear = "6";
-    } else if (_challenge.ageGroup == "8 - 10") {
-      _selectedYear = "9";
-    } else if (_challenge.ageGroup == "10 - 12") {
-      _selectedYear = "11";
-    } else {
-      _selectedYear = "6";
-    }
+    // 4. Initialize selected age group based on current database ageGroup value
+    _selectedAgeGroup = _challenge.ageGroup;
   }
 
   @override
@@ -119,14 +111,6 @@ class _TeacherEditStemChallengeScreenState
     super.dispose();
   }
 
-  // Logic: Map individual year selection to broad backend ranges
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) return "6 - 8";
-    if (age >= 9 && age <= 10) return "8 - 10";
-    if (age >= 11 && age <= 12) return "10 - 12";
-    return "6 - 8";
-  }
 
   Future<void> _sendClassNotification(
       String teacherId,
@@ -152,14 +136,12 @@ class _TeacherEditStemChallengeScreenState
   }
 
   Future<void> _updateChallenge() async {
-    if (_titleController.text.trim().isEmpty || _selectedYear == null) {
+    if (_titleController.text.trim().isEmpty || _selectedAgeGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please enter a title and select Target Age")),
       );
       return;
     }
-
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
 
     List<String> tagsList = _tagsController.text
         .split(',')
@@ -172,7 +154,7 @@ class _TeacherEditStemChallengeScreenState
 
     final String? finalImage = _newImageFile?.path ?? _existingImageUrl;
 
-    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
     if (teacherId == null) return;
 
     final updatedChallenge = _challenge.copyWith(
@@ -185,13 +167,13 @@ class _TeacherEditStemChallengeScreenState
       steps: _steps,
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: mappedAgeGroup,
+      ageGroup: _selectedAgeGroup!,
     );
 
     await ref.read(teacherStemViewModelProvider.notifier).updateChallenge(updatedChallenge);
 
     if (!_isSensitive) {
-      await _sendClassNotification(teacherId, updatedChallenge.title, mappedAgeGroup);
+      await _sendClassNotification(teacherId, updatedChallenge.title, _selectedAgeGroup!);
     }
   }
 
@@ -305,6 +287,11 @@ class _TeacherEditStemChallengeScreenState
   // --- WIDGET BUILDERS ---
 
   Widget _buildAgeDropdown() {
+    final items = [...AppConstants.teacherClassRanges];
+    if (_selectedAgeGroup != null && !items.contains(_selectedAgeGroup)) {
+      items.add(_selectedAgeGroup!);
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w),
       decoration: BoxDecoration(
@@ -314,14 +301,14 @@ class _TeacherEditStemChallengeScreenState
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedYear,
+          value: _selectedAgeGroup,
           isExpanded: true,
           icon: Icon(Icons.keyboard_arrow_down, color: _primaryBlue, size: 24.sp),
-          items: _individualYears.map((y) => DropdownMenuItem(
-              value: y,
-              child: Text("$y Years Old", style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w500))
+          items: items.map((range) => DropdownMenuItem(
+              value: range,
+              child: Text("Group $range", style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w500))
           )).toList(),
-          onChanged: (val) => setState(() => _selectedYear = val!),
+          onChanged: (val) => setState(() => _selectedAgeGroup = val!),
         ),
       ),
     );
@@ -391,8 +378,13 @@ class _TeacherEditStemChallengeScreenState
 
   Widget _buildImageUploadBox() {
     ImageProvider? imageProvider;
-    if (_newImageFile != null) imageProvider = FileImage(_newImageFile!);
-    else if (_existingImageUrl != null && _existingImageUrl!.isNotEmpty) imageProvider = NetworkImage(_existingImageUrl!);
+    if (_newImageFile != null) {
+      imageProvider = FileImage(_newImageFile!);
+    } else if (_existingImageUrl != null && _existingImageUrl!.isNotEmpty) {
+      imageProvider = _existingImageUrl!.startsWith('http')
+          ? NetworkImage(_existingImageUrl!)
+          : FileImage(File(_existingImageUrl!)) as ImageProvider;
+    }
 
     return CustomPaint(
       painter: DashedRectPainter(color: _dashedBorderColor, strokeWidth: 1.5, gap: 6, radius: 12),
@@ -407,7 +399,7 @@ class _TeacherEditStemChallengeScreenState
             if (image != null) setState(() => _newImageFile = File(image.path));
           },
           child: imageProvider != null
-              ? Stack(children: [ClipRRect(borderRadius: BorderRadius.circular(12), child: Image(image: imageProvider!, fit: BoxFit.cover, width: double.infinity, height: double.infinity)), Positioned(top: 8, right: 8, child: InkWell(onTap: () => setState(() { _newImageFile = null; _existingImageUrl = null; }), child: const CircleAvatar(backgroundColor: Colors.white, radius: 16, child: Icon(Icons.close, size: 20, color: Colors.red))))])
+              ? Stack(children: [ClipRRect(borderRadius: BorderRadius.circular(12), child: Image(image: imageProvider, fit: BoxFit.cover, width: double.infinity, height: double.infinity)), Positioned(top: 8, right: 8, child: InkWell(onTap: () => setState(() { _newImageFile = null; _existingImageUrl = null; }), child: const CircleAvatar(backgroundColor: Colors.white, radius: 16, child: Icon(Icons.close, size: 20, color: Colors.red))))])
               : Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.cloud_upload_rounded, size: 32.sp, color: Colors.grey.shade600), SizedBox(height: 1.h), Text("Tap to change image", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: Colors.grey.shade700))]),
         ),
       ),

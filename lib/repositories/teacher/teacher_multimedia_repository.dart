@@ -1,9 +1,9 @@
 import '../../models/video_model.dart';
 import '../../models/story_model.dart';
-import '../../services/teacher/firebase_teacher_database.dart';
+import '../../services/teacher/teacher_all_module_service.dart';
 
 class TeacherMultimediaRepository {
-  final FirebaseTeacherDatabase _db;
+  final  TeacherAllModuleService _db;
 
   TeacherMultimediaRepository(this._db);
 

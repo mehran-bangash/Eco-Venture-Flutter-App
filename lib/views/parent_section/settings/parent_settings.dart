@@ -25,8 +25,8 @@ class _ParentSettingsState extends State<ParentSettings>
   String userImageUrl = "";
 
   Future<void> _loadUsername() async {
-    final name = await SharedPreferencesHelper.instance.getUserName();
-    final image = await SharedPreferencesHelper.instance.getUserImgUrl();
+    final name = SharedPreferencesHelper.instance.getUserName();
+    final image = SharedPreferencesHelper.instance.getUserImgUrl();
     setState(() {
       username = name ?? "Guest";
       userImageUrl = image ?? "";

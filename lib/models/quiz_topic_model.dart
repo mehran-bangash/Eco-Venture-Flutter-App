@@ -7,7 +7,7 @@ class QuizTopicModel {
   final List<QuizLevelModel> levels;
   final bool isSensitive;
   final List<String> tags;
-  final String ageGroup; // NEW: Added for task assignment logic
+  final String ageGroup; // Dynamic classification logic
 
   QuizTopicModel({
     this.id,
@@ -18,7 +18,7 @@ class QuizTopicModel {
     this.isSensitive = false,
     this.tags = const [],
     required this.levels,
-    required this.ageGroup, // Now required in constructor
+    required this.ageGroup,
   });
 
   Map<String, dynamic> toMap() {
@@ -35,7 +35,7 @@ class QuizTopicModel {
       'levels': levelsMap,
       'tags': tags,
       'isSensitive': isSensitive,
-      'ageGroup': ageGroup, // Save ageGroup to Firestore
+      'ageGroup': ageGroup,
     };
   }
 
@@ -71,7 +71,6 @@ class QuizTopicModel {
       levels: parsedLevels,
       tags: List<String>.from(map['tags'] ?? []),
       isSensitive: map['isSensitive'] ?? false,
-      // Load ageGroup, default to '6 - 8' if missing for old quizzes
       ageGroup: map['ageGroup'] ?? '6 - 8',
     );
   }
@@ -139,7 +138,6 @@ class QuizLevelModel {
     );
   }
 
-  // FIXED: Added copyWith for use in ViewModel image processing
   QuizLevelModel copyWith({
     int? order,
     String? title,
@@ -188,7 +186,6 @@ class QuestionModel {
     );
   }
 
-  // FIXED: Added copyWith for use in ViewModel image processing
   QuestionModel copyWith({
     String? question,
     List<String>? options,

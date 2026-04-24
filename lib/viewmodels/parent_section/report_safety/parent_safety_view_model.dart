@@ -17,7 +17,7 @@ class ParentSafetyViewModel extends StateNotifier<ParentSafetyState> {
   Future<void> fetchLinkedChildren() async {
     state = state.copyWith(isLoading: true);
     try {
-      final parentId = await SharedPreferencesHelper.instance.getUserId();
+      final parentId = SharedPreferencesHelper.instance.getUserId();
       if (parentId == null) {
         state = state.copyWith(isLoading: false); // Or handle error
         return;
@@ -34,7 +34,7 @@ class ParentSafetyViewModel extends StateNotifier<ParentSafetyState> {
   Future<void> linkChildByEmail(String email, String name) async {
     state = state.copyWith(isLoading: true);
     try {
-      final parentId = await SharedPreferencesHelper.instance.getUserId();
+      final parentId = SharedPreferencesHelper.instance.getUserId();
       if (parentId == null) throw Exception("Parent not logged in");
 
       final childUid = await _repository.linkChild(parentId, email, name);
@@ -102,7 +102,7 @@ class ParentSafetyViewModel extends StateNotifier<ParentSafetyState> {
     state = state.copyWith(linkedChildren: currentList);
 
     try {
-      final parentId = await SharedPreferencesHelper.instance.getUserId();
+      final parentId = SharedPreferencesHelper.instance.getUserId();
       if (parentId != null) {
         // 2. Call Backend
         await _repository.unlinkChild(parentId, childUid);

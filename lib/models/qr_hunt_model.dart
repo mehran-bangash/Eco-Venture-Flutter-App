@@ -13,7 +13,7 @@ class QrHuntModel {
   final DateTime? startedAt;
   final DateTime? completedAt;
   final bool isSensitive;
-  final String ageGroup; // NEW: Added for classification logic
+  final String ageGroup; // Dynamic classification logic
 
   QrHuntModel({
     this.id,
@@ -30,7 +30,7 @@ class QrHuntModel {
     this.isCompleted = false,
     this.startedAt,
     this.completedAt,
-    required this.ageGroup, // Now required in constructor
+    required this.ageGroup,
   });
 
   Map<String, dynamic> toMap() {
@@ -49,7 +49,7 @@ class QrHuntModel {
       'completedAt': completedAt?.toIso8601String(),
       'tags': tags,
       'isSensitive': isSensitive,
-      'ageGroup': ageGroup, // Save classification
+      'ageGroup': ageGroup,
     };
   }
 
@@ -69,7 +69,7 @@ class QrHuntModel {
       startedAt: map['startedAt'] != null ? DateTime.tryParse(map['startedAt']) : null,
       completedAt: map['completedAt'] != null ? DateTime.tryParse(map['completedAt']) : null,
       tags: List<String>.from(map['tags'] ?? []),
-      ageGroup: map['ageGroup'] ?? '6 - 8', // Load classification
+      ageGroup: map['ageGroup'] ?? '6 - 8',
     );
   }
 

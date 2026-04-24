@@ -178,10 +178,8 @@ class _TeacherStoryDashboardState extends ConsumerState<TeacherStoryDashboard> {
               // Delete Button
               InkWell(
                   onTap: () {
-                    if(story.id != null) {
-                      ref.read(teacherMultimediaViewModelProvider.notifier).deleteStory(story.id!);
-                    }
-                  },
+                    ref.read(teacherMultimediaViewModelProvider.notifier).deleteStory(story.id);
+                                    },
                   child: Container(
                     padding: EdgeInsets.all(2.w),
                     decoration: BoxDecoration(color: Colors.red.shade50, shape: BoxShape.circle),

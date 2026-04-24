@@ -1,22 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../repositories/teacher/teacher_home_repository.dart';
-import '../../services/teacher/teacher_home_service.dart';
+import '../../services/teacher/teacher_student_service.dart';
 import 'teacher_home_state.dart';
 import 'teacher_home_view_model.dart';
 
-// Provider for the data service
-final teacherHomeServiceProvider = Provider<TeacherHomeService>((ref) {
-  return TeacherHomeService();
+// 1. Provider for the TeacherStudentService (which handles the real-time stream)
+final teacherStudentServiceProvider = Provider<TeacherStudentService>((ref) {
+  return TeacherStudentService();
 });
 
-// Provider for the repository
-final teacherHomeRepositoryProvider = Provider<TeacherHomeRepository>((ref) {
-  final service = ref.watch(teacherHomeServiceProvider);
-  return TeacherHomeRepository(service);
-});
-
-// Provider for the ViewModel (StateNotifier)
+// 2. Updated ViewModel Provider to pass the Service instead of Repository
 final teacherHomeViewModelProvider = StateNotifierProvider<TeacherHomeViewModel, TeacherHomeState>((ref) {
-  final repository = ref.watch(teacherHomeRepositoryProvider);
-  return TeacherHomeViewModel(repository);
+  final service = ref.watch(teacherStudentServiceProvider);
+  return TeacherHomeViewModel(service);
 });

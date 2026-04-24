@@ -16,7 +16,7 @@ class VideoModel {
   final Map<String, bool> userLikes;
   final bool isSensitive;
   final List<String> tags;
-  final String ageGroup; // NEW: Added for classification logic
+  final String ageGroup; // Flexible for dynamic ranges
 
   VideoModel({
     required this.id,
@@ -36,7 +36,7 @@ class VideoModel {
     this.createdBy = 'admin',
     Map<String, bool>? userLikes,
     this.tags = const [],
-    required this.ageGroup, // Now required in constructor
+    required this.ageGroup,
   }) : userLikes = userLikes ?? {};
 
   factory VideoModel.fromMap(Map<String, dynamic> map) {
@@ -60,7 +60,7 @@ class VideoModel {
       createdBy: map['created_by'] ?? 'admin',
       userLikes: Map<String, bool>.from(map['userLikes'] ?? {}),
       tags: List<String>.from(map['tags'] ?? []),
-      ageGroup: map['ageGroup'] ?? '6 - 8', // Load classification
+      ageGroup: map['ageGroup'] ?? '6 - 8',
     );
   }
 
@@ -83,7 +83,7 @@ class VideoModel {
       'userLikes': userLikes,
       'tags': tags,
       'isSensitive': isSensitive,
-      'ageGroup': ageGroup, // Save classification
+      'ageGroup': ageGroup,
     };
   }
 

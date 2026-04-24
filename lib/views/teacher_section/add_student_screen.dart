@@ -17,12 +17,10 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // --- UPDATED: Individual Year Selection ---
   String? _selectedYear;
   final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
 
-  // --- PRO COLORS ---
-  final Color _primary = const Color(0xFF1565C0); // Teacher Blue
+  final Color _primary = const Color(0xFF1565C0);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
   final Color _textGrey = const Color(0xFFA3AED0);
@@ -36,21 +34,9 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
     super.dispose();
   }
 
-  // Logic: Map the individual year selection to the broad backend classes
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) {
-      return "6 - 8";
-    } else if (age >= 9 && age <= 10) {
-      return "8 - 10";
-    } else if (age >= 11 && age <= 12) {
-      return "10 - 12";
-    }
-    return "6 - 8"; // Default fallback
-  }
+  // UPDATED: Removed _mapYearToClass logic entirely.
 
   Future<void> _registerStudent() async {
-    // 1. Validation including Age selection
     if (_nameController.text.trim().isEmpty ||
         _emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty ||
@@ -64,17 +50,14 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
       return;
     }
 
-    // 2. Perform Mapping: Year -> Class Range
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
-
-    // 3. Call ViewModel with the Mapped Age Group
+    // UPDATED: Sending the exact year selected directly as 'age'
     await ref
         .read(teacherAuthViewModelProvider.notifier)
         .addStudent(
       name: _nameController.text.trim(),
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
-      ageGroup: mappedAgeGroup, // Pass the category string to backend
+      age: _selectedYear!, // Passing "6", "7", etc.
     );
   }
 
@@ -127,64 +110,8 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: EdgeInsets.all(5.w),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [_primary, const Color(0xFF42A5F5)],
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: _primary.withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(3.w),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.person_add_alt_1_rounded,
-                      color: Colors.white,
-                      size: 26.sp,
-                    ),
-                  ),
-                  SizedBox(width: 4.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Student Registration",
-                          style: GoogleFonts.poppins(
-                            fontSize: 17.sp,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        SizedBox(height: 0.5.h),
-                        Text(
-                          "Select the student's exact age.",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14.sp,
-                            color: Colors.white.withOpacity(0.9),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _buildHeaderCard(),
             SizedBox(height: 4.h),
-
             Container(
               padding: EdgeInsets.all(6.w),
               decoration: BoxDecoration(
@@ -209,12 +136,10 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
                     icon: Icons.badge_outlined,
                   ),
                   SizedBox(height: 3.h),
-
-                  _buildLabel("Age (Years)"),
+                  _buildLabel("Age (Exact Year)"),
                   SizedBox(height: 1.5.h),
                   _buildAgeDropdown(),
                   SizedBox(height: 3.h),
-
                   _buildLabel("Email Address"),
                   SizedBox(height: 1.5.h),
                   _buildTextField(
@@ -223,7 +148,6 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
                     icon: Icons.email_outlined,
                   ),
                   SizedBox(height: 3.h),
-
                   _buildLabel("Password"),
                   SizedBox(height: 1.5.h),
                   _buildTextField(
@@ -235,34 +159,8 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
                 ],
               ),
             ),
-
             SizedBox(height: 5.h),
-
-            SizedBox(
-              width: double.infinity,
-              height: 7.5.h,
-              child: ElevatedButton(
-                onPressed: authState.isLoading ? null : _registerStudent,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primary,
-                  elevation: 8,
-                  shadowColor: _primary.withOpacity(0.4),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                ),
-                child: authState.isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                  "Register Student",
-                  style: GoogleFonts.poppins(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
+            _buildSubmitButton(authState),
             SizedBox(height: 2.h),
           ],
         ),
@@ -270,69 +168,84 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: GoogleFonts.poppins(
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w600,
-        color: _textDark,
+  Widget _buildHeaderCard() {
+    return Container(
+      padding: EdgeInsets.all(5.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [_primary, const Color(0xFF42A5F5)]),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: _primary.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(3.w),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+            child: Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 26.sp),
+          ),
+          SizedBox(width: 4.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Student Registration", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.w700, color: Colors.white)),
+                SizedBox(height: 0.5.h),
+                Text("Storing exact student age.", style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.white.withOpacity(0.9))),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
+  Widget _buildSubmitButton(authState) {
+    return SizedBox(
+      width: double.infinity,
+      height: 7.5.h,
+      child: ElevatedButton(
+        onPressed: authState.isLoading ? null : _registerStudent,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _primary,
+          elevation: 8,
+          shadowColor: _primary.withOpacity(0.4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        ),
+        child: authState.isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text("Register Student", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.white)),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) => Text(text, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600, color: _textDark));
+
   Widget _buildAgeDropdown() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w),
-      decoration: BoxDecoration(
-        color: _bg,
-        borderRadius: BorderRadius.circular(14),
-      ),
+      decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(14)),
       child: DropdownButtonHideUnderline(
         child: DropdownButtonFormField<String>(
           value: _selectedYear,
-          hint: Text(
-            "Select Age",
-            style: GoogleFonts.poppins(color: _textGrey, fontSize: 14.sp),
-          ),
+          hint: Text("Select Age", style: GoogleFonts.poppins(color: _textGrey, fontSize: 14.sp)),
           decoration: const InputDecoration(border: InputBorder.none),
           items: _individualYears.map((String value) {
             return DropdownMenuItem<String>(
               value: value,
-              child: Text(
-                "$value Years Old",
-                style: GoogleFonts.poppins(
-                  fontSize: 15.sp,
-                  color: _textDark,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+              child: Text("$value Years Old", style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w500)),
             );
           }).toList(),
-          onChanged: (newValue) {
-            setState(() {
-              _selectedYear = newValue;
-            });
-          },
+          onChanged: (newValue) => setState(() => _selectedYear = newValue),
         ),
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    bool isPassword = false,
-  }) {
+  Widget _buildTextField({required TextEditingController controller, required String hint, required IconData icon, bool isPassword = false}) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
-      style: GoogleFonts.poppins(
-        fontSize: 15.sp,
-        color: _textDark,
-        fontWeight: FontWeight.w500,
-      ),
+      style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         prefixIcon: Icon(icon, color: _textGrey, size: 20.sp),
         hintText: hint,
@@ -340,18 +253,7 @@ class _AddStudentScreenState extends ConsumerState<AddStudentScreen> {
         filled: true,
         fillColor: _bg,
         contentPadding: EdgeInsets.symmetric(vertical: 2.2.h),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: _primary, width: 1.5),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
       ),
     );
   }

@@ -15,22 +15,22 @@ class ParentReportAlertsScreen extends ConsumerWidget {
     final state = ref.watch(parentSafetyViewModelProvider);
     final alerts = state.alerts;
 
-    final Color _bg = const Color(0xFFF5F7FA);
-    final Color _textDark = const Color(0xFF1B2559);
+    final Color bg = const Color(0xFFF5F7FA);
+    final Color textDark = const Color(0xFF1B2559);
 
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: bg,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 20.sp),
+            icon: Icon(Icons.arrow_back_ios_new, color: textDark, size: 20.sp),
             onPressed: () => context.pop()
         ),
         centerTitle: true,
         title: Text(
             "Reports & Alerts",
-            style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp)
+            style: GoogleFonts.poppins(color: textDark, fontWeight: FontWeight.w700, fontSize: 18.sp)
         ),
       ),
       body: alerts.isEmpty

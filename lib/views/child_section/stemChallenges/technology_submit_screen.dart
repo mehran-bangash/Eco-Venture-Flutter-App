@@ -63,8 +63,8 @@ class _TechnologySubmitScreenState
     }
 
     String studentName =
-        await SharedPreferencesHelper.instance.getUserName() ?? "Student";
-    String? studentPic = await SharedPreferencesHelper.instance.getUserImgUrl();
+        SharedPreferencesHelper.instance.getUserName() ?? "Student";
+    String? studentPic = SharedPreferencesHelper.instance.getUserImgUrl();
 
     final submission = StemSubmissionModel(
       challengeId: widget.challenge.id,

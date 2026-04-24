@@ -36,7 +36,7 @@ class ChildInboxService{
 
     _authSubscription = _auth.authStateChanges().listen((user) async {
       String? uid =
-          user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+          user?.uid ?? SharedPreferencesHelper.instance.getUserId();
       if (uid == null) {
         print("🔹 [$_id] No user ID yet. Waiting...");
         return;
@@ -48,7 +48,7 @@ class ChildInboxService{
   }
 
   Future<void> _startTrackingSequence(String uid) async {
-    String? role = await SharedPreferencesHelper.instance.getUserRole();
+    String? role = SharedPreferencesHelper.instance.getUserRole();
 
     if (role == null) {
       try {
@@ -129,7 +129,7 @@ class ChildInboxService{
   // Reports
   Future<void> submitReport(ChildReportModel report) async {
     try {
-      String? uid = _auth.currentUser?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = _auth.currentUser?.uid ?? SharedPreferencesHelper.instance.getUserId();
       if (uid == null) throw Exception("User not logged in");
 
       final newKey = _database.ref().push().key!;
@@ -162,34 +162,39 @@ class ChildInboxService{
 
   Stream<List<ChildReportModel>> getReportsStream() {
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid =
-          user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? SharedPreferencesHelper.instance.getUserId();
+
       if (uid == null) {
         yield [];
-      } else {
-        yield* _database.ref('safety_alerts/$uid').onValue.map((event) {
-          final data = event.snapshot.value;
-          final List<ChildReportModel> reports = [];
-          if (data != null && data is Map) {
-            data.forEach((key, value) {
-              if (value is Map) {
-                final map = Map<String, dynamic>.from(value);
-                map['id'] = key.toString();
-                reports.add(ChildReportModel.fromMap(key.toString(), map));
-              }
-            });
-          }
-          reports.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-          return reports;
-        });
+        return;
       }
+
+      // Directly point to the child's specific alerts
+      yield* _database.ref('safety_alerts/$uid').onValue.map((event) {
+        final List<ChildReportModel> reports = [];
+        final data = event.snapshot.value;
+
+        if (data != null && data is Map) {
+          data.forEach((key, value) {
+            if (value is Map) {
+              final map = Map<String, dynamic>.from(value);
+              // Ensure we use the key as the ID
+              reports.add(ChildReportModel.fromMap(key.toString(), map));
+            }
+          });
+        }
+
+        // Sort by newest first
+        reports.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        return reports;
+      });
     });
   }
 
   Stream<ParentSafetySettingsModel> getSafetySettingsStream() {
     return _auth.authStateChanges().asyncExpand((user) async* {
       String? uid =
-          user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+          user?.uid ?? SharedPreferencesHelper.instance.getUserId();
 
       if (uid == null) {
         yield ParentSafetySettingsModel.fromMap({

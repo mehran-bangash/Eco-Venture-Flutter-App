@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'package:eco_venture/core/config/app_constants.dart'; // Import central constants
 import 'package:eco_venture/models/user_model.dart';
 import 'package:eco_venture/repositories/teacher/teacher_repoistory.dart';
 import 'package:eco_venture/viewmodels/teacher_home/teacher_home_provider.dart';
@@ -40,6 +40,24 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
     const Color(0xFFD1C4E9),
   ];
 
+  // Helper for dynamic card styling
+  final List<Color> _classColors = [
+    const Color(0xFF4E54C8),
+    const Color(0xFF11998e),
+    const Color(0xFFF2994A),
+    const Color(0xFFE91E63),
+    const Color(0xFF9C27B0),
+  ];
+
+  final List<IconData> _classIcons = [
+    Icons.child_care_rounded,
+    Icons.directions_run_rounded,
+    Icons.school_rounded,
+    Icons.psychology_rounded,
+    Icons.auto_stories_rounded,
+  ];
+
+
   @override
   void initState() {
     super.initState();
@@ -66,7 +84,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
 
   Future<void> _checkTeacherStatus() async {
     try {
-      String? uid = FirebaseAuth.instance.currentUser?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = FirebaseAuth.instance.currentUser?.uid ?? SharedPreferencesHelper.instance.getUserId();
       if (uid == null) return;
 
       final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -213,18 +231,30 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
     );
   }
 
+  // FIX: Dynamic cards using AppConstants
   Widget _buildClassCards() {
     return Consumer(builder: (context, ref, child) {
       final state = ref.watch(teacherHomeViewModelProvider);
       final students = state.students;
 
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _classSummaryCard("6 - 8", Icons.child_care_rounded, const Color(0xFF4E54C8), students),
-          _classSummaryCard("8 - 10", Icons.directions_run_rounded, const Color(0xFF11998e), students),
-          _classSummaryCard("10 - 12", Icons.school_rounded, const Color(0xFFF2994A), students),
-        ],
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        child: Row(
+          children: AppConstants.teacherClassRanges.asMap().entries.map((entry) {
+            int index = entry.key;
+            String range = entry.value;
+
+            // Cycle through available colors and icons
+            Color cardColor = _classColors[index % _classColors.length];
+            IconData cardIcon = _classIcons[index % _classIcons.length];
+
+            return Padding(
+              padding: EdgeInsets.only(right: 3.w),
+              child: _classSummaryCard(range, cardIcon, cardColor, students),
+            );
+          }).toList(),
+        ),
       );
     });
   }
@@ -262,6 +292,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
                 fontWeight: FontWeight.bold,
                 fontSize: 14.sp,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
             Text(
               "$count Students",
@@ -269,6 +300,7 @@ class _TeacherHomeScreenState extends ConsumerState<TeacherHomeScreen>
                 color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey,
                 fontSize: 12.sp,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

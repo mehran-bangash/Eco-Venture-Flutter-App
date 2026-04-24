@@ -1,3 +1,4 @@
+import 'package:eco_venture/core/config/app_constants.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -37,8 +38,7 @@ class _TeacherEditVideoScreenState
   final List<String> _categories = ['Science', 'Maths', 'History', 'Ecosystem'];
 
   // --- NEW: Age Selection State ---
-  String? _selectedYear;
-  final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
+  String? _selectedAgeGroup;
 
   File? _newVideoFile;
   File? _newThumbnail;
@@ -61,16 +61,8 @@ class _TeacherEditVideoScreenState
       _selectedCategory = widget.videoData.category;
     }
 
-    // --- NEW: Initialize selected year based on existing ageGroup range ---
-    if (widget.videoData.ageGroup == "6 - 8") {
-      _selectedYear = "6";
-    } else if (widget.videoData.ageGroup == "8 - 10") {
-      _selectedYear = "9";
-    } else if (widget.videoData.ageGroup == "10 - 12") {
-      _selectedYear = "11";
-    } else {
-      _selectedYear = "6";
-    }
+    // --- NEW: Initialize selected age group based on existing model value ---
+    _selectedAgeGroup = widget.videoData.ageGroup;
   }
 
   @override
@@ -82,14 +74,6 @@ class _TeacherEditVideoScreenState
     super.dispose();
   }
 
-  // Logic: Map individual year selection to broad backend ranges
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) return "6 - 8";
-    if (age >= 9 && age <= 10) return "8 - 10";
-    if (age >= 11 && age <= 12) return "10 - 12";
-    return "6 - 8";
-  }
 
   // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(
@@ -121,9 +105,9 @@ class _TeacherEditVideoScreenState
   }
 
   Future<void> _updateVideo() async {
-    if (_titleController.text.isEmpty || _selectedYear == null) return;
+    if (_titleController.text.isEmpty || _selectedAgeGroup == null) return;
 
-    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
     if (teacherId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -133,9 +117,6 @@ class _TeacherEditVideoScreenState
       );
       return;
     }
-
-    // Process Mapping
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
 
     List<String> tagsList = _tagsController.text
         .split(',')
@@ -160,7 +141,7 @@ class _TeacherEditVideoScreenState
       uploadedAt: widget.videoData.uploadedAt,
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: mappedAgeGroup, // Updated Classification
+      ageGroup: _selectedAgeGroup!, // Updated Classification
     );
 
     await ref
@@ -168,7 +149,7 @@ class _TeacherEditVideoScreenState
         .updateVideo(updatedVideo);
 
     if (!_isSensitive) {
-      await _sendClassNotification(teacherId, updatedVideo.title, mappedAgeGroup);
+      await _sendClassNotification(teacherId, updatedVideo.title, _selectedAgeGroup!);
     }
   }
 
@@ -218,7 +199,9 @@ class _TeacherEditVideoScreenState
       thumbnailProvider = FileImage(_newThumbnail!);
     } else if (_existingThumbnailUrl != null &&
         _existingThumbnailUrl!.isNotEmpty) {
-      thumbnailProvider = NetworkImage(_existingThumbnailUrl!);
+      thumbnailProvider = _existingThumbnailUrl!.startsWith('http')
+          ? NetworkImage(_existingThumbnailUrl!)
+          : FileImage(File(_existingThumbnailUrl!)) as ImageProvider;
     }
 
     return Scaffold(
@@ -335,7 +318,7 @@ class _TeacherEditVideoScreenState
                       SizedBox(height: 2.h),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        activeColor: Colors.red,
+                        activeThumbColor: Colors.red,
                         title: Text(
                           "Contains Sensitive Content?",
                           style: GoogleFonts.poppins(
@@ -541,6 +524,11 @@ class _TeacherEditVideoScreenState
   }
 
   Widget _buildAgeDropdown() {
+    final items = [...AppConstants.teacherClassRanges];
+    if (_selectedAgeGroup != null && !items.contains(_selectedAgeGroup)) {
+      items.add(_selectedAgeGroup!);
+    }
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w),
       decoration: BoxDecoration(
@@ -550,21 +538,21 @@ class _TeacherEditVideoScreenState
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedYear,
+          value: _selectedAgeGroup,
           isExpanded: true,
           icon: Icon(Icons.keyboard_arrow_down, color: _primaryBlue, size: 24.sp),
-          items: _individualYears
+          items: items
               .map(
-                (y) => DropdownMenuItem(
-              value: y,
+                (range) => DropdownMenuItem(
+              value: range,
               child: Text(
-                "$y Years Old",
+                "Group $range",
                 style: GoogleFonts.poppins(fontSize: 15.sp),
               ),
             ),
           )
               .toList(),
-          onChanged: (v) => setState(() => _selectedYear = v!),
+          onChanged: (v) => setState(() => _selectedAgeGroup = v!),
         ),
       ),
     );

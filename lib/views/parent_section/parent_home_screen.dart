@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -641,10 +640,11 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
                           );
                         }).toList(),
                         onChanged: (val) {
-                          if (val != null)
+                          if (val != null) {
                             ref
                                 .read(parentSafetyViewModelProvider.notifier)
                                 .selectChild(val);
+                          }
                         },
                       ),
                     ),

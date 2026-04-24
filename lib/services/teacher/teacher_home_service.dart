@@ -8,7 +8,7 @@ class TeacherHomeService {
 
   Future<List<UserModel>> getStudentsForTeacher() async {
     try {
-      final teacherId = await SharedPreferencesHelper.instance.getUserId();
+      final teacherId = SharedPreferencesHelper.instance.getUserId();
       if (teacherId == null) {
         throw Exception("Teacher is not logged in.");
       }

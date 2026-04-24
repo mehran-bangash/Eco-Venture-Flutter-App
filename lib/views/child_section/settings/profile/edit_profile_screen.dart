@@ -50,7 +50,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       });
 
       // Upload immediately via ViewModel
-      final uid = await SharedPreferencesHelper.instance.getUserId();
+      final uid = SharedPreferencesHelper.instance.getUserId();
       if (uid != null && _image != null) {
         await ref
             .read(userProfileProvider.notifier)
@@ -78,7 +78,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       });
 
       // Upload immediately via ViewModel
-      final uid = await SharedPreferencesHelper.instance.getUserId();
+      final uid = SharedPreferencesHelper.instance.getUserId();
       if (uid != null && _image != null) {
         await ref
             .read(userProfileProvider.notifier)
@@ -166,11 +166,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _loadSharedPreferences() async {
-    final name = await SharedPreferencesHelper.instance.getUserName();
-    final email = await SharedPreferencesHelper.instance.getUserEmail();
-    final phone = await SharedPreferencesHelper.instance.getUserPhoneNumber();
-    final dob = await SharedPreferencesHelper.instance.getUserDOB();
-    final img = await SharedPreferencesHelper.instance.getUserImgUrl();
+    final name = SharedPreferencesHelper.instance.getUserName();
+    final email = SharedPreferencesHelper.instance.getUserEmail();
+    final phone = SharedPreferencesHelper.instance.getUserPhoneNumber();
+    final dob = SharedPreferencesHelper.instance.getUserDOB();
+    final img = SharedPreferencesHelper.instance.getUserImgUrl();
 
     setState(() {
       username = name ?? "Guest";
@@ -191,7 +191,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _refreshProfile() async {
-    final uid = await SharedPreferencesHelper.instance.getUserId();
+    final uid = SharedPreferencesHelper.instance.getUserId();
     if (uid != null) {
       await ref.read(userProfileProvider.notifier).fetchUserProfile(uid);
       final state = ref.read(userProfileProvider);
@@ -230,11 +230,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _testSharedPreferences() async {
-    final name = await SharedPreferencesHelper.instance.getUserName();
-    final email = await SharedPreferencesHelper.instance.getUserEmail();
-    final phone = await SharedPreferencesHelper.instance.getUserPhoneNumber();
-    final dob = await SharedPreferencesHelper.instance.getUserDOB();
-    final img = await SharedPreferencesHelper.instance.getUserImgUrl();
+    final name = SharedPreferencesHelper.instance.getUserName();
+    final email = SharedPreferencesHelper.instance.getUserEmail();
+    final phone = SharedPreferencesHelper.instance.getUserPhoneNumber();
+    final dob = SharedPreferencesHelper.instance.getUserDOB();
+    final img = SharedPreferencesHelper.instance.getUserImgUrl();
 
     debugPrint("---- SharedPreferences Data ----");
     debugPrint("Name: $name");
@@ -258,7 +258,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final phone = _phoneController.text.trim();
     final dob = _dobController.text.trim();
 
-    final uid = await SharedPreferencesHelper.instance.getUserId();
+    final uid = SharedPreferencesHelper.instance.getUserId();
     if (uid == null) return;
 
     // Upload new image if selected

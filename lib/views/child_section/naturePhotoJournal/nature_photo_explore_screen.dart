@@ -104,7 +104,7 @@ class _NaturePhotoExplorerScreenState
         });
 
         // A. Get Real User ID from SharedPreferences
-        final userId = await SharedPreferencesHelper.instance.getUserId();
+        final userId = SharedPreferencesHelper.instance.getUserId();
 
         // B. Check if User is Logged In
         if (userId != null && userId.isNotEmpty) {

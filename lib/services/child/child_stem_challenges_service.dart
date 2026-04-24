@@ -17,7 +17,7 @@ class ChildStemChallengesService {
   Future<String?> _getTeacherId() async {
     try {
       // 1. Get Current User
-      final user = await SharedPreferencesHelper.instance.getUserId();
+      final user = SharedPreferencesHelper.instance.getUserId();
 
       if (user == null) {
         print("DEBUG: No User Logged In (Prefs). Cannot fetch Teacher ID.");
@@ -50,7 +50,7 @@ class ChildStemChallengesService {
 
   Stream<ParentSafetySettingsModel> _getSafetySettings() {
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? SharedPreferencesHelper.instance.getUserId();
       if (uid == null) {
         yield ParentSafetySettingsModel(); // Default: No restrictions
       } else {
@@ -296,7 +296,7 @@ class ChildStemChallengesService {
 
   Future<void> submitChallenge(StemSubmissionModel submission) async {
     try {
-      String? studentId = await SharedPreferencesHelper.instance.getUserId() ?? _auth.currentUser?.uid;
+      String? studentId = SharedPreferencesHelper.instance.getUserId() ?? _auth.currentUser?.uid;
       if (studentId == null) throw Exception("Student not logged in");
 
       final path = 'student_stem_submissions/$studentId/${submission.challengeId}';
@@ -314,7 +314,7 @@ class ChildStemChallengesService {
   }
 
   Stream<Map<String, StemSubmissionModel>> getStudentSubmissionsStream() async* {
-    String? studentId = await SharedPreferencesHelper.instance.getUserId() ?? _auth.currentUser?.uid;
+    String? studentId = SharedPreferencesHelper.instance.getUserId() ?? _auth.currentUser?.uid;
     if (studentId == null) {
       yield {};
       return;

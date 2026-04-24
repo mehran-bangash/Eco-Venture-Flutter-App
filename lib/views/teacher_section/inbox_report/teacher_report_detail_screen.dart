@@ -12,9 +12,9 @@ class TeacherReportDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final Color _bg = const Color(0xFFF4F7FE);
-    final Color _textDark = const Color(0xFF1B2559);
-    final Color _primaryBlue = const Color(0xFF4E54C8);
+    final Color bg = const Color(0xFFF4F7FE);
+    final Color textDark = const Color(0xFF1B2559);
+    final Color primaryBlue = const Color(0xFF4E54C8);
 
     // Logic: Determine if this is a content-related alert or a generic one
     final bool isContentReport = reportData.contentId != null && reportData.contentId!.isNotEmpty;
@@ -24,7 +24,7 @@ class TeacherReportDetailScreen extends ConsumerWidget {
     final bool isPendingOrEscalated = statusLower.contains('pending') || statusLower.contains('escalated');
 
     return Scaffold(
-      backgroundColor: _bg,
+      backgroundColor: bg,
       appBar: AppBar(
         title: Text(
             "Report Details",
@@ -66,7 +66,7 @@ class TeacherReportDetailScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(reportData.title, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: _textDark)),
+                        Text(reportData.title, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.bold, color: textDark)),
                         Text("From: ${reportData.fromName}", style: GoogleFonts.poppins(fontSize: 13.sp, color: Colors.grey)),
                       ],
                     ),

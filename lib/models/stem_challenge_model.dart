@@ -10,7 +10,7 @@ class StemChallengeModel {
   final List<String> steps;
   final bool isSensitive;
   final List<String> tags;
-  final String ageGroup; // NEW: Added for classification logic
+  final String ageGroup; // Dynamic classification logic
 
   StemChallengeModel({
     this.id,
@@ -24,10 +24,9 @@ class StemChallengeModel {
     this.isSensitive = false,
     this.tags = const [],
     required this.steps,
-    required this.ageGroup, // Now required in constructor
+    required this.ageGroup,
   });
 
-  // Convert to Map for Firebase Realtime Database (Writing)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -41,11 +40,10 @@ class StemChallengeModel {
       'steps': steps,
       'tags': tags,
       'isSensitive': isSensitive,
-      'ageGroup': ageGroup, // Save classification
+      'ageGroup': ageGroup,
     };
   }
 
-  // Create from Firebase Map (Reading for Edit)
   factory StemChallengeModel.fromMap(String id, Map<String, dynamic> map) {
     return StemChallengeModel(
       id: id,
@@ -59,12 +57,10 @@ class StemChallengeModel {
       steps: List<String>.from(map['steps'] ?? []),
       isSensitive: map['isSensitive'] ?? false,
       tags: List<String>.from(map['tags'] ?? []),
-      // Load ageGroup, defaulting to '6 - 8' for existing data
       ageGroup: map['ageGroup'] ?? '6 - 8',
     );
   }
 
-  // CopyWith for immutable updates
   StemChallengeModel copyWith({
     String? id,
     String? adminId,

@@ -67,8 +67,8 @@ class _MathSubmitScreenState extends ConsumerState<MathSubmitScreen> {
 
     // 2. Get User Details (Name & Pic)
     String studentName =
-        await SharedPreferencesHelper.instance.getUserName() ?? "Student";
-    String? studentPic = await SharedPreferencesHelper.instance.getUserImgUrl();
+        SharedPreferencesHelper.instance.getUserName() ?? "Student";
+    String? studentPic = SharedPreferencesHelper.instance.getUserImgUrl();
 
     // 3. Create Model with ALL DATA (Snapshots)
     final submission = StemSubmissionModel(

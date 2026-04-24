@@ -17,7 +17,7 @@ class ChildQrHuntService {
   // ==================================================
   Future<String?> _getTeacherId() async {
     try {
-      final userId = await SharedPreferencesHelper.instance.getUserId();
+      final userId = SharedPreferencesHelper.instance.getUserId();
       if (userId == null) return null;
 
       final doc = await _firestore.collection('users').doc(userId).get();
@@ -38,7 +38,7 @@ class ChildQrHuntService {
   // ==================================================
   Stream<ParentSafetySettingsModel> _getSafetySettings() {
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? SharedPreferencesHelper.instance.getUserId();
 
       if (uid == null) {
         yield ParentSafetySettingsModel();
@@ -200,7 +200,7 @@ class ChildQrHuntService {
   // ==================================================
   Stream<Map<String, QrHuntProgressModel>> getProgressStream() {
     return _auth.authStateChanges().asyncExpand((user) async* {
-      String? uid = user?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+      String? uid = user?.uid ?? SharedPreferencesHelper.instance.getUserId();
       if (uid == null) {
         yield {};
       } else {
@@ -224,7 +224,7 @@ class ChildQrHuntService {
   }
 
   Future<void> saveProgress(QrHuntProgressModel progress) async {
-    String? uid = await SharedPreferencesHelper.instance.getUserId();
+    String? uid = SharedPreferencesHelper.instance.getUserId();
     uid ??= _auth.currentUser?.uid;
     if (uid == null) return;
 

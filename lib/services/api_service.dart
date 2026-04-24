@@ -45,7 +45,7 @@ class ApiService {
     required String nodeBaseUrl,
   }) async {
     try {
-      final String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+      final String? teacherId = SharedPreferencesHelper.instance.getUserId();
 
       if (teacherId == null) {
         throw Exception("Teacher ID not found. Please login again.");

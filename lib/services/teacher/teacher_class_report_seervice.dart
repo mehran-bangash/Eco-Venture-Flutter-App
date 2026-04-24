@@ -13,7 +13,7 @@ class TeacherClassReportService {
 
   Future<String?> _getTeacherId() async {
     String? id = _auth.currentUser?.uid;
-    id ??= await SharedPreferencesHelper.instance.getUserId();
+    id ??= SharedPreferencesHelper.instance.getUserId();
     return id;
   }
 

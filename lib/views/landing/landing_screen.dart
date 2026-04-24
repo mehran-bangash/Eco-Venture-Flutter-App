@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'dart:ui' as ui;
 import 'dart:math' as math;
 
 import '../../services/shared_preferences_helper.dart';

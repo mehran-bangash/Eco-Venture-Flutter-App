@@ -7,12 +7,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../models/stem_challenge_model.dart';
 import '../../../core/config/api_constants.dart';
+import '../../../core/config/app_constants.dart'; // IMPORTED
 import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/teacher_stem_challenge/teacher_stem_provider.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-import '../../../viewmodels/teacher_stem_challenge/teacher_stem_state.dart';
 
 class TeacherAddStemChallengeScreen extends ConsumerStatefulWidget {
   const TeacherAddStemChallengeScreen({super.key});
@@ -50,9 +49,8 @@ class _TeacherAddStemChallengeScreenState
   String _selectedDifficulty = 'Easy';
   final List<String> _difficultyLevels = ['Easy', 'Medium', 'Hard'];
 
-  // --- NEW: Age Selection State ---
-  String? _selectedYear;
-  final List<String> _individualYears = ["6", "7", "8", "9", "10", "11", "12"];
+  // FIX: Changed from _selectedYear to _selectedAgeGroup
+  String? _selectedAgeGroup;
 
   File? _challengeImage;
   List<String> _materials = ['Baking Soda', 'Vinegar'];
@@ -64,20 +62,7 @@ class _TeacherAddStemChallengeScreenState
   bool _isSensitive = false;
   bool _shouldPopAfterSave = false;
 
-  // Logic: Map the individual year selection to the broad backend classes
-  String _mapYearToClass(String year) {
-    int age = int.parse(year);
-    if (age >= 6 && age <= 8) {
-      return "6 - 8";
-    } else if (age >= 9 && age <= 10) {
-      return "8 - 10";
-    } else if (age >= 11 && age <= 12) {
-      return "10 - 12";
-    }
-    return "6 - 8"; // Default fallback
-  }
-
-  // --- NOTIFICATION LOGIC (Updated to include ageGroup) ---
+  // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(
       String teacherId,
       String challengeTitle,
@@ -94,7 +79,7 @@ class _TeacherAddStemChallengeScreenState
           "type": "STEM Challenge",
           "title": "New STEM Challenge: $challengeTitle 🔬",
           "body": "A new STEM challenge for Group $ageGroup is ready!",
-          "ageGroup": ageGroup, // Backend uses this to target correct class
+          "ageGroup": ageGroup,
         }),
       );
 
@@ -182,8 +167,8 @@ class _TeacherAddStemChallengeScreenState
                             ),
                             SizedBox(height: 2.5.h),
 
-                            // --- NEW: Target Age (Years) Dropdown ---
-                            _buildLabel("Target Age (Years)"),
+                            // --- NEW: Dynamic Target Class Selection ---
+                            _buildLabel("Target Class / Age Group"),
                             _buildAgeDropdown(),
                             SizedBox(height: 2.5.h),
 
@@ -398,9 +383,10 @@ class _TeacherAddStemChallengeScreenState
 
   // --- SAVE LOGIC ---
   Future<void> _saveChallenge() async {
-    if (_titleController.text.trim().isEmpty || _selectedYear == null) {
+    // FIX: Check for _selectedAgeGroup
+    if (_titleController.text.trim().isEmpty || _selectedAgeGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all basics, including Target Age")),
+        const SnackBar(content: Text("Please fill all basics, including Target Class")),
       );
       return;
     }
@@ -411,16 +397,8 @@ class _TeacherAddStemChallengeScreenState
       return;
     }
 
-    String? teacherId = await SharedPreferencesHelper.instance.getUserId();
-    if (teacherId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error: No Teacher ID. Re-login.")),
-      );
-      return;
-    }
-
-    // Logic: Convert selected year to Class Category
-    String mappedAgeGroup = _mapYearToClass(_selectedYear!);
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) return;
 
     List<String> tagsList = _tagsController.text
         .split(',')
@@ -445,7 +423,7 @@ class _TeacherAddStemChallengeScreenState
       steps: _steps,
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: mappedAgeGroup, // Stored for student filtering
+      ageGroup: _selectedAgeGroup!, // Directly use selected group
     );
 
     await ref
@@ -453,7 +431,7 @@ class _TeacherAddStemChallengeScreenState
         .addChallenge(newChallenge);
 
     if (!_isSensitive) {
-      await _sendClassNotification(teacherId, newChallenge.title, mappedAgeGroup);
+      await _sendClassNotification(teacherId, newChallenge.title, _selectedAgeGroup!);
     }
   }
 
@@ -465,7 +443,7 @@ class _TeacherAddStemChallengeScreenState
       _tagsController.clear();
       _selectedCategory = _categories.first;
       _selectedDifficulty = _difficultyLevels.first;
-      _selectedYear = null; // Clear year
+      _selectedAgeGroup = null; // Clear group
       _challengeImage = null;
       _materials = [];
       _steps = [];
@@ -473,8 +451,7 @@ class _TeacherAddStemChallengeScreenState
     });
   }
 
-  // --- WIDGET BUILDERS ---
-
+  // --- DYNAMIC DROPDOWN FOR STEM ---
   Widget _buildAgeDropdown() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
@@ -484,9 +461,9 @@ class _TeacherAddStemChallengeScreenState
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedYear,
+          value: _selectedAgeGroup,
           hint: Text(
-            "Select Age",
+            "Select Class Group",
             style: GoogleFonts.poppins(color: Colors.grey, fontSize: 15.sp),
           ),
           isExpanded: true,
@@ -495,12 +472,12 @@ class _TeacherAddStemChallengeScreenState
             color: _primaryBlue,
             size: 22.sp,
           ),
-          items: _individualYears
+          items: AppConstants.teacherClassRanges
               .map(
-                (y) => DropdownMenuItem(
-              value: y,
+                (range) => DropdownMenuItem(
+              value: range,
               child: Text(
-                "$y Years Old",
+                "Group $range",
                 style: GoogleFonts.poppins(
                   fontSize: 15.sp,
                   color: _textDark,
@@ -510,7 +487,7 @@ class _TeacherAddStemChallengeScreenState
             ),
           )
               .toList(),
-          onChanged: (v) => setState(() => _selectedYear = v),
+          onChanged: (v) => setState(() => _selectedAgeGroup = v),
         ),
       ),
     );

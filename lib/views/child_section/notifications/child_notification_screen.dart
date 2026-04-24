@@ -28,7 +28,7 @@ class _ChildNotificationScreenState extends State<ChildNotificationScreen> {
 
   Future<void> _fetchNotifications() async {
     String? uid = _auth.currentUser?.uid;
-    if (uid == null) uid = await SharedPreferencesHelper.instance.getUserId();
+    uid ??= SharedPreferencesHelper.instance.getUserId();
     if (uid == null) return;
 
     // FIX: Listen to 'child_notifications' instead of 'user_notifications'
@@ -64,7 +64,7 @@ class _ChildNotificationScreenState extends State<ChildNotificationScreen> {
 
   // --- DELETE LOGIC ---
   Future<void> _deleteNotification(String key) async {
-    String? uid = _auth.currentUser?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+    String? uid = _auth.currentUser?.uid ?? SharedPreferencesHelper.instance.getUserId();
     if (uid != null) {
       await _database.ref('child_notifications/$uid/$key').remove();
     }

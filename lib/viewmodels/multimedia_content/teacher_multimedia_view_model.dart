@@ -141,7 +141,7 @@ class TeacherMultimediaViewModel extends StateNotifier<TeacherMultimediaState> {
     List<StoryPage> updatedPages = [];
     for (var page in story.pages) {
       String? pageImg = page.imageUrl;
-      if (pageImg != null && pageImg.isNotEmpty && !pageImg.startsWith('http')) {
+      if (pageImg.isNotEmpty && !pageImg.startsWith('http')) {
         final file = File(pageImg);
         if(file.existsSync()) {
           pageImg = await _cloudinaryService.uploadTeacherMultimediaFile(file, isVideo: false);

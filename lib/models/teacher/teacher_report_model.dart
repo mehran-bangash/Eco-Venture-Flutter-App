@@ -4,12 +4,12 @@ class TeacherReportModel {
   final String id;
   final String title;
   final String description;
-  final String fromName; // This is the Parent Name for escalations
-  final String? childName; // Added to show which child the parent is reporting for
+  final String fromName;
+  final String? childName;
   final String type;
   final String status;
   final DateTime timestamp;
-  final String? imageUrl;
+  final String? imageUrl; // We keep this name for the UI
 
   final String? childId;
   final String? parentId;
@@ -49,13 +49,17 @@ class TeacherReportModel {
       return TeacherReportModel(
         id: id,
         title: safeStr(map['title'], 'Alert'),
-        description: safeStr(map['description'] ?? map['message'] ?? map['parentNote'], ''),
+        // Logic: Check multiple keys for description
+        description: safeStr(map['description'] ?? map['message'] ?? map['details'] ?? map['parentNote'], ''),
         fromName: safeStr(map['fromName'] ?? map['senderName'], 'Unknown'),
-        childName: map['childName']?.toString(), // Map childName from DB
+        childName: map['childName']?.toString(),
         type: safeStr(map['type'], 'General'),
         status: safeStr(map['status'], 'Pending'),
         timestamp: parsedTime,
-        imageUrl: map['imageUrl'] ?? map['image'],
+
+        // FIX: Mapping multiple possible Firebase keys to the single 'imageUrl' variable
+        imageUrl: map['screenshotUrl'] ?? map['imageUrl'] ?? map['image'],
+
         childId: map['childId']?.toString(),
         parentId: map['parentId']?.toString(),
         contentId: map['contentId']?.toString(),

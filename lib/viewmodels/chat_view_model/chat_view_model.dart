@@ -17,7 +17,7 @@ class ChatViewModel extends StateNotifier<ChatState> {
   Future<void> _init() async {
     try {
       //  Correct way to await async call
-      final userId = await SharedPreferencesHelper.instance.getUserId();
+      final userId = SharedPreferencesHelper.instance.getUserId();
 
       if (userId == null) {
         print(' No userId found in SharedPreferences');

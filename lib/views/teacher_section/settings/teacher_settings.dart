@@ -25,8 +25,8 @@ class _TeacherSettingsState extends State<TeacherSettings>
   String userImageUrl = "";
 
   Future<void> _loadUsername() async {
-    final name = await SharedPreferencesHelper.instance.getUserName();
-    final image = await SharedPreferencesHelper.instance.getUserImgUrl();
+    final name = SharedPreferencesHelper.instance.getUserName();
+    final image = SharedPreferencesHelper.instance.getUserImgUrl();
     if (mounted) {
       setState(() {
         username = name ?? "Guest";
@@ -174,7 +174,7 @@ class _TeacherSettingsState extends State<TeacherSettings>
                     trailing: Switch(
                       value: true,
                       onChanged: (val) {},
-                      activeColor: Colors.blue,
+                      activeThumbColor: Colors.blue,
                     ),
                   ),
 

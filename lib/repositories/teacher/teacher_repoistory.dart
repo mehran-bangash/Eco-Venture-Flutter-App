@@ -19,7 +19,7 @@ class TeacherRepository {
   }) async {
     try {
       // 1. Get current teacher's UID from local storage
-      String? teacherId = await SharedPreferencesHelper.instance.getUserId();
+      String? teacherId = SharedPreferencesHelper.instance.getUserId();
 
       if (teacherId == null) {
         throw Exception("Teacher session expired. Please log in again.");

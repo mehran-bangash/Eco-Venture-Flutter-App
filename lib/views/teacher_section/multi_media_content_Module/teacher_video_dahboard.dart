@@ -100,7 +100,7 @@ class _TeacherVideoDashboardState extends ConsumerState<TeacherVideoDashboard> {
               IconButton(
                 icon: Icon(Icons.delete, color: Colors.red, size: 18.sp),
                 onPressed: () {
-                  ref.read(teacherMultimediaViewModelProvider.notifier).deleteVideo(video.id!);
+                  ref.read(teacherMultimediaViewModelProvider.notifier).deleteVideo(video.id);
                 },
               ),
             ],
@@ -109,4 +109,5 @@ class _TeacherVideoDashboardState extends ConsumerState<TeacherVideoDashboard> {
       ),
     );
   }
+
 }

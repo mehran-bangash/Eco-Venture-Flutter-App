@@ -7,7 +7,6 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 
 // Provider
 import '../../../viewmodels/child_view_model/rewards/child_rewards_provider.dart';
-import '../../../viewmodels/child_view_model/rewards/child_rewards_view_model.dart';
 import '../../viewmodels/child_view_model/rewards/child_rewards_state.dart';
 
 class RewardsScreen extends ConsumerStatefulWidget {

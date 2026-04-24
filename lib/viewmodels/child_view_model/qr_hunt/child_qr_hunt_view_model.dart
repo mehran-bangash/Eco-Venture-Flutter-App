@@ -23,7 +23,7 @@ class ChildQrHuntViewModel extends StateNotifier<ChildQrHuntState> {
 
     // 1. Get the Age Group stored during login/registration
     // Defaulting to "6 - 8" for existing users or global students
-    final String ageGroup = await SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
+    final String ageGroup = SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
 
     // 2. Listen to the repository stream which now requires the ageGroup parameter
     _huntsSub = _repository.getHunts(ageGroup).listen(

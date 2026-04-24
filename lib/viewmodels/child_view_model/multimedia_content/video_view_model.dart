@@ -20,7 +20,7 @@ class VideoViewModel extends StateNotifier<VideoState> {
 
     // 1. Get the student's age group (Hall Pass) stored during registration/login
     // Defaulting to "6 - 8" for safety/existing users
-    final String ageGroup = await SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
+    final String ageGroup = SharedPreferencesHelper.instance.getUserAgeGroup() ?? "6 - 8";
 
     // 2. Listen to the repository stream which now filters by ageGroup in the service
     _sub = _repo.getVideos(ageGroup).listen(

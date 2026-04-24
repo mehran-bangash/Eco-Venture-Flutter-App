@@ -51,8 +51,11 @@ class _ParentScreenTimeScreenState extends ConsumerState<ParentScreenTimeScreen>
     );
     if (picked != null) {
       setState(() {
-        if (isStart) _bedtimeStart = picked;
-        else _bedtimeEnd = picked;
+        if (isStart) {
+          _bedtimeStart = picked;
+        } else {
+          _bedtimeEnd = picked;
+        }
       });
     }
   }

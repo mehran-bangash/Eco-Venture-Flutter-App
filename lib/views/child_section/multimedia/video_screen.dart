@@ -233,10 +233,10 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
                       mainAxisSpacing: 2.h,
                       childAspectRatio: 0.75, // Adjusted aspect ratio
                     ),
-                    itemCount: videoState.videos?.length,
+                    itemCount: videoState.videos.length,
                     itemBuilder: (context, index) {
-                      final video = videoState.videos?[index];
-                      return _buildVideoCard(video!, index);
+                      final video = videoState.videos[index];
+                      return _buildVideoCard(video, index);
                     },
                   ),
                 ),

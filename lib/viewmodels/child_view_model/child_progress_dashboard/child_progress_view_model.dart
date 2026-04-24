@@ -53,8 +53,9 @@ class ChildProgressViewModel extends StateNotifier<ChildProgressState> {
         Color color = Colors.blue;
         String type = item['type'] ?? 'Unknown';
 
-        if (type == 'Quiz') color = const Color(0xFF9C27B0);
-        else if (type == 'STEM') color = const Color(0xFF2196F3);
+        if (type == 'Quiz') {
+          color = const Color(0xFF9C27B0);
+        } else if (type == 'STEM') color = const Color(0xFF2196F3);
         else if (type == 'QR Hunt') color = const Color(0xFF4CAF50);
         else if (type == 'Video') color = const Color(0xFFE53935);
         else if (type == 'Story') color = const Color(0xFFFF9800);

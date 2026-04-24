@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -77,7 +76,7 @@ class NotificationService {
   }
 
   Future<void> _saveToken(String token) async {
-    String? uid = _auth.currentUser?.uid ?? await SharedPreferencesHelper.instance.getUserId();
+    String? uid = _auth.currentUser?.uid ?? SharedPreferencesHelper.instance.getUserId();
     if (uid == null) return;
     await _firestore.collection('users').doc(uid).update({'fcmToken': token});
   }

@@ -103,7 +103,7 @@ class AuthRepo {
   /// Logic: Performs Google Auth then exchanges the result for a Custom Token from the backend.
   Future<UserModel?> sendTokenOfGoogle(String role) async {
     final googleUser = await AuthService.authInstance.continueWithGoogle();
-    String safeName = googleUser.displayName ?? googleUser.email.split('@')[0];
+    String safeName = googleUser.displayName;
 
     final requestBody = {
       'idToken': googleUser.idToken,

@@ -32,7 +32,7 @@ class StoryModel {
   final List<String> tags;
   final bool isSensitive;
   final String category;
-  final String ageGroup; // NEW: Added for age classification logic
+  final String ageGroup; // Flexible for dynamic ranges from service
 
   StoryModel({
     required this.id,
@@ -50,7 +50,7 @@ class StoryModel {
     this.tags = const [],
     this.isSensitive = false,
     required this.category,
-    required this.ageGroup, // Now required in constructor
+    required this.ageGroup,
   }) : userLikes = userLikes ?? {};
 
   Map<String, dynamic> toMap() {
@@ -70,7 +70,7 @@ class StoryModel {
       'tags': tags,
       'isSensitive': isSensitive,
       'category': category,
-      'ageGroup': ageGroup, // Save classification
+      'ageGroup': ageGroup,
     };
   }
 
@@ -96,7 +96,7 @@ class StoryModel {
       tags: List<String>.from(map['tags'] ?? []),
       isSensitive: map['isSensitive'] ?? false,
       category: map['category'] ?? 'General',
-      ageGroup: map['ageGroup'] ?? '6 - 8', // Load classification
+      ageGroup: map['ageGroup'] ?? '6 - 8',
     );
   }
 

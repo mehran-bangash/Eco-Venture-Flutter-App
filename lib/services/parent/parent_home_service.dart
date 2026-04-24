@@ -125,8 +125,9 @@ class ParentHomeService {
 
   void _updateSkills(Map<String, int> skills, String category) {
     final c = category.toLowerCase();
-    if (c.contains('science') || c.contains('ecosystem')) skills['Science'] = (skills['Science']! + 1);
-    else if (c.contains('math')) skills['Math'] = (skills['Math']! + 1);
+    if (c.contains('science') || c.contains('ecosystem')) {
+      skills['Science'] = (skills['Science']! + 1);
+    } else if (c.contains('math')) skills['Math'] = (skills['Math']! + 1);
     else if (c.contains('tech') || c.contains('eng')) skills['Creativity'] = (skills['Creativity']! + 1);
     else skills['Logic'] = (skills['Logic']! + 1);
   }

@@ -1,8 +1,8 @@
 import '../../models/qr_hunt_model.dart';
-import '../../services/teacher/firebase_teacher_database.dart';
+import '../../services/teacher/teacher_all_module_service.dart';
 
 class TeacherTreasureHuntRepository {
-  final FirebaseTeacherDatabase _db;
+  final TeacherAllModuleService _db;
 
   TeacherTreasureHuntRepository(this._db);
 
