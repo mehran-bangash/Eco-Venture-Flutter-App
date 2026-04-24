@@ -1,7 +1,7 @@
 class ParentSafetySettingsModel {
   final double dailyLimitHours;
   final String bedtimeStart; // "21:00"
-  final String bedtimeEnd;   // "07:00"
+  final String bedtimeEnd; // "07:00"
   final bool enableBreakReminders;
 
   // NEW: App Pause State
@@ -66,7 +66,8 @@ class ParentSafetySettingsModel {
       enableBreakReminders: enableBreakReminders ?? this.enableBreakReminders,
       isAppPaused: isAppPaused ?? this.isAppPaused, // Added
       blockScaryContent: blockScaryContent ?? this.blockScaryContent,
-      blockSocialInteraction: blockSocialInteraction ?? this.blockSocialInteraction,
+      blockSocialInteraction:
+          blockSocialInteraction ?? this.blockSocialInteraction,
       educationalOnlyMode: educationalOnlyMode ?? this.educationalOnlyMode,
     );
   }
