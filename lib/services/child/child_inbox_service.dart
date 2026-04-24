@@ -24,11 +24,10 @@ class ChildInboxService{
     8,
   );
 
-  ChildSafetyService() {
-    print("🔹 [$_id] SAFETY SERVICE: Created (Singleton)");
+  ChildInboxService() {
+    print("✅ SAFETY SERVICE: Started and Monitoring Auth");
     _monitorAuthState();
   }
-
   void _monitorAuthState() {
     _authSubscription?.cancel();
 
@@ -80,18 +79,20 @@ class ChildInboxService{
   Future<void> _initTimer(String uid) async {
     final prefs = await SharedPreferences.getInstance();
     final todayStr = DateTime.now().toIso8601String().split('T')[0];
-    final lastDate = prefs.getString(_keyUsageDate) ?? "";
-    int minutes = 0;
 
-    if (lastDate != todayStr) {
+    // FIX 2: Get the last saved minutes immediately
+    int minutes = prefs.getInt(_keyUsageMinutes) ?? 0;
+
+    if (prefs.getString(_keyUsageDate) != todayStr) {
+      minutes = 0;
       await prefs.setString(_keyUsageDate, todayStr);
       await prefs.setInt(_keyUsageMinutes, 0);
-    } else {
-      minutes = prefs.getInt(_keyUsageMinutes) ?? 0;
     }
 
-    if (!_usageController.isClosed) _usageController.add(minutes);
-    _syncToFirebase(uid, minutes);
+    // FIX 3: Push the correct 'minutes' to the stream instantly before the timer starts
+    if (!_usageController.isClosed) {
+      _usageController.add(minutes);
+    }
 
     _usageTimer?.cancel();
     _usageTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
@@ -99,10 +100,8 @@ class ChildInboxService{
       if (!_usageController.isClosed) _usageController.add(minutes);
       await prefs.setInt(_keyUsageMinutes, minutes);
       _syncToFirebase(uid, minutes);
-      print("⏱️ [$_id] TICK: $minutes mins");
     });
   }
-
   Future<void> _syncToFirebase(String uid, int minutes) async {
     try {
       await _database.ref('child_usage_stats/$uid/daily').set(minutes);
