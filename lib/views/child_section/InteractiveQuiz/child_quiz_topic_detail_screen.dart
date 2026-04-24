@@ -275,11 +275,13 @@ class _ChildQuizTopicDetailScreenState
           );
         } else {
           if (topic.id == null) return;
+          // Change this block in your code:
           context.goNamed(
             'quizQuestionScreen',
             extra: QuizQuestionArgs(
               level: level,
               topicId: topic.id!,
+              topicName: widget.topic.topicName, // Add this line here
               category: topic.category,
             ),
           );

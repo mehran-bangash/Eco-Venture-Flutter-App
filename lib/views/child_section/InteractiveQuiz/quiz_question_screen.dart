@@ -11,11 +11,13 @@ import '../../../viewmodels/child_view_model/interactive_quiz/child_quiz_provide
 class QuizQuestionArgs {
   final QuizLevelModel level;
   final String topicId;
+  final String topicName; // Add this
   final String category;
 
   QuizQuestionArgs({
     required this.level,
     required this.topicId,
+    required this.topicName, // Add this
     required this.category,
   });
 }
@@ -101,9 +103,11 @@ class _QuizQuestionScreenState extends ConsumerState<QuizQuestionScreen>
     final bool isPassed = percentage >= level.passingPercentage;
 
     print("DEBUG: Finishing Quiz. Topic: $topicId, Order: ${level.order}, Pass: $isPassed");
+    final String topicName = widget.args.topicName;
 
     final progress = ChildQuizProgressModel(
       topicId: topicId,
+      topicName: topicName, // Add the variable that holds your topic's title here
       category: category,
       levelOrder: level.order,
       correctAnswers: correctAnswersCount,
