@@ -1,11 +1,10 @@
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Import Riverpod
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../viewmodels/child_view_model/stem_challgengs/child_stem_challenges_view_model_provider.dart';
-import 'widgets/challenge_card.dart'; // Ensure this path is correct
+import 'widgets/challenge_card.dart';
 import '../../../../models/stem_challenge_read_model.dart';
 
 class ScienceScreen extends ConsumerStatefulWidget {
@@ -15,10 +14,11 @@ class ScienceScreen extends ConsumerStatefulWidget {
   ConsumerState<ScienceScreen> createState() => _ScienceScreenState();
 }
 
-class _ScienceScreenState extends ConsumerState<ScienceScreen> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _progressAnimation;
+class _ScienceScreenState extends ConsumerState<ScienceScreen> {
   final String _category = 'Science';
+  final Color _primaryDark = const Color(0xFF0F172A);
+  final Color _subText = const Color(0xFF64748B);
+  final Color _themeColor = Colors.cyan;
 
   @override
   void initState() {
@@ -26,16 +26,6 @@ class _ScienceScreenState extends ConsumerState<ScienceScreen> with SingleTicker
     Future.microtask(() {
       ref.read(childStemChallengesViewModelProvider.notifier).loadChallenges(_category);
     });
-
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2));
-    _progressAnimation = Tween<double>(begin: 0, end: 0).animate(_controller);
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   @override
@@ -45,7 +35,6 @@ class _ScienceScreenState extends ConsumerState<ScienceScreen> with SingleTicker
     final teacherList = state.teacherChallenges;
     final submissions = state.submissions;
 
-    // Calculate Stats (Combined)
     int totalScore = 0;
     int completedCount = 0;
     final allChallenges = [...adminList, ...teacherList];
@@ -59,90 +48,180 @@ class _ScienceScreenState extends ConsumerState<ScienceScreen> with SingleTicker
     }
 
     double progressValue = allChallenges.isEmpty ? 0.0 : (completedCount / allChallenges.length);
-    _progressAnimation = Tween<double>(begin: 0, end: progressValue).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _controller.forward(from: 0);
 
-    return PopScope(
-        canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if(!didPop){
-          context.goNamed('bottomNavChild');
-        }
-      },
-      child: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(colors: [Color(0xFF020024), Color(0xFF090979), Color(0xFF00D4FF)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-          ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ... (Header and Score Box UI - Same as previous) ...
-                  // Omitted for brevity - paste Header/Score code here
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStatsHeader(totalScore, completedCount, progressValue),
+            SizedBox(height: 3.h),
+            
+            // 3.C: Global Labs Section
+            _buildSectionTitle("Global Labs 🌍", subtitle: "World-class challenges from EcoVenture Experts"),
+            _buildGrid(adminList, submissions, isTeacher: false),
 
-                  // 1. GLOBAL CHALLENGES
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2.h),
-                    child: Text("Global Labs 🌍", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.bold, color: Colors.white)),
-                  ),
-                  _buildGrid(adminList, submissions),
-
-                  // 2. CLASSROOM CHALLENGES (Only if available)
-                  if (teacherList.isNotEmpty) ...[
-                    SizedBox(height: 4.h),
-                    Divider(color: Colors.white24),
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 2.h),
-                      child: Text("My Classroom 🏫", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.bold, color: Colors.amberAccent)),
-                    ),
-                    _buildGrid(teacherList, submissions, isTeacher: true),
-                  ]
-                ],
+            if (teacherList.isNotEmpty) ...[
+              SizedBox(height: 5.h),
+              // 3.C: My Classroom Section
+              _buildSectionTitle("My Classroom 🏫", 
+                subtitle: "Direct missions from your teacher", 
+                color: Colors.orange.shade700,
+                icon: Icons.school_rounded,
+                iconColor: Colors.amber,
               ),
-            ),
-          ),
+              _buildGrid(teacherList, submissions, isTeacher: true),
+            ],
+            SizedBox(height: 5.h),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildGrid(List<StemChallengeReadModel> list, Map<String, dynamic> submissions, {bool isTeacher = false}) {
-    if (list.isEmpty) return Center(child: Text("No challenges found.", style: TextStyle(color: Colors.white54)));
+  Widget _buildStatsHeader(int score, int completed, double progress) {
+    return Container(
+      padding: EdgeInsets.all(5.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: _themeColor.withOpacity(0.2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: _themeColor.withOpacity(0.12),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+            spreadRadius: -5,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Category Score", style: GoogleFonts.poppins(color: _subText, fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                  Text("$score XP", style: GoogleFonts.poppins(color: _primaryDark, fontSize: 20.sp, fontWeight: FontWeight.w900)),
+                ],
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                decoration: BoxDecoration(
+                  color: _themeColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text("$completed Completed", style: GoogleFonts.poppins(color: _themeColor, fontSize: 13.sp, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+          SizedBox(height: 2.h),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 10,
+              backgroundColor: const Color(0xFFF1F5F9),
+              valueColor: AlwaysStoppedAnimation<Color>(_themeColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, {String? subtitle, Color? color, IconData? icon, Color? iconColor}) {
+    return Padding(
+      padding: EdgeInsets.only(left: 1.w, bottom: 2.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (icon != null) Icon(icon, color: iconColor ?? color ?? _primaryDark, size: 20.sp),
+              if (icon != null) SizedBox(width: 2.w),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.w800,
+                  color: color ?? _primaryDark,
+                ),
+              ),
+            ],
+          ),
+          if (subtitle != null)
+            Text(
+              subtitle,
+              style: GoogleFonts.poppins(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+                color: _subText,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGrid(List<StemChallengeReadModel> list, Map<String, dynamic> submissions, {required bool isTeacher}) {
+    if (list.isEmpty) {
+      return Container(
+        padding: EdgeInsets.symmetric(vertical: 4.h),
+        width: double.infinity,
+        child: Center(child: Text("No challenges found.", style: GoogleFonts.poppins(color: _subText))),
+      );
+    }
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 4.w, mainAxisSpacing: 3.h, childAspectRatio: 0.7),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 4.w,
+        mainAxisSpacing: 3.h,
+        childAspectRatio: 0.75,
+      ),
       itemCount: list.length,
       itemBuilder: (context, index) {
         final challenge = list[index];
         final submission = submissions[challenge.id];
 
-        String statusText = "";
-        Color statusColor = Colors.transparent;
+        String? statusText;
+        Color? statusColor;
         if (submission != null) {
-          if (submission.status == 'pending') { statusText = "Pending"; statusColor = Colors.orange; }
-          else if (submission.status == 'approved') { statusText = "Done"; statusColor = Colors.green; }
+          if (submission.status == 'pending') {
+            statusText = "Pending";
+            statusColor = Colors.orange;
+          } else if (submission.status == 'approved') {
+            statusText = "Done";
+            statusColor = Colors.green;
+          } else if (submission.status == 'rejected') {
+            statusText = "Redo";
+            statusColor = Colors.red;
+          }
         }
 
-        return Stack(
-          children: [
-            ChallengeCard(
-              onTap: () => context.goNamed('scienceInstructionScreen', extra: challenge),
-              title: challenge.title,
-              imageUrl: challenge.imageUrl ?? "assets/images/science_placeholder.png",
-              difficulty: challenge.difficulty,
-              rewardPoints: challenge.points,
-              backgroundGradient: const [Color(0xFF003973), Color(0xFFE5E5BE)],
-              buttonGradient: const [Color(0xFF00C9A7), Color(0xFF92FE9D)],
-            ),
-            if (statusText.isNotEmpty)
-              Positioned(top: 8, right: 8, child: Container(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(12)), child: Text(statusText, style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold)))),
-          ],
+        return ChallengeCard(
+          onTap: () => context.goNamed('scienceInstructionScreen', extra: challenge),
+          title: challenge.title,
+          imageUrl: challenge.imageUrl ?? "",
+          difficulty: challenge.difficulty,
+          rewardPoints: challenge.points,
+          themeColor: _themeColor,
+          statusText: statusText,
+          statusColor: statusColor,
+          isTeacher: isTeacher,
         );
       },
     );

@@ -19,10 +19,19 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
+  // Professional Theme Palette
+  final Color _primaryDark = const Color(0xFF0F172A);
+  final Color _subText = const Color(0xFF64748B);
+  final Color _accentCyan = const Color(0xFF06B6D4);
+  final Color _accentAmber = const Color(0xFFF59E0B);
+
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 1))..forward();
+    _controller = AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 800)
+    )..forward();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(videoViewModelProvider.notifier).fetchVideos();
@@ -36,140 +45,79 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
   }
 
   Widget _buildVideoCard(VideoModel video, int index) {
+    final bool isTeacher = video.createdBy == 'teacher';
+    final Color accentColor = isTeacher ? _accentAmber : _accentCyan;
+
     final fade = CurvedAnimation(
       parent: _controller,
       curve: Interval((0.1 * index).clamp(0.0, 1.0), 1.0, curve: Curves.easeOutCubic),
     );
 
-    // Check origin
-    final bool isTeacher = video.createdBy == 'teacher';
-
     return FadeTransition(
       opacity: fade,
-      child: GestureDetector(
-        onTap: () => context.goNamed('videoPlayScreen', extra: video),
-        child: AnimatedScale(
-          scale: 1.0,
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOut,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withOpacity(0.2),
-                      Colors.white.withOpacity(0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    // Highlight border for Teacher content
-                    color: isTeacher ? Colors.amber.withOpacity(0.5) : Colors.white.withOpacity(0.25),
-                    width: isTeacher ? 1.5 : 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+      child: SlideTransition(
+        position: Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(fade),
+        child: GestureDetector(
+          onTap: () => context.goNamed('videoPlayScreen', extra: video),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              // HIGH-DEPTH BORDER
+              border: Border.all(color: accentColor.withOpacity(0.3), width: 2),
+              boxShadow: [
+                // DEEP FLOATING SHADOW
+                BoxShadow(
+                  color: accentColor.withOpacity(0.12),
+                  blurRadius: 25,
+                  spreadRadius: -2,
+                  offset: const Offset(0, 12),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // THUMBNAIL SECTION
+                Stack(
                   children: [
-                    // --- IMAGE + BADGE STACK ---
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                          child: Image.network(
-                            video.thumbnailUrl ?? "",
-                            height: 13.h, // Increased slightly
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              height: 13.h,
-                              color: Colors.grey[300],
-                              child: Center(child: Icon(Icons.broken_image, color: Colors.redAccent, size: 10.w)),
-                            ),
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(height: 13.h, color: Colors.black12);
-                            },
-                          ),
+                    ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                      child: Image.network(
+                        video.thumbnailUrl ?? "",
+                        height: 12.h,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          height: 12.h,
+                          color: Colors.grey.shade100,
+                          child: Icon(Icons.broken_image_rounded, color: _subText, size: 25.sp),
                         ),
-
-                        // --- BADGE ---
-                        Positioned(
-                          top: 8, left: 8,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.4.h),
-                            decoration: BoxDecoration(
-                              color: isTeacher ? Colors.amber : Colors.cyan,
-                              borderRadius: BorderRadius.circular(8),
-                              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(isTeacher ? Icons.school : Icons.public, size: 12.sp, color: Colors.black87),
-                                SizedBox(width: 1.w),
-                                Text(
-                                  isTeacher ? "Classroom" : "Global",
-                                  style: GoogleFonts.poppins(
-                                      fontSize: 10.sp,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.black87
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-
-                    /// Content
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.h),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    // CATEGORY BADGE
+                    Positioned(
+                      top: 10, left: 10,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.4.h),
+                        decoration: BoxDecoration(
+                          color: accentColor,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
+                            Icon(isTeacher ? Icons.stars_rounded : Icons.public_rounded, size: 13.sp, color: Colors.white),
+                            SizedBox(width: 1.w),
                             Text(
-                              video.title,
-                              style: GoogleFonts.poppins(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white.withOpacity(0.95),
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const Spacer(),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  video.duration,
-                                  style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.white70, fontWeight: FontWeight.w500),
-                                ),
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 1),
-                                  ),
-                                  padding: const EdgeInsets.all(6),
-                                  child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                                ),
-                              ],
+                              isTeacher ? "CLASS" : "GLOBAL",
+                              style: GoogleFonts.poppins(fontSize: 10.sp, fontWeight: FontWeight.w800, color: Colors.white),
                             ),
                           ],
                         ),
@@ -177,29 +125,52 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
                     ),
                   ],
                 ),
-              ),
+
+                // CONTENT SECTION
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.all(3.5.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          video.title,
+                          style: GoogleFonts.poppins(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w800,
+                            color: _primaryDark,
+                            height: 1.1,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const Spacer(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              video.duration,
+                              style: GoogleFonts.poppins(fontSize: 11.sp, color: _subText, fontWeight: FontWeight.w600),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: accentColor.withOpacity(0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.play_arrow_rounded, color: accentColor, size: 18.sp),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _animatedBackground({required Widget child}) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (_, __) {
-        return Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF283593), Color(0xFF6A1B9A)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: child,
-        );
-      },
     );
   }
 
@@ -208,40 +179,43 @@ class _VideoScreenState extends ConsumerState<VideoScreen>
     final videoState = ref.watch(videoViewModelProvider);
 
     return Scaffold(
-      body: _animatedBackground(
-        child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(left: 2.w, bottom: 2.h),
-                  child: Text(
-                    "Explore Nature Videos",
-                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w600),
+      backgroundColor: Colors.transparent, // Background handled by parent container
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(left: 1.w, bottom: 2.h, top: 1.h),
+                child: Text(
+                  "Explore Nature Videos",
+                  style: GoogleFonts.poppins(
+                      color: _primaryDark,
+                      fontSize: 17.5.sp,
+                      fontWeight: FontWeight.w800
                   ),
                 ),
-                Expanded(
-                  child: videoState.isLoading
-                      ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                      : GridView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 3.w,
-                      mainAxisSpacing: 2.h,
-                      childAspectRatio: 0.75, // Adjusted aspect ratio
-                    ),
-                    itemCount: videoState.videos.length,
-                    itemBuilder: (context, index) {
-                      final video = videoState.videos[index];
-                      return _buildVideoCard(video, index);
-                    },
+              ),
+              Expanded(
+                child: videoState.isLoading
+                    ? Center(child: CircularProgressIndicator(color: _accentCyan))
+                    : GridView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 4.w,
+                    mainAxisSpacing: 2.5.h,
+                    childAspectRatio: 0.78,
                   ),
+                  itemCount: videoState.videos.length,
+                  itemBuilder: (context, index) {
+                    final video = videoState.videos[index];
+                    return _buildVideoCard(video, index);
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

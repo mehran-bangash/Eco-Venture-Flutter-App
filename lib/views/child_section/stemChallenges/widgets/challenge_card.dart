@@ -8,12 +8,14 @@ class ChallengeCard extends StatelessWidget {
   final String difficulty;
   final int rewardPoints;
   final VoidCallback onTap;
-  final List<Color> backgroundGradient;
-  final List<Color> buttonGradient;
+  final Color themeColor;
 
-  // --- NEW: Status Parameters ---
+  // Status Parameters
   final String? statusText;
   final Color? statusColor;
+  
+  // High-Depth Separation
+  final bool isTeacher;
 
   const ChallengeCard({
     super.key,
@@ -22,179 +24,190 @@ class ChallengeCard extends StatelessWidget {
     required this.difficulty,
     required this.rewardPoints,
     required this.onTap,
-    required this.backgroundGradient,
-    required this.buttonGradient,
+    required this.themeColor,
     this.statusText,
     this.statusColor,
+    this.isTeacher = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final bool isNetworkImage = imageUrl.startsWith('http');
+    final Color primaryDark = const Color(0xFF0F172A);
+    final Color subText = const Color(0xFF64748B);
+    
+    // High-Depth Colors
+    final Color glowColor = isTeacher ? Colors.amber : Colors.blue;
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: backgroundGradient,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(30),
+          // 3.B: High-Depth Borders (2.0 width, 30% opacity)
+          border: Border.all(
+            color: themeColor.withOpacity(0.3),
+            width: 2.0,
           ),
-        ],
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.1),
-          width: 1,
+          // 3.B: Dual-Shadow System
+          boxShadow: [
+            // Shadow 1: Deep & Soft
+            BoxShadow(
+              color: themeColor.withOpacity(0.12),
+              blurRadius: 30,
+              offset: const Offset(0, 15),
+              spreadRadius: -5,
+            ),
+            // Shadow 2: Tight & Dark
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          splashColor: Colors.white.withValues(alpha: 0.1),
-          highlightColor: Colors.white.withValues(alpha: 0.05),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
           child: Stack(
-            // Wrap content in Stack to overlay Badge
             children: [
+              // 3.C: Inner Glow Background
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment.bottomRight,
+                      radius: 1.5,
+                      colors: [
+                        glowColor.withOpacity(0.05),
+                        Colors.white,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Image Section (Flex 5) ---
+                  // Image Section
                   Expanded(
                     flex: 5,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(20),
-                      ),
-                      child: Container(
-                        width: double.infinity,
-                        color: Colors.black12,
-                        child: isNetworkImage
-                            ? Image.network(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                loadingBuilder:
-                                    (context, child, loadingProgress) {
-                                      if (loadingProgress == null) return child;
-                                      return Center(
-                                        child: SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white70,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Center(
-                                    child: Icon(
-                                      Icons.image_not_supported_rounded,
-                                      color: Colors.white38,
-                                      size: 30,
-                                    ),
-                                  );
-                                },
-                              )
-                            : Image.asset(
-                                imageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Center(
-                                      child: Icon(
-                                        Icons.error,
-                                        color: Colors.red,
-                                      ),
-                                    ),
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: themeColor.withOpacity(0.05),
+                          ),
+                          child: isNetworkImage
+                              ? Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildPlaceholder(themeColor),
+                                )
+                              : Image.asset(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildPlaceholder(themeColor),
+                                ),
+                        ),
+                        
+                        // 3.C: Source Badge (Global vs Classroom)
+                        Positioned(
+                          top: 12,
+                          left: 12,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 0.4.h),
+                            decoration: BoxDecoration(
+                              color: (isTeacher ? Colors.amber : Colors.blue).withOpacity(0.9),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(isTeacher ? Icons.school_rounded : Icons.public_rounded, 
+                                  color: Colors.white, size: 12.sp),
+                                SizedBox(width: 1.w),
+                                Text(
+                                  isTeacher ? "CLASSROOM" : "GLOBAL",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 10.sp,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Status Badge
+                        if (statusText != null && statusText!.isNotEmpty)
+                          Positioned(
+                            top: 12,
+                            right: 12,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.5.h),
+                              decoration: BoxDecoration(
+                                color: statusColor ?? Colors.orange,
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
                               ),
-                      ),
+                              child: Text(
+                                statusText!,
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
 
-                  // --- Content Section (Flex 4) ---
+                  // Content Section
                   Expanded(
                     flex: 4,
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(3.w, 1.2.h, 3.w, 1.h),
+                      padding: EdgeInsets.all(3.w),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Title
                           Text(
                             title,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.poppins(
-                              fontSize: 13.5.sp,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w800,
+                              color: primaryDark,
                               height: 1.2,
                             ),
                           ),
-
-                          // Badges Row
                           Row(
                             children: [
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 2.w,
-                                  vertical: 0.4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.25),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.white10),
-                                ),
-                                child: Text(
-                                  difficulty,
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontSize: 12.5.sp,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
+                              _buildSmallBadge(difficulty, themeColor.withOpacity(0.1), themeColor),
                               const Spacer(),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 2.w,
-                                  vertical: 0.4.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.amber.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.deepOrange.withValues(
-                                      alpha: 0.5,
+                              Row(
+                                children: [
+                                  Icon(Icons.auto_awesome_rounded, color: Colors.amber.shade600, size: 14.sp),
+                                  SizedBox(width: 1.w),
+                                  Text(
+                                    "$rewardPoints",
+                                    style: GoogleFonts.poppins(
+                                      color: primaryDark,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 13.sp,
                                     ),
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.star_rounded,
-                                      color: Colors.amber,
-                                      size: 14.sp,
-                                    ),
-                                    SizedBox(width: 1.w),
-                                    Text(
-                                      "$rewardPoints",
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.black,
-                                        fontWeight: FontWeight.w700,
-                                        fontSize: 12.sp,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                ],
                               ),
                             ],
                           ),
@@ -202,67 +215,34 @@ class ChallengeCard extends StatelessWidget {
                       ),
                     ),
                   ),
-
-                  // --- Bottom Decoration ---
-                  Container(
-                    height: 0.6.h,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: buttonGradient),
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(20),
-                      ),
-                    ),
-                  ),
                 ],
               ),
-
-              // --- STATUS BADGE (Overlay) ---
-              if (statusText != null && statusText!.isNotEmpty)
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 3.w,
-                      vertical: 0.5.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor ?? Colors.orange,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white, width: 1.5),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          statusText == 'Done'
-                              ? Icons.check_circle
-                              : Icons.access_time_filled,
-                          color: Colors.white,
-                          size: 12.sp,
-                        ),
-                        SizedBox(width: 1.w),
-                        Text(
-                          statusText!,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(Color color) {
+    return Center(
+      child: Icon(Icons.science_rounded, color: color.withOpacity(0.3), size: 30.sp),
+    );
+  }
+
+  Widget _buildSmallBadge(String text, Color bgColor, Color textColor) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.4.h),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.poppins(
+          color: textColor,
+          fontSize: 11.sp,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

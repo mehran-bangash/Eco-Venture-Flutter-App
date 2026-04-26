@@ -14,14 +14,11 @@ class MathScreen extends ConsumerStatefulWidget {
   ConsumerState<MathScreen> createState() => _MathScreenState();
 }
 
-class _MathScreenState extends ConsumerState<MathScreen>
-    with SingleTickerProviderStateMixin {
-
-  late AnimationController _controller;
-  late Animation<double> _progressAnimation;
-
-  // Exact Firebase Key
-  final String _category = 'Mathematics';
+class _MathScreenState extends ConsumerState<MathScreen> {
+  final String _category = 'Math';
+  final Color _primaryDark = const Color(0xFF0F172A);
+  final Color _subText = const Color(0xFF64748B);
+  final Color _themeColor = Colors.green;
 
   @override
   void initState() {
@@ -29,31 +26,15 @@ class _MathScreenState extends ConsumerState<MathScreen>
     Future.microtask(() {
       ref.read(childStemChallengesViewModelProvider.notifier).loadChallenges(_category);
     });
-
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2),
-    );
-    _progressAnimation = Tween<double>(begin: 0, end: 0).animate(_controller);
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final stemState = ref.watch(childStemChallengesViewModelProvider);
+    final state = ref.watch(childStemChallengesViewModelProvider);
+    final adminList = state.adminChallenges;
+    final teacherList = state.teacherChallenges;
+    final submissions = state.submissions;
 
-    // Split Lists
-    final adminList = stemState.adminChallenges;
-    final teacherList = stemState.teacherChallenges;
-    final submissions = stemState.submissions;
-
-    // Calculate Stats (Combined)
     int totalScore = 0;
     int completedCount = 0;
     final allChallenges = [...adminList, ...teacherList];
@@ -68,190 +49,177 @@ class _MathScreenState extends ConsumerState<MathScreen>
 
     double progressValue = allChallenges.isEmpty ? 0.0 : (completedCount / allChallenges.length);
 
-    _progressAnimation = Tween<double>(begin: 0, end: progressValue).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _controller.forward(from: 0);
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildStatsHeader(totalScore, completedCount, progressValue),
+            SizedBox(height: 3.h),
+            
+            _buildSectionTitle("Logic Quests 📐", subtitle: "Sharpen your mind with global math puzzles"),
+            _buildGrid(adminList, submissions, isTeacher: false),
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if(!didPop){
-          context.goNamed('bottomNavChild');
-        }
-      },
-      child: Scaffold(
-        body: Container(
-          // Math Gradient (Deep Indigo/Purple)
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Color(0xFF1A237E), // Deep Indigo
-                Color(0xFF311B92), // Deep Purple
-                Color(0xFF4A148C), // Dark Purple
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 3.h),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- Header Section ---
-                  Container(
-                    padding: EdgeInsets.all(4.w),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF7C4DFF), Color(0xFF512DA8)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.deepPurple.withOpacity(0.4),
-                          blurRadius: 18,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            InkWell(
-                              onTap: () => context.pop(),
-                              child: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 24),
-                            ),
-                            SizedBox(width: 2.w),
-                            const Icon(Icons.calculate_rounded, color: Colors.white, size: 34),
-                            SizedBox(width: 3.w),
-                            Expanded(
-                              child: Text(
-                                "Math Magic",
-                                style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18.sp),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 2.h),
-
-                        // Progress Bar
-                        AnimatedBuilder(
-                          animation: _progressAnimation,
-                          builder: (context, child) {
-                            return ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: LinearProgressIndicator(
-                                value: _progressAnimation.value,
-                                minHeight: 1.4.h,
-                                backgroundColor: Colors.white.withOpacity(0.2),
-                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF69F0AE)),
-                              ),
-                            );
-                          },
-                        ),
-                        SizedBox(height: 1.h),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            "${(progressValue * 100).toInt()}% Completed",
-                            style: GoogleFonts.poppins(color: Colors.white70, fontWeight: FontWeight.w500, fontSize: 14.sp),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: 3.h),
-
-                  // --- Total Score Box ---
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.8.h),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(color: Colors.white24, width: 1.2),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.star_rounded, color: Colors.amberAccent, size: 28),
-                        SizedBox(width: 2.w),
-                        Text(
-                          "Total Score: $totalScore",
-                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16.sp),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  SizedBox(height: 3.h),
-
-                  // --- 1. GLOBAL CHALLENGES ---
-                  Padding(
-                    padding: EdgeInsets.symmetric(vertical: 2.h),
-                    child: Text("Global Challenges 🌍", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.bold, color: Colors.white)),
-                  ),
-                  _buildGrid(adminList, submissions),
-
-                  // --- 2. CLASSROOM CHALLENGES ---
-                  if (teacherList.isNotEmpty) ...[
-                    SizedBox(height: 4.h),
-                    Divider(color: Colors.white24),
-                    Padding(
-                      padding: EdgeInsets.symmetric(vertical: 2.h),
-                      child: Text("My Classroom 🏫", style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.bold, color: Colors.amberAccent)),
-                    ),
-                    _buildGrid(teacherList, submissions),
-                  ]
-                ],
+            if (teacherList.isNotEmpty) ...[
+              SizedBox(height: 5.h),
+              _buildSectionTitle("My Classroom 🏫", 
+                subtitle: "Calculations assigned by your teacher", 
+                color: Colors.orange.shade700,
+                icon: Icons.school_rounded,
+                iconColor: Colors.amber,
               ),
-            ),
-          ),
+              _buildGrid(teacherList, submissions, isTeacher: true),
+            ],
+            SizedBox(height: 5.h),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildGrid(List<StemChallengeReadModel> list, Map<String, dynamic> submissions) {
-    if (list.isEmpty) return Center(child: Text("No challenges available.", style: TextStyle(color: Colors.white54)));
+  Widget _buildStatsHeader(int score, int completed, double progress) {
+    return Container(
+      padding: EdgeInsets.all(5.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: _themeColor.withOpacity(0.2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: _themeColor.withOpacity(0.12),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+            spreadRadius: -5,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Category Score", style: GoogleFonts.poppins(color: _subText, fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                  Text("$score XP", style: GoogleFonts.poppins(color: _primaryDark, fontSize: 20.sp, fontWeight: FontWeight.w900)),
+                ],
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                decoration: BoxDecoration(
+                  color: _themeColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text("$completed Completed", style: GoogleFonts.poppins(color: _themeColor, fontSize: 13.sp, fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+          SizedBox(height: 2.h),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 10,
+              backgroundColor: const Color(0xFFF1F5F9),
+              valueColor: AlwaysStoppedAnimation<Color>(_themeColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, {String? subtitle, Color? color, IconData? icon, Color? iconColor}) {
+    return Padding(
+      padding: EdgeInsets.only(left: 1.w, bottom: 2.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (icon != null) Icon(icon, color: iconColor ?? color ?? _primaryDark, size: 20.sp),
+              if (icon != null) SizedBox(width: 2.w),
+              Text(
+                title,
+                style: GoogleFonts.poppins(
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.w800,
+                  color: color ?? _primaryDark,
+                ),
+              ),
+            ],
+          ),
+          if (subtitle != null)
+            Text(
+              subtitle,
+              style: GoogleFonts.poppins(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w500,
+                color: _subText,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGrid(List<StemChallengeReadModel> list, Map<String, dynamic> submissions, {required bool isTeacher}) {
+    if (list.isEmpty) {
+      return Container(
+        padding: EdgeInsets.symmetric(vertical: 4.h),
+        width: double.infinity,
+        child: Center(child: Text("No challenges found.", style: GoogleFonts.poppins(color: _subText))),
+      );
+    }
 
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 4.w, mainAxisSpacing: 3.h, childAspectRatio: 0.7),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 4.w,
+        mainAxisSpacing: 3.h,
+        childAspectRatio: 0.75,
+      ),
       itemCount: list.length,
       itemBuilder: (context, index) {
         final challenge = list[index];
         final submission = submissions[challenge.id];
 
-        String statusText = "";
-        Color statusColor = Colors.transparent;
+        String? statusText;
+        Color? statusColor;
         if (submission != null) {
-          if (submission.status == 'pending') { statusText = "Pending"; statusColor = Colors.orange; }
-          else if (submission.status == 'approved') { statusText = "Done"; statusColor = Colors.green; }
+          if (submission.status == 'pending') {
+            statusText = "Pending";
+            statusColor = Colors.orange;
+          } else if (submission.status == 'approved') {
+            statusText = "Done";
+            statusColor = Colors.green;
+          } else if (submission.status == 'rejected') {
+            statusText = "Redo";
+            statusColor = Colors.red;
+          }
         }
 
-        return Stack(
-          children: [
-            ChallengeCard(
-              onTap: () => context.goNamed('mathInstructionScreen', extra: challenge),
-              title: challenge.title,
-              imageUrl: challenge.imageUrl ?? "assets/images/math_placeholder.png",
-              difficulty: challenge.difficulty,
-              rewardPoints: challenge.points,
-              backgroundGradient: const [Color(0xFF4527A0), Color(0xFF7E57C2)],
-              buttonGradient: const [Color(0xFFB388FF), Color(0xFF651FFF)],
-            ),
-            if (statusText.isNotEmpty)
-              Positioned(top: 8, right: 8, child: Container(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(12)), child: Text(statusText, style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold)))),
-          ],
+        return ChallengeCard(
+          onTap: () => context.goNamed('mathInstructionScreen', extra: challenge),
+          title: challenge.title,
+          imageUrl: challenge.imageUrl ?? "",
+          difficulty: challenge.difficulty,
+          rewardPoints: challenge.points,
+          themeColor: _themeColor,
+          statusText: statusText,
+          statusColor: statusColor,
+          isTeacher: isTeacher,
         );
       },
     );
