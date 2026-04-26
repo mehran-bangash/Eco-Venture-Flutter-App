@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // 1. Riverpod
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../models/qr_hunt_read_model.dart';
-import '../../../viewmodels/child_view_model/qr_hunt/child_qr_hunt_provider.dart'; // Adjust path if needed
+import '../../../viewmodels/child_view_model/qr_hunt/child_qr_hunt_provider.dart';
 
 class TreasureHuntScreen extends ConsumerStatefulWidget {
   const TreasureHuntScreen({super.key});
@@ -17,27 +17,20 @@ class TreasureHuntScreen extends ConsumerStatefulWidget {
 class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
     with TickerProviderStateMixin {
   late final AnimationController _masterController;
-  late final Animation<Color?> _gradientAnimation;
+
+  // Professional Theme Colors
+  final Color _primaryDark = const Color(0xFF0F172A);
+  final Color _subText = const Color(0xFF64748B);
+  final Color _accentCyan = const Color(0xFF06B6D4);
+  final Color _bgSurface = const Color(0xFFF8FAFC);
 
   @override
   void initState() {
     super.initState();
-
-    // FIX: Removed 'loadHunts()' call.
-    // The ViewModel automatically loads data in its constructor via _initStreams().
-
     _masterController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 6),
+      duration: const Duration(seconds: 15),
     )..repeat();
-
-    _gradientAnimation =
-        ColorTween(
-          begin: const Color(0xFF4361EE),
-          end: const Color(0xFF3A0CA3),
-        ).animate(
-          CurvedAnimation(parent: _masterController, curve: Curves.easeInOut),
-        );
   }
 
   @override
@@ -46,20 +39,12 @@ class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
     super.dispose();
   }
 
-  Alignment _bgAlignment(double t) {
-    final dx = 0.5 + 0.3 * math.sin(t * 2 * math.pi);
-    final dy = 0.3 + 0.2 * math.cos(t * 3 * math.pi);
-    return Alignment(dx, dy);
-  }
-
   @override
   Widget build(BuildContext context) {
-    // 2. Watch State (This triggers the ViewModel init logic automatically)
     final state = ref.watch(childQrHuntViewModelProvider);
     final hunts = state.hunts;
     final progressMap = state.progressMap;
 
-    // 3. Calculate Stats
     int totalScore = 0;
     int totalHuntsCompleted = 0;
     int totalCluesFound = 0;
@@ -75,7 +60,6 @@ class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
       }
     }
 
-    // Avoid division by zero
     double progressPercent = totalCluesAvailable == 0
         ? 0.0
         : (totalCluesFound / totalCluesAvailable);
@@ -86,100 +70,84 @@ class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
         if (!didPop) context.goNamed('bottomNavChild');
       },
       child: Scaffold(
+        backgroundColor: _bgSurface,
         body: AnimatedBuilder(
           animation: _masterController,
           builder: (context, _) {
             final t = _masterController.value;
             return Stack(
               children: [
-                // Animated Background (Preserved)
+                // 1. Background Gradient & Blobs
                 Container(
                   width: 100.w,
                   height: 100.h,
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: _bgAlignment(t),
-                      radius: 1.8,
-                      colors: [
-                        _gradientAnimation.value!,
-                        _gradientAnimation.value!.withValues(alpha: 0.8),
-                        const Color(0xFF1a1f35),
-                      ],
-                      stops: const [0.1, 0.5, 1.0],
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFFF1F5F9), Colors.white, Color(0xFFF8FAFC)],
                     ),
                   ),
                 ),
+                Positioned(
+                  top: -5.h,
+                  right: -15.w,
+                  child: _buildGlowBlob(Colors.cyan.withOpacity(0.12), 70.w, t, 0),
+                ),
+                Positioned(
+                  bottom: 5.h,
+                  left: -20.w,
+                  child: _buildGlowBlob(Colors.indigo.withOpacity(0.08), 80.w, t, 2),
+                ),
+                Positioned(
+                  top: 30.h,
+                  left: 10.w,
+                  child: _buildGlowBlob(Colors.amber.withOpacity(0.08), 50.w, t, 4),
+                ),
 
-                // Floating Particles (Preserved)
                 CustomPaint(
                   painter: ParticlePainter(time: t),
                   size: Size(100.w, 100.h),
                 ),
 
-                // Main Content
+                // 2. Main Content
                 SafeArea(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 5.w,
-                      vertical: 2.h,
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildTopBar(),
-                          SizedBox(height: 3.h),
-
+                          SizedBox(height: 2.h),
                           _buildHeroSection(t),
-                          SizedBox(height: 4.h),
-
-                          // Stats Row (Real Data)
+                          SizedBox(height: 3.h),
                           _buildStatsRow(t, totalScore, totalHuntsCompleted),
+                          SizedBox(height: 3.h),
+                          _buildProgressSection(t, totalCluesFound, totalCluesAvailable, progressPercent),
                           SizedBox(height: 4.h),
-
-                          // Progress (Real Data)
-                          _buildProgressSection(
-                            t,
-                            totalCluesFound,
-                            totalCluesAvailable,
-                            progressPercent,
-                          ),
-                          SizedBox(height: 4.h),
-
-                          // Available Hunts List
-                          Text(
-                            "Available Quests",
-                            style: GoogleFonts.poppins(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          Padding(
+                            padding: EdgeInsets.only(left: 1.w),
+                            child: Text(
+                              "Available Quests",
+                              style: GoogleFonts.poppins(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                                color: _primaryDark,
+                              ),
                             ),
                           ),
                           SizedBox(height: 2.h),
-
                           if (state.isLoading)
-                            const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            )
+                            const Center(child: CircularProgressIndicator(color: Color(0xFF06B6D4)))
                           else if (hunts.isEmpty)
-                            Center(
-                              child: Text(
-                                "No Hunts Available",
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white70,
-                                ),
-                              ),
-                            )
+                            Center(child: Text("No Hunts Available", style: GoogleFonts.poppins(color: _subText)))
                           else
                             ...hunts.map((hunt) {
-                              // Get progress for this specific hunt
                               final prog = progressMap[hunt.id];
                               return _buildHuntCard(hunt, prog);
                             }),
-
                           SizedBox(height: 6.h),
                         ],
                       ),
@@ -194,173 +162,101 @@ class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
     );
   }
 
-  // --- WIDGETS ---
+  Widget _buildGlowBlob(Color color, double size, double t, double phase) {
+    return Transform.translate(
+      offset: Offset(30 * math.sin(t * 2 * math.pi + phase),
+          30 * math.cos(t * 2 * math.pi + phase)),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: [color, color.withOpacity(0)]),
+        ),
+      ),
+    );
+  }
 
   Widget _buildTopBar() {
     return Row(
       children: [
-        _buildGlassButton(
-          icon: Icons.arrow_back_ios_new_rounded,
-          onTap: () => context.goNamed('bottomNavChild'),
+        IconButton(
+          onPressed: () => context.goNamed('bottomNavChild'),
+          icon: Container(
+            padding: EdgeInsets.all(2.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+            ),
+            child: Icon(Icons.arrow_back_ios_new_rounded, color: _primaryDark, size: 17.sp),
+          ),
         ),
         const Spacer(),
         Container(
           padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.white.withValues(alpha: 0.25),
-                Colors.white.withValues(alpha: 0.15),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+            color: Colors.white.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
           child: Row(
             children: [
-              Icon(
-                Icons.auto_awesome_rounded,
-                color: Colors.yellow.shade400,
-                size: 18.sp,
-              ),
+              Icon(Icons.auto_awesome_rounded, color: Colors.amber.shade600, size: 18.sp),
               SizedBox(width: 2.w),
               Text(
                 "Treasure Hunt",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
+                style: GoogleFonts.poppins(color: _primaryDark, fontSize: 16.sp, fontWeight: FontWeight.w700),
               ),
             ],
           ),
         ),
         const Spacer(),
-        _buildUserAvatar(),
+        Container(
+          width: 12.w,
+          height: 12.w,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(colors: [Color(0xFF06B6D4), Color(0xFF3B82F6)]),
+            boxShadow: [BoxShadow(color: const Color(0xFF3B82F6).withOpacity(0.2), blurRadius: 10)],
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: const Icon(Icons.person, color: Colors.white),
+        ),
       ],
     );
   }
 
-  Widget _buildGlassButton({
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 12.w,
-        height: 12.w,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Icon(icon, color: Colors.white, size: 18.sp),
-      ),
-    );
-  }
-
-  Widget _buildUserAvatar() {
-    return Container(
-      width: 12.w,
-      height: 12.w,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade500, Colors.purple.shade500],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.purple.withValues(alpha: 0.4),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: const Icon(
-        Icons.person,
-        color: Colors.white,
-      ), // Placeholder for avatar image
-    );
-  }
-
   Widget _buildHeroSection(double t) {
-    return Transform.translate(
-      offset: Offset(0, 10 * math.sin(t * 2 * math.pi)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: EdgeInsets.all(2.w),
+    return Column(
+      children: [
+        Transform.translate(
+          offset: Offset(0, 8 * math.sin(t * 2 * math.pi)),
+          child: Container(
+            width: 22.w,
+            height: 22.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(
-                colors: [Colors.yellow.shade500, Colors.orange.shade500],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withValues(alpha: 0.6),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
+              gradient: LinearGradient(colors: [Colors.amber.shade400, Colors.orange.shade500]),
+              boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 25, spreadRadius: 5)],
             ),
-            child: Icon(
-              Icons.auto_awesome_rounded,
-              color: Colors.white,
-              size: 24.sp,
-            ),
+            child: Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 28.sp),
           ),
-          SizedBox(height: 2.h),
-          Text(
-            "Adventure Awaits!",
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 24.sp,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withValues(alpha: 0.3),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 1.h),
-          Text(
-            "Discover hidden treasures and unlock mysteries",
-            style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w500,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 2,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+        ),
+        SizedBox(height: 2.h),
+        Text(
+          "Adventure Awaits!",
+          style: GoogleFonts.poppins(color: _primaryDark, fontSize: 22.sp, fontWeight: FontWeight.w800),
+          textAlign: TextAlign.center,
+        ),
+        SizedBox(height: 0.5.h),
+        Text(
+          "Discover hidden treasures and unlock mysteries",
+          style: GoogleFonts.poppins(color: _subText, fontSize: 13.sp, fontWeight: FontWeight.w500),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 
@@ -368,128 +264,69 @@ class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _buildAnimatedStatCard(
-          label: "Points",
-          value: "$score",
-          icon: Icons.monetization_on_rounded,
-          color: Colors.yellow.shade600,
-          t: t,
-          delay: 0,
-        ),
-        _buildAnimatedStatCard(
-          label: "Hunts",
-          value: "$huntsDone",
-          icon: Icons.map_rounded,
-          color: Colors.blue.shade400,
-          t: t,
-          delay: 0.2,
-        ),
-        _buildAnimatedStatCard(
-          label: "Rank",
-          value: "1", // Mock rank for now
-          icon: Icons.trending_up_rounded,
-          color: Colors.green.shade500,
-          t: t,
-          delay: 0.4,
-        ),
+        _buildStatCard(label: "Points", value: "$score", icon: Icons.monetization_on_rounded, color: Colors.amber.shade400, t: t, delay: 0),
+        _buildStatCard(label: "Hunts", value: "$huntsDone", icon: Icons.map_rounded, color: Colors.blue.shade400, t: t, delay: 0.2),
+        _buildStatCard(label: "Rank", value: "1", icon: Icons.trending_up_rounded, color: Colors.green.shade500, t: t, delay: 0.4),
       ],
     );
   }
 
-  Widget _buildAnimatedStatCard({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-    required double t,
-    required double delay,
-  }) {
-    final animationValue = (t + delay) % 1.0;
-    final scale = 1.0 + 0.05 * math.sin(animationValue * 2 * math.pi);
-
-    return Transform.scale(
-      scale: scale,
-      child: Container(
-        width: 28.w,
-        padding: EdgeInsets.symmetric(vertical: 2.h, horizontal: 2.w),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Colors.white.withValues(alpha: 0.25),
-              Colors.white.withValues(alpha: 0.15),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+  Widget _buildStatCard({required String label, required String value, required IconData icon, required Color color, required double t, required double delay}) {
+    return Container(
+      width: 28.w,
+      padding: EdgeInsets.symmetric(vertical: 2.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+              color: color.withOpacity(0.12),
+              blurRadius: 25,
+              spreadRadius: -2,
+              offset: const Offset(0, 10)
           ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(2.w),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: color.withValues(alpha: 0.3),
-              ),
-              child: Icon(icon, color: color, size: 18.sp),
-            ),
-            SizedBox(height: 1.h),
-            Text(
-              value,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            SizedBox(height: 0.5.h),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 4)
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(2.w),
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color.withOpacity(0.12)),
+            child: Icon(icon, color: color, size: 18.sp),
+          ),
+          SizedBox(height: 1.h),
+          Text(value, style: GoogleFonts.poppins(color: _primaryDark, fontSize: 17.sp, fontWeight: FontWeight.w800)),
+          Text(label, style: GoogleFonts.poppins(color: _subText, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }
 
-  Widget _buildProgressSection(
-    double t,
-    int found,
-    int total,
-    double progress,
-  ) {
+  Widget _buildProgressSection(double t, int found, int total, double progress) {
     return Container(
       width: 100.w,
-      padding: EdgeInsets.all(4.w),
+      padding: EdgeInsets.all(5.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withValues(alpha: 0.25),
-            Colors.white.withValues(alpha: 0.15),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: const Color(0xFF06B6D4).withOpacity(0.2), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+              color: const Color(0xFF06B6D4).withOpacity(0.12),
+              blurRadius: 35,
+              spreadRadius: 2,
+              offset: const Offset(0, 15)
+          ),
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 5)
           ),
         ],
       ),
@@ -498,106 +335,51 @@ class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "Total Progress",
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              Text("Total Progress", style: GoogleFonts.poppins(color: _primaryDark, fontSize: 16.sp, fontWeight: FontWeight.w800)),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.5.h),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.green.shade500, Colors.blue.shade500],
-                  ),
+                  gradient: const LinearGradient(colors: [Color(0xFF10B981), Color(0xFF3B82F6)]),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text(
-                  "$found/$total Clues",
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                child: Text("$found/$total Clues", style: GoogleFonts.poppins(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w700)),
               ),
             ],
           ),
-          SizedBox(height: 3.h),
+          SizedBox(height: 2.5.h),
           Stack(
             children: [
-              Container(
-                height: 2.h,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+              Container(height: 1.5.h, decoration: BoxDecoration(color: const Color(0xFFF1F5F9), borderRadius: BorderRadius.circular(15))),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 1000),
-                height: 2.h,
-                width: 90.w * progress,
+                height: 1.5.h,
+                width: 80.w * progress,
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.yellow.shade500, Colors.orange.shade500],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.orange.withValues(alpha: 0.8),
-                      blurRadius: 10,
-                      spreadRadius: 2,
-                    ),
-                  ],
+                  gradient: LinearGradient(colors: [Colors.amber.shade400, Colors.orange.shade500]),
+                  borderRadius: BorderRadius.circular(15),
+                  boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 8)],
                 ),
               ),
             ],
           ),
-          SizedBox(height: 2.h),
+          SizedBox(height: 2.5.h),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(total, (index) {
                 final isFound = index < found;
-                final pulse = 1.0 + 0.1 * math.sin(t * 4 * math.pi + index);
-                return Transform.scale(
-                  scale: isFound ? pulse : 1.0,
-                  child: Container(
-                    width: 10.w,
-                    height: 10.w,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isFound
-                          ? Colors.orange.shade500
-                          : Colors.white.withValues(alpha: 0.3), // More opaque
-                      boxShadow: isFound
-                          ? [
-                              BoxShadow(
-                                color: Colors.orange.withValues(alpha:
-                                  0.6,
-                                ), // Brighter glow
-                                blurRadius: 8,
-                                spreadRadius: 2,
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: isFound
-                        ? Icon(
-                            Icons.check_rounded,
-                            color: Colors.white,
-                            size: 14.sp,
-                          )
-                        : Icon(
-                            Icons.lock_rounded,
-                            color: Colors.white70,
-                            size: 12.sp,
-                          ),
+                return Container(
+                  margin: EdgeInsets.only(right: 2.w),
+                  width: 9.w,
+                  height: 9.w,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isFound ? Colors.orange.shade500 : const Color(0xFFF1F5F9),
+                    border: Border.all(color: isFound ? Colors.orange.shade200 : const Color(0xFFE2E8F0)),
                   ),
+                  child: Icon(isFound ? Icons.check_rounded : Icons.lock_rounded,
+                      color: isFound ? Colors.white : const Color(0xFFCBD5E1), size: 14.sp),
                 );
               }),
             ),
@@ -607,7 +389,6 @@ class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
     );
   }
 
-  // --- NEW: HUNT CARD (Replaces old clue card) ---
   Widget _buildHuntCard(QrHuntReadModel hunt, QrHuntProgressModel? progress) {
     bool isTeacher = hunt.createdBy == 'teacher';
     bool isStarted = progress != null;
@@ -615,122 +396,74 @@ class _TreasureHuntScreenState extends ConsumerState<TreasureHuntScreen>
     int cluesFound = progress?.currentClueIndex ?? 0;
 
     return GestureDetector(
-      onTap: () {
-        // Navigate to Play Screen (You will create this next)
-        context.goNamed('qrHuntPlayScreen', extra: hunt);
-      },
+      onTap: () => context.goNamed('qrHuntPlayScreen', extra: hunt),
       child: Container(
-        margin: EdgeInsets.only(bottom: 2.h),
+        margin: EdgeInsets.only(bottom: 2.5.h),
         padding: EdgeInsets.all(5.w),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Colors.orange.shade500.withValues(alpha: 0.9),
-              Colors.red.shade500.withValues(alpha: 0.9),
-            ],
+            colors: [Colors.orange.shade500, Colors.red.shade600],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(25),
+          borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+                color: Colors.orange.withOpacity(0.45),
+                blurRadius: 25,
+                spreadRadius: -2,
+                offset: const Offset(0, 12)
+            ),
+            BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 8,
+                offset: const Offset(0, 4)
             ),
           ],
-          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                // Badge: Global vs Classroom
                 Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 3.w,
-                    vertical: 0.8.h,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.6.h),
                   decoration: BoxDecoration(
-                    color: isTeacher
-                        ? Colors.yellow
-                        : Colors.white.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(15),
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     isTeacher ? "Classroom Task 🏫" : "Global Quest 🌍",
-                    style: GoogleFonts.poppins(
-                      color: isTeacher ? Colors.black : Colors.white,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: GoogleFonts.poppins(color: Colors.white, fontSize: 11.5.sp, fontWeight: FontWeight.w800),
                   ),
                 ),
                 const Spacer(),
-                Icon(
-                  isCompleted ? Icons.check_circle : Icons.flash_on_rounded,
-                  color: Colors.white,
-                  size: 18.sp,
-                ),
+                Icon(isCompleted ? Icons.check_circle : Icons.flash_on_rounded, color: Colors.white, size: 18.sp),
               ],
             ),
             SizedBox(height: 2.h),
+            Text(hunt.title, style: GoogleFonts.poppins(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w800)),
+            SizedBox(height: 0.5.h),
             Text(
-              hunt.title,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w800,
-                height: 1.2,
-              ),
-            ),
-            SizedBox(height: 1.h),
-            Text(
-              isCompleted
-                  ? "Mission Complete!"
-                  : (isStarted
-                        ? "Found: $cluesFound / ${hunt.clues.length} Clues"
-                        : "Tap to Start Adventure"),
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w500,
-              ),
+              isCompleted ? "Mission Complete!" : (isStarted ? "Found: $cluesFound / ${hunt.clues.length} Clues" : "Tap to Start Adventure"),
+              style: GoogleFonts.poppins(color: Colors.white.withOpacity(0.9), fontSize: 12.sp, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 3.h),
-            // Scan Button Visual
             Container(
               width: 100.w,
               height: 6.h,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5, offset: const Offset(0, 3))],
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.qr_code_scanner_rounded,
-                    color: Colors.orange.shade500,
-                    size: 20.sp,
-                  ),
+                  Icon(Icons.qr_code_scanner_rounded, color: Colors.orange.shade500, size: 19.sp),
                   SizedBox(width: 2.w),
-                  Text(
-                    isCompleted ? "Replay" : "Scan & Play",
-                    style: GoogleFonts.poppins(
-                      color: Colors.orange.shade500,
-                      fontSize: 15.sp,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  Text(isCompleted ? "Replay" : "Scan & Play",
+                      style: GoogleFonts.poppins(color: Colors.orange.shade500, fontSize: 15.sp, fontWeight: FontWeight.w800)),
                 ],
               ),
             ),
@@ -747,18 +480,16 @@ class ParticlePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final random = math.Random(42);
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.15); // Brighter particles
-    for (int i = 0; i < 15; i++) {
+    final paint = Paint()..color = const Color(0xFFE2E8F0).withOpacity(0.2);
+    for (int i = 0; i < 12; i++) {
       final x = (random.nextDouble() * size.width);
       final y = (random.nextDouble() * size.height);
-      final radius = 1 + random.nextDouble() * 3;
-      final driftX = math.sin(time * 2 + i) * 10;
-      final driftY = math.cos(time * 3 + i) * 10;
-      canvas.drawCircle(Offset(x + driftX, y + driftY), radius, paint);
+      final radius = 2 + random.nextDouble() * 3;
+      final dx = math.sin(time * 2 + i) * 10;
+      final dy = math.cos(time * 3 + i) * 10;
+      canvas.drawCircle(Offset(x + dx, y + dy), radius, paint);
     }
   }
-
   @override
   bool shouldRepaint(covariant ParticlePainter oldDelegate) => true;
 }

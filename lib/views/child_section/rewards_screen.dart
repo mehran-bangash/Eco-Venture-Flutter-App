@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-// Provider
+// Providers
 import '../../../viewmodels/child_view_model/rewards/child_rewards_provider.dart';
 import '../../viewmodels/child_view_model/rewards/child_rewards_state.dart';
 
@@ -18,24 +18,22 @@ class RewardsScreen extends ConsumerStatefulWidget {
 
 class _RewardsScreenState extends ConsumerState<RewardsScreen>
     with TickerProviderStateMixin {
-
   late final AnimationController _masterController;
-  late final Animation<Color?> _gradientAnimation;
   late final Animation<double> _shineAnimation;
-
   final List<AnimationController> _badgeControllers = [];
+
+  // Consistent Colors from Home Screen
+  final Color _primaryDark = const Color(0xFF1E293B);
+  final Color _subText = const Color(0xFF64748B);
+  final Color _accentCyan = const Color(0xFF22D3EE);
 
   @override
   void initState() {
     super.initState();
 
-    // REMOVED: Manual call to loadRealRewardsData() to fix undefined method error.
-    // The ViewModel should handle initialization internally or via the provider creation.
-    // If you need to refresh, ensure the method exists in ViewModel or use ref.refresh(provider).
-
     _masterController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 8),
+      duration: const Duration(seconds: 15),
     )..repeat();
 
     _shineAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -45,65 +43,81 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
       ),
     );
 
-    _gradientAnimation = ColorTween(
-      begin: const Color(0xFF667eea),
-      end: const Color(0xFF764ba2),
-    ).animate(CurvedAnimation(
-      parent: _masterController,
-      curve: Curves.easeInOut,
-    ));
-
-    for (int i = 0; i < 6; i++) {
+    // Prepare controllers for the badges
+    for (int i = 0; i < 5; i++) {
       final badgeController = AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 800),
       );
       _badgeControllers.add(badgeController);
-      Future.delayed(Duration(milliseconds: 200 + i * 100), () {
+      Future.delayed(Duration(milliseconds: 300 + i * 150), () {
         if (mounted) badgeController.forward();
       });
     }
   }
+
   void _showBadgeDialog(BuildContext context, String badgeName) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Must tap button
+      barrierDismissible: false,
       builder: (ctx) => Dialog(
         backgroundColor: Colors.transparent,
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Glow
             Container(
-              width: 300, height: 300,
+              width: 300,
+              height: 300,
               decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Colors.amber.withOpacity(0.5),
-                  boxShadow: [BoxShadow(color: Colors.amber, blurRadius: 50, spreadRadius: 10)]
-              ),
+                  color: Colors.amber.withOpacity(0.3),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.amber.withOpacity(0.5),
+                        blurRadius: 60,
+                        spreadRadius: 20)
+                  ]),
             ),
-            // Card
             Container(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.amber, width: 3)
-              ),
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.1), blurRadius: 20)
+                  ]),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.workspace_premium, color: Colors.amber, size: 60),
-                  SizedBox(height: 10),
-                  Text("CONGRATULATIONS!", style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 22, color: Colors.orange)),
-                  SizedBox(height: 10),
-                  Text("You earned the badge:", style: GoogleFonts.poppins(color: Colors.black54)),
-                  Text(badgeName, style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.purple)),
-                  SizedBox(height: 20),
+                  const Icon(Icons.workspace_premium,
+                      color: Colors.amber, size: 70),
+                  const SizedBox(height: 16),
+                  Text("CONGRATULATIONS!",
+                      style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20.sp,
+                          color: Colors.orange)),
+                  const SizedBox(height: 8),
+                  Text("You earned the badge:",
+                      style: GoogleFonts.poppins(color: _subText)),
+                  Text(badgeName,
+                      style: GoogleFonts.poppins(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22.sp,
+                          color: _primaryDark)),
+                  const SizedBox(height: 24),
                   ElevatedButton(
                     onPressed: () => Navigator.pop(ctx),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    child: Text("Awesome!", style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 12),
+                    ),
+                    child: const Text("Awesome!",
+                        style: TextStyle(color: Colors.white)),
                   )
                 ],
               ),
@@ -128,9 +142,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
     final state = ref.watch(childRewardsViewModelProvider);
     ref.listen(childRewardsViewModelProvider, (previous, next) {
       if (next.newEarnedBadge != null) {
-        // Show Celebration Dialog
         _showBadgeDialog(context, next.newEarnedBadge!);
-        // Clear state so it doesn't show again on rebuild
         ref.read(childRewardsViewModelProvider.notifier).clearNotification();
       }
     });
@@ -141,28 +153,30 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
         if (!didPop) context.goNamed('bottomNavChild');
       },
       child: Scaffold(
+        backgroundColor: Colors.white,
         body: AnimatedBuilder(
           animation: _masterController,
           builder: (context, _) {
             final t = _masterController.value;
             return Stack(
               children: [
-                // Premium Gradient Background
-                Container(
-                  width: 100.w,
-                  height: 100.h,
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment(0.3 + 0.2 * math.sin(t * 2), 0.4 + 0.1 * math.cos(t * 3)),
-                      radius: 2.0,
-                      colors: [
-                        _gradientAnimation.value!,
-                        _gradientAnimation.value!.withOpacity(0.7),
-                        const Color(0xFF0f172a),
-                      ],
-                      stops: const [0.0, 0.6, 1.0],
-                    ),
-                  ),
+                Positioned(
+                  top: -10.h,
+                  right: -10.w,
+                  child: _buildGlowBlob(
+                      Colors.cyan.withOpacity(0.15), 60.w, t, 0),
+                ),
+                Positioned(
+                  bottom: 10.h,
+                  left: -20.w,
+                  child: _buildGlowBlob(
+                      Colors.pink.withOpacity(0.1), 80.w, t, 2),
+                ),
+                Positioned(
+                  top: 30.h,
+                  right: 10.w,
+                  child: _buildGlowBlob(
+                      Colors.amber.withOpacity(0.1), 40.w, t, 4),
                 ),
 
                 CustomPaint(
@@ -172,24 +186,20 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
 
                 SafeArea(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                    padding:
+                    EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
                     child: SingleChildScrollView(
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         children: [
                           _buildPremiumAppBar(),
-                          SizedBox(height: 3.h),
-
+                          SizedBox(height: 2.h),
                           _buildAchievementHero(t, state),
-                          SizedBox(height: 4.h),
-
+                          SizedBox(height: 3.h),
                           _buildStatsDashboard(t, state),
-                          SizedBox(height: 4.h),
-
+                          SizedBox(height: 3.h),
                           _buildLevelProgression(t, state),
                           SizedBox(height: 4.h),
-
-                          // Passes REAL state to the builder
                           _buildRewardCategories(t, state),
                           SizedBox(height: 6.h),
                         ],
@@ -205,46 +215,82 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
     );
   }
 
+  Widget _buildGlowBlob(Color color, double size, double t, double phase) {
+    return Transform.translate(
+      offset: Offset(20 * math.sin(t * 2 * math.pi + phase),
+          20 * math.cos(t * 2 * math.pi + phase)),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color, color.withOpacity(0)],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildPremiumAppBar() {
     return Row(
       children: [
         GestureDetector(
           onTap: () => context.goNamed('bottomNavChild'),
           child: Container(
-            width: 12.w, height: 12.w,
+            width: 12.w,
+            height: 12.w,
             decoration: BoxDecoration(
-              gradient: LinearGradient(colors: [Colors.white.withOpacity(0.2), Colors.white.withOpacity(0.1)]),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))],
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4))
+              ],
+              border: Border.all(color: Colors.grey.shade100),
             ),
-            child: Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18.sp),
+            child: Icon(Icons.arrow_back_ios_new_rounded,
+                color: _primaryDark, size: 18.sp),
           ),
         ),
         const Spacer(),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
+          padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
           decoration: BoxDecoration(
-            gradient: LinearGradient(colors: [Colors.purpleAccent.withOpacity(0.3), Colors.blueAccent.withOpacity(0.2)]),
+            color: Colors.white.withOpacity(0.8),
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            border: Border.all(color: Colors.grey.shade200),
           ),
           child: Row(
             children: [
-              Icon(Icons.workspace_premium_rounded, color: Colors.amber.shade300, size: 20.sp),
+              Icon(Icons.workspace_premium_rounded,
+                  color: Colors.amber.shade600, size: 18.sp),
               SizedBox(width: 2.w),
-              Text("Achievements", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700, letterSpacing: 0.8)),
+              Text("Achievements",
+                  style: GoogleFonts.poppins(
+                      color: _primaryDark,
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w700)),
             ],
           ),
         ),
         const Spacer(),
         Container(
-          width: 12.w, height: 12.w,
+          width: 12.w,
+          height: 12.w,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            gradient: LinearGradient(colors: [Colors.cyan.shade400, Colors.blue.shade600]),
-            boxShadow: [BoxShadow(color: Colors.blue.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 6))],
-            border: Border.all(color: Colors.white.withOpacity(0.3), width: 2),
+            gradient: LinearGradient(
+                colors: [Colors.cyan.shade300, Colors.blue.shade500]),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.blue.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4))
+            ],
+            border: Border.all(color: Colors.white, width: 2),
           ),
           child: const Icon(Icons.person, color: Colors.white),
         ),
@@ -253,44 +299,39 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
   }
 
   Widget _buildAchievementHero(double t, ChildRewardsState state) {
-    return Transform.translate(
-      offset: Offset(0, 10 * math.sin(t * 2 * math.pi)),
-      child: Column(
-        children: [
-          Container(
-            width: 25.w, height: 25.w,
+    return Column(
+      children: [
+        Transform.translate(
+          offset: Offset(0, 8 * math.sin(t * 2 * math.pi)),
+          child: Container(
+            width: 22.w,
+            height: 22.w,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(colors: [Colors.amber.shade400, Colors.orange.shade400]),
-              boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.6), blurRadius: 30, spreadRadius: 8)],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Transform.rotate(
-                  angle: _shineAnimation.value * 2 * math.pi,
-                  child: Container(
-                    width: 25.w, height: 25.w,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(colors: [Colors.white.withOpacity(0.4), Colors.transparent], stops: const [0.0, 0.7]),
-                    ),
-                  ),
-                ),
-                Icon(Icons.emoji_events_rounded, color: Colors.white, size: 32.sp),
+              gradient: LinearGradient(
+                  colors: [Colors.amber.shade400, Colors.orange.shade500]),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.orange.withOpacity(0.3),
+                    blurRadius: 25,
+                    spreadRadius: 5)
               ],
             ),
+            child: Icon(Icons.emoji_events_rounded,
+                color: Colors.white, size: 30.sp),
           ),
-          SizedBox(height: 3.h),
-          Text("Level ${state.currentLevel} Explorer!", style: GoogleFonts.poppins(fontSize: 24.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1.0)),
-          SizedBox(height: 1.h),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 1.5.h),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white.withOpacity(0.2))),
-            child: Text("Keep exploring to unlock more amazing rewards!", style: GoogleFonts.poppins(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
-          ),
-        ],
-      ),
+        ),
+        SizedBox(height: 2.h),
+        Text("Level ${state.currentLevel} Explorer!",
+            style: GoogleFonts.poppins(
+                fontSize: 22.sp,
+                fontWeight: FontWeight.w800,
+                color: _primaryDark)),
+        SizedBox(height: 0.5.h),
+        Text("Keep exploring to unlock more rewards!",
+            style: GoogleFonts.poppins(
+                color: _subText, fontSize: 12.sp, fontWeight: FontWeight.w500)),
+      ],
     );
   }
 
@@ -299,21 +340,56 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
       width: 100.w,
       padding: EdgeInsets.all(5.w),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Colors.white.withOpacity(0.15), Colors.white.withOpacity(0.05)]),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 25, offset: const Offset(0, 12))],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(35),
+        // MATCHING REFERENCE: Cyan Border + Elevation
+        border: Border.all(color: Colors.cyan.withOpacity(0.3), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.cyan.withOpacity(0.08),
+            blurRadius: 30,
+            spreadRadius: 2,
+            offset: const Offset(0, 15),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Text("Your Progress", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700)),
+          Text("Your Progress",
+              style: GoogleFonts.poppins(
+                  color: _primaryDark,
+                  fontSize: 17.sp,
+                  fontWeight: FontWeight.w800)),
           SizedBox(height: 3.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildDashboardStat(icon: Icons.monetization_on_rounded, value: "${state.totalPoints}", label: "Coins", color: Colors.yellow.shade400, t: t, delay: 0.0),
-              _buildDashboardStat(icon: Icons.workspace_premium_rounded, value: "${state.badgesEarned}", label: "Badges", color: Colors.cyan.shade400, t: t, delay: 0.3),
-              _buildDashboardStat(icon: Icons.trending_up_rounded, value: "${state.currentLevel}", label: "Level", color: Colors.green.shade400, t: t, delay: 0.6),
+              _buildDashboardStat(
+                  icon: Icons.monetization_on_rounded,
+                  value: "${state.totalPoints}",
+                  label: "Coins",
+                  color: Colors.amber.shade400,
+                  t: t,
+                  delay: 0.0),
+              _buildDashboardStat(
+                  icon: Icons.workspace_premium_rounded,
+                  value: "${state.badgesEarned}",
+                  label: "Badges",
+                  color: Colors.cyan.shade400,
+                  t: t,
+                  delay: 0.3),
+              _buildDashboardStat(
+                  icon: Icons.trending_up_rounded,
+                  value: "${state.currentLevel}",
+                  label: "Level",
+                  color: Colors.green.shade400,
+                  t: t,
+                  delay: 0.6),
             ],
           ),
         ],
@@ -321,34 +397,57 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
     );
   }
 
-  Widget _buildDashboardStat({required IconData icon, required String value, required String label, required Color color, required double t, required double delay}) {
-    final pulse = 1.0 + 0.05 * math.sin((t + delay) * 4 * math.pi);
-    return Transform.scale(
-      scale: pulse,
-      child: Column(
-        children: [
-          Container(
-            width: 16.w, height: 16.w,
-            decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [color.withOpacity(0.8), color.withOpacity(0.4)]), boxShadow: [BoxShadow(color: color.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 6))]),
-            child: Icon(icon, color: Colors.white, size: 20.sp),
-          ),
-          SizedBox(height: 1.h),
-          Text(value, style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w800)),
-          Text(label, style: GoogleFonts.poppins(color: Colors.white70, fontSize: 11.sp, fontWeight: FontWeight.w600)),
-        ],
-      ),
+  Widget _buildDashboardStat(
+      {required IconData icon,
+        required String value,
+        required String label,
+        required Color color,
+        required double t,
+        required double delay}) {
+    return Column(
+      children: [
+        Container(
+          width: 15.w,
+          height: 15.w,
+          decoration: BoxDecoration(
+              shape: BoxShape.circle, color: color.withOpacity(0.12)),
+          child: Icon(icon, color: color, size: 20.sp),
+        ),
+        SizedBox(height: 1.2.h),
+        Text(value,
+            style: GoogleFonts.poppins(
+                color: _primaryDark,
+                fontSize: 17.sp,
+                fontWeight: FontWeight.w800)),
+        Text(label,
+            style: GoogleFonts.poppins(
+                color: _subText, fontSize: 11.sp, fontWeight: FontWeight.w600)),
+      ],
     );
   }
 
   Widget _buildLevelProgression(double t, ChildRewardsState state) {
     return Container(
       width: 100.w,
-      padding: EdgeInsets.all(5.w),
+      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.5.h),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Colors.purpleAccent.withOpacity(0.3), Colors.blueAccent.withOpacity(0.2)]),
-        borderRadius: BorderRadius.circular(25),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-        boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        // MATCHING REFERENCE: Amber/Yellow Border + Elevation
+        border: Border.all(color: Colors.amber.withOpacity(0.3), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.amber.withOpacity(0.08),
+            blurRadius: 30,
+            spreadRadius: 2,
+            offset: const Offset(0, 15),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,19 +455,44 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("XP Progress", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.w700)),
-              Text("${(state.xpProgress * 100).toInt()}%", style: GoogleFonts.poppins(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.w700)),
+              Row(
+                children: [
+                  Icon(Icons.bolt_rounded, color: _accentCyan, size: 18.sp),
+                  SizedBox(width: 1.5.w),
+                  Text("XP Progress",
+                      style: GoogleFonts.poppins(
+                          color: _primaryDark,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w800)),
+                ],
+              ),
+              Text("${(state.xpProgress * 100).toInt()}%",
+                  style: GoogleFonts.poppins(
+                      color: _accentCyan,
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w800)),
             ],
           ),
           SizedBox(height: 2.h),
           Stack(
             children: [
-              Container(height: 2.h, decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(15))),
+              Container(
+                  height: 1.5.h,
+                  decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(15))),
               AnimatedContainer(
-                duration: const Duration(milliseconds: 800),
-                height: 2.h,
-                width: 85.w * state.xpProgress,
-                decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.cyan.shade400, Colors.blue.shade400]), borderRadius: BorderRadius.circular(15), boxShadow: [BoxShadow(color: Colors.cyan.withOpacity(0.6), blurRadius: 10)]),
+                duration: const Duration(milliseconds: 1000),
+                height: 1.5.h,
+                width: 80.w * state.xpProgress,
+                decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                        colors: [_accentCyan, Colors.cyan.shade600]),
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                          color: _accentCyan.withOpacity(0.3), blurRadius: 10)
+                    ]),
               ),
             ],
           ),
@@ -377,17 +501,14 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
     );
   }
 
-  // --- UPDATED: NOW USES REAL DATA ---
   Widget _buildRewardCategories(double t, ChildRewardsState state) {
-    // Logic: Check if badge exists in recentAchievements
-    bool hasQuizBadge = state.recentAchievements.any((a) => a['title'] == 'Quiz Novice');
-    bool hasStemBadge = state.recentAchievements.any((a) => a['title'] == 'STEM Explorer');
-    bool hasQrBadge = state.recentAchievements.any((a) => a['title'] == 'Treasure Hunter');
-    // If we don't have a specific badge string yet, fallback to point check or similar logic from ViewModel
-    // Or if the user has > 0 points, give 'In Progress' credit visually
+    bool hasQuizBadge =
+    state.recentAchievements.any((a) => a['title'] == 'Quiz Novice');
+    bool hasStemBadge =
+    state.recentAchievements.any((a) => a['title'] == 'STEM Explorer');
+    bool hasQrBadge =
+    state.recentAchievements.any((a) => a['title'] == 'Treasure Hunter');
 
-    // FIX: Ensure visual progress is shown even if badge not fully earned
-    // If not earned but points exist, show some progress
     double quizProg = hasQuizBadge ? 1.0 : (state.totalPoints > 0 ? 0.4 : 0.0);
     double stemProg = hasStemBadge ? 1.0 : (state.totalPoints > 50 ? 0.3 : 0.0);
 
@@ -397,31 +518,42 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
         'icon': Icons.quiz_rounded,
         'progress': quizProg,
         'color': Colors.purple,
-        'stars': hasQuizBadge ? 'Earned!' : 'In Progress'
+        'borderColor': Colors.purple.withOpacity(0.3),
+        'status': hasQuizBadge ? 'Earned!' : 'In Progress'
       },
       {
         'title': 'STEM Star',
         'icon': Icons.science_rounded,
         'progress': stemProg,
         'color': Colors.blue,
-        'stars': hasStemBadge ? 'Earned!' : 'In Progress'
+        'borderColor': Colors.blue.withOpacity(0.3),
+        'status': hasStemBadge ? 'Earned!' : 'In Progress'
       },
       {
         'title': 'Media Whiz',
         'icon': Icons.play_circle_filled_rounded,
-        'progress': 0.6, // Mock progress for video as example
+        'progress': 0.6,
         'color': Colors.redAccent,
-        'stars': 'In Progress'
+        'borderColor': Colors.orange.withOpacity(0.3),
+        'status': 'In Progress'
       },
       {
         'title': 'Treasure Hunter',
         'icon': Icons.qr_code_scanner_rounded,
         'progress': hasQrBadge ? 1.0 : 0.2,
         'color': Colors.green,
-        'stars': hasQrBadge ? 'Earned!' : 'In Progress'
+        'borderColor': Colors.green.withOpacity(0.3),
+        'status': hasQrBadge ? 'Earned!' : 'In Progress'
       },
-      {'title': 'Nature Explorer', 'icon': Icons.forest_rounded, 'progress': 0.0, 'color': Colors.orange, 'stars': 'Soon', 'locked': true},
-      {'title': 'Game Pro', 'icon': Icons.sports_esports_rounded, 'progress': 0.0, 'color': Colors.pink, 'stars': 'Soon', 'locked': true},
+      {
+        'title': 'Game Pro',
+        'icon': Icons.sports_esports_rounded,
+        'progress': 0.0,
+        'color': Colors.pink,
+        'borderColor': Colors.pink.withOpacity(0.2),
+        'status': 'Soon',
+        'locked': true
+      },
     ];
 
     return Column(
@@ -429,71 +561,132 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
       children: [
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 2.w),
-          child: Text("Your Badges", style: GoogleFonts.poppins(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.w700)),
+          child: Text("Your Badges",
+              style: GoogleFonts.poppins(
+                  color: _primaryDark,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w700)),
         ),
         SizedBox(height: 2.h),
-
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 4.w, mainAxisSpacing: 3.h, childAspectRatio: 1.1),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 4.w,
+              mainAxisSpacing: 3.h,
+              childAspectRatio: 0.95),
           itemCount: categories.length,
           itemBuilder: (context, index) {
             final cat = categories[index];
             final bool isLocked = cat['locked'] ?? false;
             final color = isLocked ? Colors.grey : cat['color'] as Color;
-            final controller = (index < _badgeControllers.length) ? _badgeControllers[index] : _badgeControllers.last;
+            final borderColor = isLocked ? Colors.grey.shade200 : cat['borderColor'] as Color;
+            final controller = (index < _badgeControllers.length)
+                ? _badgeControllers[index]
+                : _badgeControllers.last;
 
             return AnimatedBuilder(
               animation: controller,
               builder: (context, child) {
-                return Transform.scale(
-                  scale: 0.9 + 0.1 * controller.value,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [color.withOpacity(0.8), color.withOpacity(0.4)]),
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [BoxShadow(color: color.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 6))],
-                    ),
-                    child: Stack(
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.all(4.w),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(2.w),
-                                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                                child: Icon(isLocked ? Icons.lock : cat['icon'], color: Colors.white, size: 20.sp),
-                              ),
-                              const Spacer(),
-                              Text(cat['title'], style: GoogleFonts.poppins(color: Colors.white, fontSize: 13.sp, fontWeight: FontWeight.w700)),
-                              Text(
-                                  isLocked ? "Coming Soon" : cat['stars'],
-                                  style: GoogleFonts.poppins(color: Colors.white70, fontSize: 10.sp)
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isLocked)
-                          Container(decoration: BoxDecoration(color: Colors.black.withOpacity(0.3), borderRadius: BorderRadius.circular(25))),
-
-                        // Progress Bar Visual
-                        if (!isLocked)
-                          Positioned(
-                            bottom: 2.h, left: 4.w, right: 4.w,
+                return FadeTransition(
+                  opacity: controller,
+                  child: Transform.scale(
+                    scale: 0.85 + 0.15 * controller.value,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: borderColor, width: 2),
+                        boxShadow: [
+                          BoxShadow(
+                              color: color.withOpacity(0.12),
+                              blurRadius: 25,
+                              spreadRadius: -2,
+                              offset: const Offset(0, 12)),
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
                             child: Container(
-                              height: 4,
-                              decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)),
-                              child: FractionallySizedBox(
-                                alignment: Alignment.centerLeft,
-                                widthFactor: cat['progress'],
-                                child: Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(2))),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(28),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white,
+                                    color.withOpacity(0.05),
+                                  ],
+                                ),
                               ),
                             ),
-                          )
-                      ],
+                          ),
+                          Padding(
+                            padding: EdgeInsets.all(4.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 14.w,
+                                  height: 14.w,
+                                  decoration: BoxDecoration(
+                                      color: color.withOpacity(0.15),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: color.withOpacity(0.1), width: 1.5)
+                                  ),
+                                  child: Icon(isLocked ? Icons.lock : cat['icon'],
+                                      color: color, size: 20.sp),
+                                ),
+                                SizedBox(height: 1.5.h),
+                                Text(cat['title'],
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.poppins(
+                                        color: _primaryDark,
+                                        fontSize: 13.5.sp,
+                                        fontWeight: FontWeight.w800)),
+                                Text(isLocked ? "Coming Soon" : cat['status'],
+                                    style: GoogleFonts.poppins(
+                                        color: _subText,
+                                        fontSize: 10.5.sp,
+                                        fontWeight: FontWeight.w600)),
+                                SizedBox(height: 1.5.h),
+                                if (!isLocked)
+                                  Container(
+                                    height: 7,
+                                    width: 25.w,
+                                    decoration: BoxDecoration(
+                                        color: Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(10)),
+                                    child: FractionallySizedBox(
+                                      alignment: Alignment.centerLeft,
+                                      widthFactor: cat['progress'],
+                                      child: Container(
+                                          decoration: BoxDecoration(
+                                              gradient: LinearGradient(colors: [color, color.withOpacity(0.7)]),
+                                              borderRadius:
+                                              BorderRadius.circular(10))),
+                                    ),
+                                  )
+                              ],
+                            ),
+                          ),
+                          if (isLocked)
+                            Container(
+                              decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(28)),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -512,19 +705,23 @@ class GeometricPatternPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withOpacity(0.05)..style = PaintingStyle.fill;
+    final paint = Paint()
+      ..color = const Color(0xFFE2E8F0).withOpacity(0.15)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
     final random = math.Random(42);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 8; i++) {
       final x = size.width * random.nextDouble();
       final y = size.height * random.nextDouble();
-      final radius = 20 + random.nextDouble() * 30;
-      final dx = math.sin(time + i) * 20;
-      final dy = math.cos(time + i) * 20;
+      final r = 15 + random.nextDouble() * 25;
+      final dx = math.sin(time * 2 + i) * 15;
+      final dy = math.cos(time * 2 + i) * 15;
 
-      canvas.drawCircle(Offset(x + dx, y + dy), radius, paint);
+      canvas.drawCircle(Offset(x + dx, y + dy), r, paint);
     }
   }
+
   @override
   bool shouldRepaint(covariant GeometricPatternPainter oldDelegate) => true;
 }

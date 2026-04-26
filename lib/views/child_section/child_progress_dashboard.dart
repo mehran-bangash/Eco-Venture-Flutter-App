@@ -20,8 +20,13 @@ class _ChildProgressDashboardState extends ConsumerState<ChildProgressDashboard>
     with TickerProviderStateMixin {
   late final AnimationController _masterController;
   late final Animation<Offset> _slideAnimation;
-  late final Animation<Color?> _bgAnimation;
   late final AnimationController _shimmerController;
+
+  // Professional Theme Colors - Moving to a "Slate/Cool" palette for depth
+  final Color _primaryDark = const Color(0xFF0F172A); // Darker slate for premium feel
+  final Color _subText = const Color(0xFF64748B);
+  final Color _accentCyan = const Color(0xFF06B6D4);
+  final Color _bgSurface = const Color(0xFFF8FAFC); // Off-white/Slate-50 for depth
 
   @override
   void initState() {
@@ -29,7 +34,7 @@ class _ChildProgressDashboardState extends ConsumerState<ChildProgressDashboard>
     _masterController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 15),
-    )..repeat(reverse: true);
+    )..repeat();
 
     _shimmerController = AnimationController(
       vsync: this,
@@ -37,17 +42,12 @@ class _ChildProgressDashboardState extends ConsumerState<ChildProgressDashboard>
     )..repeat();
 
     _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+        Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
           CurvedAnimation(
             parent: _masterController,
             curve: const Interval(0.0, 0.2, curve: Curves.easeOut),
           ),
         );
-
-    _bgAnimation = ColorTween(
-      begin: const Color(0xFF1A237E),
-      end: const Color(0xFF311B92),
-    ).animate(_masterController);
   }
 
   @override
@@ -59,480 +59,432 @@ class _ChildProgressDashboardState extends ConsumerState<ChildProgressDashboard>
 
   @override
   Widget build(BuildContext context) {
-    // 1. Watch Real Data
     final state = ref.watch(childProgressViewModelProvider);
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          context.goNamed('bottomNavChild');
-        }
+        if (!didPop) context.goNamed('bottomNavChild');
       },
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_masterController, _shimmerController]),
-        builder: (context, child) {
-          return Scaffold(
-            backgroundColor: _bgAnimation.value,
-            body: Stack(
+      child: Scaffold(
+        backgroundColor: _bgSurface,
+        body: AnimatedBuilder(
+          animation: Listenable.merge([_masterController, _shimmerController]),
+          builder: (context, child) {
+            final t = _masterController.value;
+            return Stack(
               children: [
-                // 1. Animated Background Gradient
+                // 1. Enhanced Background Gradient (Not just pure white)
                 Container(
+                  width: 100.w,
+                  height: 100.h,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
                       colors: [
-                        Color.lerp(
-                          const Color(0xFF0F2027),
-                          const Color(0xFF203A43),
-                          _masterController.value,
-                        )!,
-                        const Color(0xFF2C5364),
-                        const Color(0xFF24243E),
+                        const Color(0xFFF1F5F9), // Slate 100
+                        Colors.white,
+                        const Color(0xFFF8FAFC), // Slate 50
                       ],
                     ),
                   ),
                 ),
 
-                const _AnimatedBackground(),
+                // 2. Animated Glow Blobs (Deeper colors for more "weight")
+                Positioned(
+                  top: -5.h,
+                  right: -15.w,
+                  child: _buildGlowBlob(Colors.cyan.withOpacity(0.15), 75.w, t, 0),
+                ),
+                Positioned(
+                  bottom: 5.h,
+                  left: -25.w,
+                  child: _buildGlowBlob(Colors.indigo.withOpacity(0.08), 85.w, t, 2),
+                ),
+                Positioned(
+                  top: 25.h,
+                  left: 15.w,
+                  child: _buildGlowBlob(Colors.amber.withOpacity(0.1), 55.w, t, 4),
+                ),
 
-                // 2. Main Content
+                // 3. Main Content
                 SafeArea(
-                  child: FadeTransition(
-                    opacity: const AlwaysStoppedAnimation(1.0),
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 5.w,
-                          vertical: 2.h,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildHeader(state),
-                            SizedBox(height: 4.h),
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.5.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(state),
+                          SizedBox(height: 3.h),
 
-                            _buildWeeklyStreak(state),
-                            SizedBox(height: 4.h),
+                          _buildWeeklyStreak(state),
+                          SizedBox(height: 3.5.h),
 
-                            _buildSkillRadar(state),
-                            SizedBox(height: 4.h),
+                          _buildSkillRadar(state),
+                          SizedBox(height: 3.5.h),
 
-                            Text(
+                          Padding(
+                            padding: EdgeInsets.only(left: 1.w),
+                            child: Text(
                               "Your Journey",
                               style: GoogleFonts.poppins(
-                                fontSize: 22.sp,
+                                fontSize: 20.sp,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                shadows: [
-                                  const Shadow(
-                                    color: Colors.black45,
-                                    blurRadius: 5,
-                                  ),
-                                ],
+                                color: _primaryDark,
+                                letterSpacing: -0.5,
                               ),
                             ),
-                            SizedBox(height: 2.h),
+                          ),
+                          SizedBox(height: 2.h),
 
-                            if (state.isLoading)
-                              const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                ),
-                              )
-                            else if (state.timeline.isEmpty)
-                              Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(2.h),
-                                  child: Text(
-                                    "No activity yet. Start exploring!",
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white60,
-                                      fontSize: 14.sp,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else
-                              _buildTimelineList(state.timeline),
+                          if (state.isLoading)
+                            const Center(child: CircularProgressIndicator(color: Color(0xFF06B6D4)))
+                          else if (state.timeline.isEmpty)
+                            _buildEmptyState()
+                          else
+                            _buildTimelineList(state.timeline),
 
-                            SizedBox(height: 8.h),
-                          ],
-                        ),
+                          SizedBox(height: 8.h),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ],
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 
-  // --- HEADER ---
+  Widget _buildGlowBlob(Color color, double size, double t, double phase) {
+    return Transform.translate(
+      offset: Offset(40 * math.sin(t * 2 * math.pi + phase),
+          40 * math.cos(t * 2 * math.pi + phase)),
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            colors: [color, color.withOpacity(0)],
+            stops: const [0.2, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader(ChildProgressState state) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         IconButton(
           onPressed: () => context.goNamed('bottomNavChild'),
           icon: Container(
-            padding: EdgeInsets.all(2.5.w),
+            padding: EdgeInsets.all(2.w),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white30),
-            ),
-            child: Icon(
-              Icons.arrow_back_ios_new,
               color: Colors.white,
-              size: 18.sp,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 2.w),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Total XP: ${state.totalPoints}",
-                  style: GoogleFonts.poppins(
-                    fontSize: 16.sp,
-                    color: Colors.cyanAccent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
-                Text(
-                  "Level ${state.currentLevel}",
-                  style: GoogleFonts.poppins(
-                    fontSize: 26.sp,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 1.2,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE2E8F0)), // slate 200
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 15,
+                    offset: const Offset(0, 4)
+                )
               ],
             ),
+            child: Icon(Icons.arrow_back_ios_new, color: _primaryDark, size: 17.sp),
           ),
         ),
-        // Level Indicator
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 20.w,
-              height: 20.w,
-              child: CircularProgressIndicator(
-                value: state.xpProgress, // Real Progress
-                backgroundColor: Colors.white10,
-                valueColor: const AlwaysStoppedAnimation(Colors.cyanAccent),
-                strokeWidth: 6,
+        SizedBox(width: 2.w),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "TOTAL XP: ${state.totalPoints}",
+                style: GoogleFonts.poppins(
+                  fontSize: 14.sp,
+                  color: const Color(0xFF0EA5E9),
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Text(
+                "Level ${state.currentLevel}",
+                style: GoogleFonts.poppins(
+                  fontSize: 23.sp,
+                  fontWeight: FontWeight.w900,
+                  color: _primaryDark,
+                  height: 1.1,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _buildLevelIndicator(state),
+      ],
+    );
+  }
+
+  Widget _buildLevelIndicator(ChildProgressState state) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox(
+          width: 18.w,
+          height: 18.w,
+          child: CircularProgressIndicator(
+            value: state.xpProgress,
+            backgroundColor: const Color(0xFFF1F5F9), // slate 100
+            valueColor: const AlwaysStoppedAnimation(Color(0xFF06B6D4)),
+            strokeWidth: 6,
+            strokeCap: StrokeCap.round,
+          ),
+        ),
+        Container(
+          width: 14.w,
+          height: 14.w,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [Color(0xFF06B6D4), Color(0xFF2563EB)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                  color: const Color(0xFF2563EB).withOpacity(0.3),
+                  blurRadius: 15,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 5)
+              )
+            ],
+            border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
+          ),
+          child: Center(
+            child: Text(
+              "${state.currentLevel}",
+              style: GoogleFonts.poppins(
+                  fontSize: 19.sp,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white
               ),
             ),
-            Container(
-              width: 16.w,
-              height: 16.w,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF00E5FF), Color(0xFF2979FF)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2979FF).withValues(alpha: 0.6),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ],
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.3),
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "LVL",
-                      style: GoogleFonts.poppins(
-                        fontSize: 10.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      "${state.currentLevel}",
-                      style: GoogleFonts.poppins(
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        height: 1.0,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );
   }
 
-  // --- WEEKLY STREAK (FIXED DAY LOGIC) ---
   Widget _buildWeeklyStreak(ChildProgressState state) {
     final bool hasStreak = state.dayStreak > 0;
-    // Calculate current day index (Mon=0, Tue=1, ..., Sun=6)
     final int currentDayIndex = DateTime.now().weekday - 1;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          padding: EdgeInsets.all(6.w),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.3),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
-              ),
-            ],
+    return Container(
+      padding: EdgeInsets.all(5.5.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.orange.withOpacity(0.3), width: 2),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.orange.withOpacity(0.08),
+              blurRadius: 35,
+              spreadRadius: 2,
+              offset: const Offset(0, 15)
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 5,
+              offset: const Offset(0, 2)
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.local_fire_department_rounded,
-                        color: hasStreak ? Colors.orangeAccent : Colors.grey,
-                        size: 24.sp,
-                      ),
-                      SizedBox(width: 2.w),
-                      Text(
-                        hasStreak
-                            ? "${state.dayStreak} Day Streak!"
-                            : "Start a Streak!",
-                        style: GoogleFonts.poppins(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.local_fire_department_rounded,
+                        color: hasStreak ? Colors.orange : const Color(0xFFCBD5E1), size: 21.sp), // slate 300
                   ),
-                  // Clarified Text
+                  SizedBox(width: 3.w),
                   Text(
-                    "Streak Bonus",
+                    hasStreak ? "${state.dayStreak} Day Streak!" : "Start a Streak!",
                     style: GoogleFonts.poppins(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.orangeAccent,
+                        fontSize: 17.5.sp,
+                        fontWeight: FontWeight.w800,
+                        color: _primaryDark
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 2.5.h),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(7, (index) {
-                  // Highlight: If this day is TODAY or BEFORE today (and streak exists)
-                  // Simple logic: If streak > 0, highlight up to today
-                  bool isActive = hasStreak && index <= currentDayIndex;
-                  bool isToday = index == currentDayIndex;
-
-                  return Column(
-                    children: [
-                      Container(
-                        width: 11.w,
-                        height: 11.w,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: isActive
-                              ? const LinearGradient(
-                                  colors: [
-                                    Colors.orange,
-                                    Colors.deepOrangeAccent,
-                                  ],
-                                )
-                              : null,
-                          color: isActive
-                              ? null
-                              : Colors.white.withValues(alpha: 0.1),
-                          boxShadow: isActive
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.orange.withValues(alpha: 0.6),
-                                    blurRadius: 10,
-                                    spreadRadius: 1,
-                                  ),
-                                ]
-                              : [],
-                          border: Border.all(
-                            color: isToday
-                                ? Colors.white
-                                : (isActive
-                                      ? Colors.white.withValues(alpha: 0.6)
-                                      : Colors.white24),
-                            width: isToday ? 2 : 1,
-                          ),
-                        ),
-                        child: Center(
-                          child: isActive
-                              ? Icon(
-                                  Icons.check_rounded,
-                                  color: Colors.white,
-                                  size: 20.sp,
-                                )
-                              : Text(
-                                  ["M", "T", "W", "T", "F", "S", "S"][index],
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white60,
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
-                  );
-                }),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.5.h),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text("BONUS XP",
+                    style: GoogleFonts.poppins(
+                        fontSize: 12.5.sp,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.orange
+                    )
+                ),
               ),
             ],
           ),
-        ),
+          SizedBox(height: 3.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(7, (index) {
+              bool isActive = hasStreak && index <= currentDayIndex;
+              bool isToday = index == currentDayIndex;
+              return Column(
+                children: [
+                  Container(
+                    width: 10.5.w,
+                    height: 10.5.w,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isActive ? Colors.orange : const Color(0xFFF8FAFC), // slate 50
+                      border: Border.all(
+                        color: isToday ? Colors.orange : (isActive ? Colors.orange.shade200 : const Color(0xFFE2E8F0)), // slate 200
+                        width: isToday ? 2.5 : 1.5,
+                      ),
+                      boxShadow: isActive ? [
+                        BoxShadow(color: Colors.orange.withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 4))
+                      ] : [],
+                    ),
+                    child: Center(
+                      child: isActive
+                          ? Icon(Icons.check_rounded, color: Colors.white, size: 18.sp)
+                          : Text(["M", "T", "W", "T", "F", "S", "S"][index],
+                          style: GoogleFonts.poppins(
+                              color: _subText,
+                              fontSize: 13.sp,
+                              fontWeight: FontWeight.w800
+                          )),
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
 
-  // --- SKILL MASTERY (RENAMED TO MATCH MODULES) ---
   Widget _buildSkillRadar(ChildProgressState state) {
-    // Using exact module names now
     final Map<String, double> mappedSkills = {
       'Science': state.skillStats['Science'] ?? 0.0,
       'Math': state.skillStats['Math'] ?? 0.0,
-      'Logic':
-          state.skillStats['Logic'] ?? 0.0, // Replaced 'Logic' label visually
-      'Creativity':
-          state.skillStats['Creativity'] ??
-          0.0, // Replaced 'Creativity' label visually
+      'Logic': state.skillStats['Logic'] ?? 0.0,
+      'Creativity': state.skillStats['Creativity'] ?? 0.0,
     };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          "Module Mastery",
-          style: GoogleFonts.poppins(
-            fontSize: 22.sp,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            shadows: [const Shadow(color: Colors.black45, blurRadius: 5)],
+        Padding(
+          padding: EdgeInsets.only(left: 1.w),
+          child: Text(
+            "Module Mastery",
+            style: GoogleFonts.poppins(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.bold,
+              color: _primaryDark,
+              letterSpacing: -0.5,
+            ),
           ),
         ),
-        SizedBox(height: 2.5.h),
+        SizedBox(height: 2.h),
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 2,
           crossAxisSpacing: 4.w,
-          mainAxisSpacing: 2.5.h,
-          childAspectRatio: 1.4,
+          mainAxisSpacing: 2.2.h,
+          childAspectRatio: 1.25,
           children: mappedSkills.entries.map((entry) {
             Color skillColor = _getSkillColor(entry.key);
             return Container(
               padding: EdgeInsets.all(4.w),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withValues(alpha: 0.15),
-                    Colors.white.withValues(alpha: 0.08),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: skillColor.withOpacity(0.25), width: 2),
                 boxShadow: [
-                  const BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                    offset: Offset(0, 5),
+                  BoxShadow(
+                      color: skillColor.withOpacity(0.08),
+                      blurRadius: 20,
+                      spreadRadius: -2,
+                      offset: const Offset(0, 10)
                   ),
                 ],
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Stack(
                     alignment: Alignment.center,
                     children: [
                       SizedBox(
-                        height: 16.w,
-                        width: 16.w,
+                        height: 14.5.w,
+                        width: 14.5.w,
                         child: CircularProgressIndicator(
                           value: entry.value,
-                          backgroundColor: Colors.white12,
+                          backgroundColor: const Color(0xFFF8FAFC), // slate 50
                           valueColor: AlwaysStoppedAnimation(skillColor),
-                          strokeWidth: 8,
+                          strokeWidth: 7,
                           strokeCap: StrokeCap.round,
                         ),
                       ),
-                      Text(
-                        "${(entry.value * 100).toInt()}%",
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 13.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      Text("${(entry.value * 100).toInt()}%",
+                          style: GoogleFonts.poppins(
+                              color: _primaryDark,
+                              fontSize: 12.5.sp,
+                              fontWeight: FontWeight.w800
+                          )),
                     ],
                   ),
-                  SizedBox(width: 3.5.w),
+                  SizedBox(width: 3.w),
                   Expanded(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          entry.key,
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15.sp,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          "Progress",
-                          style: GoogleFonts.poppins(
-                            color: Colors.white60,
-                            fontSize: 12.sp,
-                          ),
-                        ),
+                        Text(entry.key,
+                            style: GoogleFonts.poppins(
+                                color: _primaryDark,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14.5.sp,
+                                height: 1.1
+                            ),
+                            overflow: TextOverflow.ellipsis),
+                        Text("MASTERED",
+                            style: GoogleFonts.poppins(
+                                color: _subText,
+                                fontSize: 10.sp,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5
+                            )),
                       ],
                     ),
                   ),
@@ -547,18 +499,13 @@ class _ChildProgressDashboardState extends ConsumerState<ChildProgressDashboard>
 
   Color _getSkillColor(String skill) {
     switch (skill) {
-      case 'Science':
-        return Colors.cyanAccent;
-      case 'Math':
-        return Colors.greenAccent;
-      case 'QR Hunt':
-        return Colors.purpleAccent; // Logic color
-      default:
-        return Colors.amberAccent; // STEM/Creativity color
+      case 'Science': return const Color(0xFF06B6D4);
+      case 'Math': return const Color(0xFF10B981);
+      case 'Logic': return const Color(0xFF8B5CF6);
+      default: return const Color(0xFFF59E0B);
     }
   }
 
-  // --- TIMELINE LIST ---
   Widget _buildTimelineList(List<Map<String, dynamic>> timeline) {
     return ListView.builder(
       shrinkWrap: true,
@@ -567,7 +514,6 @@ class _ChildProgressDashboardState extends ConsumerState<ChildProgressDashboard>
       itemBuilder: (context, index) {
         final activity = timeline[index];
         final bool isLast = index == timeline.length - 1;
-
         final Color itemColor = activity['color'] as Color;
 
         return IntrinsicHeight(
@@ -577,92 +523,79 @@ class _ChildProgressDashboardState extends ConsumerState<ChildProgressDashboard>
               Column(
                 children: [
                   Container(
-                    width: 6.w,
-                    height: 6.w,
+                    width: 5.w,
+                    height: 5.w,
                     decoration: BoxDecoration(
                       color: itemColor,
                       shape: BoxShape.circle,
                       border: Border.all(color: Colors.white, width: 2.5),
                       boxShadow: [
                         BoxShadow(
-                          color: itemColor.withValues(alpha: 0.6),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                        ),
+                            color: itemColor.withOpacity(0.4),
+                            blurRadius: 10,
+                            spreadRadius: 1
+                        )
                       ],
                     ),
                   ),
                   if (!isLast)
-                    Expanded(child: Container(width: 2, color: Colors.white30)),
+                    Expanded(child: Container(width: 2.5, color: const Color(0xFFF1F5F9))), // slate 100
                 ],
               ),
               SizedBox(width: 4.w),
-
               Expanded(
                 child: Container(
-                  margin: EdgeInsets.only(bottom: 2.5.h),
+                  margin: EdgeInsets.only(bottom: 2.2.h),
                   padding: EdgeInsets.all(4.5.w),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white12),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFF1F5F9)), // slate 100
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8)
+                      )
+                    ],
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              activity['title'],
-                              style: GoogleFonts.poppins(
-                                fontSize: 16.sp,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                            SizedBox(height: 0.5.h),
+                            Text(activity['title'],
+                                style: GoogleFonts.poppins(
+                                    fontSize: 15.5.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: _primaryDark
+                                )),
+                            SizedBox(height: 0.4.h),
                             Row(
                               children: [
-                                Icon(
-                                  Icons.access_time_rounded,
-                                  color: Colors.white60,
-                                  size: 14.sp,
-                                ),
+                                Icon(Icons.history_rounded, size: 12.sp, color: _subText),
                                 SizedBox(width: 1.w),
-                                Text(
-                                  "${activity['time']}",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14.sp,
-                                    color: Colors.white60,
-                                  ),
-                                ),
+                                Text("${activity['time']}",
+                                    style: GoogleFonts.poppins(fontSize: 12.sp, color: _subText, fontWeight: FontWeight.w500)),
                               ],
                             ),
                           ],
                         ),
                       ),
-                      SizedBox(width: 2.w),
                       Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 3.w,
-                          vertical: 0.6.h,
-                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 3.5.w, vertical: 0.6.h),
                         decoration: BoxDecoration(
-                          color: itemColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
+                            color: itemColor.withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(12)
                         ),
-                        child: Text(
-                          activity['type'],
-                          style: GoogleFonts.poppins(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w800,
-                            color: itemColor,
-                          ),
-                        ),
+                        child: Text(activity['type'].toString().toUpperCase(),
+                            style: GoogleFonts.poppins(
+                                fontSize: 11.sp,
+                                fontWeight: FontWeight.w900,
+                                color: itemColor,
+                                letterSpacing: 0.5
+                            )),
                       ),
                     ],
                   ),
@@ -674,69 +607,25 @@ class _ChildProgressDashboardState extends ConsumerState<ChildProgressDashboard>
       },
     );
   }
-}
 
-// --- ANIMATED BACKGROUND PAINTER ---
-class _AnimatedBackground extends StatefulWidget {
-  const _AnimatedBackground();
-  @override
-  State<_AnimatedBackground> createState() => _AnimatedBackgroundState();
-}
-
-class _AnimatedBackgroundState extends State<_AnimatedBackground>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return CustomPaint(
-          painter: _BackgroundPainter(_controller.value),
-          size: Size.infinite,
-        );
-      },
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        children: [
+          SizedBox(height: 5.h),
+          Opacity(
+            opacity: 0.1,
+            child: Icon(Icons.auto_awesome_rounded, size: 45.sp, color: _primaryDark),
+          ),
+          SizedBox(height: 1.5.h),
+          Text("No activity yet. Start exploring!",
+              style: GoogleFonts.poppins(
+                  color: _subText,
+                  fontSize: 14.5.sp,
+                  fontWeight: FontWeight.w600
+              )),
+        ],
+      ),
     );
   }
-}
-
-class _BackgroundPainter extends CustomPainter {
-  final double progress;
-  _BackgroundPainter(this.progress);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.06)
-      ..style = PaintingStyle.fill;
-    final random = math.Random(42);
-
-    for (int i = 0; i < 8; i++) {
-      final dx =
-          (random.nextDouble() * size.width + progress * 30) % size.width;
-      final dy =
-          (random.nextDouble() * size.height + progress * 15) % size.height;
-      final radius = 30 + random.nextDouble() * 80;
-      canvas.drawCircle(Offset(dx, dy), radius, paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _BackgroundPainter oldDelegate) => true;
 }
