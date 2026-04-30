@@ -7,7 +7,9 @@ class RouterNotifier extends ChangeNotifier {
 
   RouterNotifier(this._ref) {
     _ref.listen(authViewModelProvider, (previous, next) {
-      notifyListeners(); // Always notify — splash reset is fixed by ConsumerStatefulWidget now
+      if (previous != next) {
+        notifyListeners();
+      }// Always notify — splash reset is fixed by ConsumerStatefulWidget now
     });
   }
 }

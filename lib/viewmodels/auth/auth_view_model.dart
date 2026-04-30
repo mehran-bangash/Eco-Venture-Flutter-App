@@ -58,6 +58,8 @@ class AuthViewModel extends StateNotifier<AuthState> {
       await SharedPreferencesHelper.instance.saveUserAgeGroup(user.ageGroup);
       await SharedPreferencesHelper.instance.saveUserRole(user.role);
       await SharedPreferencesHelper.instance.saveUserName(user.displayName);
+      await SharedPreferencesHelper.instance.saveUserEmail(user.email);
+      await SharedPreferencesHelper.instance.saveUserPhoneNumber(user.phoneNumber ?? "");
 
       // Update state and trigger navigation
       state = state.copyWith(
@@ -99,6 +101,9 @@ class AuthViewModel extends StateNotifier<AuthState> {
       await SharedPreferencesHelper.instance.saveUserAgeGroup(user.ageGroup);
       await SharedPreferencesHelper.instance.saveUserRole(user.role);
       await SharedPreferencesHelper.instance.saveUserName(user.displayName);
+      await SharedPreferencesHelper.instance.saveUserEmail(user.email);
+      final phoneNumber = await _repo.getUserNumber(user.uid);
+      await SharedPreferencesHelper.instance.saveUserPhoneNumber(phoneNumber);
 
       state = state.copyWith(
         isSignInLoading: false,
@@ -156,6 +161,11 @@ class AuthViewModel extends StateNotifier<AuthState> {
       await SharedPreferencesHelper.instance.saveUserAgeGroup(user.ageGroup);
       await SharedPreferencesHelper.instance.saveUserRole(user.role);
       await SharedPreferencesHelper.instance.saveUserName(user.displayName);
+      await SharedPreferencesHelper.instance.saveUserEmail(user.email);
+      // After loginUser succeeds:
+      final phoneNumber = await _repo.getUserNumber(user.uid);
+      await SharedPreferencesHelper.instance.saveUserPhoneNumber(phoneNumber);
+
 
       state = state.copyWith(
         isGoogleLoading: false,
@@ -181,13 +191,11 @@ class AuthViewModel extends StateNotifier<AuthState> {
       await _repo.logout();
       await SharedPreferencesHelper.instance.clearAll();
 
-      // Reset state but keep isFirstTime as false since they already onboarded
+      // This is the most important part:
       state = AuthState.initial().copyWith(isFirstTime: false);
     } catch (e) {
-      state = state.copyWith(
-          isSignOutLoading: false,
-          signOutError: e.toString().replaceAll("Exception: ", "")
-      );
+      // Even if it fails, we force a state reset so the UI moves
+      state = AuthState.initial().copyWith(isFirstTime: false);
     }
   }
 

@@ -137,4 +137,9 @@ class AuthRepo {
   Future<void> logout() async {
     await AuthService.authInstance.logout();
   }
+
+  Future<String> getUserNumber(String uid) async {
+   return await AuthService.authInstance.getUserNumber(uid);
+  }
+
 }

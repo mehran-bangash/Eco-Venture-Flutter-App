@@ -57,7 +57,7 @@ class UserModel {
       return UserModel(
         uid: safeString(userMap['uid']),
         imgUrl: safeString(userMap['imgUrl']),
-        phoneNumber: safeString(userMap['phoneNumber']),
+        phoneNumber: safeString(userMap['phone']),
         email: safeString(userMap['email']),
         displayName: safeString(userMap['displayName']),
         role: safeString(userMap['role']),
@@ -74,9 +74,10 @@ class UserModel {
       email: safeString(map['email']),
       displayName: safeString(map['displayName']),
       imgUrl: safeString(map['imgUrl']),
-      phoneNumber: safeString(map['phoneNumber']),
+      phoneNumber: safeString(map['phone']),
       role: safeString(map['role']),
       ageGroup: getAgeGroup(map),
+
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),

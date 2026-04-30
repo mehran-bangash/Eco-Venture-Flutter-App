@@ -28,9 +28,38 @@ class _ParentProfileScreenState extends ConsumerState<ParentProfileScreen> {
 
   @override
   void initState() {
-    // TODO: implement initState
     _loadSharedPreferences();
     super.initState();
+  }
+
+  // Updated to support visual feedback on manual refresh
+  Future<void> _loadSharedPreferences({bool showToast = false}) async {
+    final name = SharedPreferencesHelper.instance.getUserName();
+    final email = SharedPreferencesHelper.instance.getUserEmail();
+    final dob = SharedPreferencesHelper.instance.getUserDOB();
+    final phone = SharedPreferencesHelper.instance.getUserPhoneNumber();
+    final image = SharedPreferencesHelper.instance.getUserImgUrl();
+
+    setState(() {
+      username = name ?? "Guest";
+      userEmail = email ?? "";
+      userDOB = dob ?? "unknown";
+      userPhone = phone ?? "";
+      userImageUrl = image ?? "";
+    });
+
+    if (showToast && mounted) {
+      Utils.showDelightToast(
+        context,
+        "Profile Updated",
+        duration: const Duration(seconds: 1),
+        textColor: Colors.white,
+        bgColor: Colors.blueGrey,
+        position: DelightSnackbarPosition.bottom,
+        icon: Icons.refresh,
+        iconColor: Colors.white,
+      );
+    }
   }
 
   Future<void> _handleDeleteAccount(BuildContext context) async {
@@ -64,20 +93,17 @@ class _ParentProfileScreenState extends ConsumerState<ParentProfileScreen> {
         try {
           await ref.read(userProfileProvider.notifier).deleteUserProfile(uid);
 
-          //  Success banner
           if (mounted) {
             Utils.showDelightToast(
               context,
               "Account Deleted Successfully",
-              duration: Duration(seconds: 3),
+              duration: const Duration(seconds: 3),
               textColor: Colors.white,
               bgColor: Colors.green,
               position: DelightSnackbarPosition.bottom,
               icon: Icons.check,
               iconColor: Colors.white,
             );
-
-            // Redirect to landing page
             context.goNamed('landing');
           }
         } catch (e) {
@@ -93,22 +119,6 @@ class _ParentProfileScreenState extends ConsumerState<ParentProfileScreen> {
         }
       }
     }
-  }
-
-  Future<void> _loadSharedPreferences() async {
-    final name = SharedPreferencesHelper.instance.getUserName();
-    final email = SharedPreferencesHelper.instance.getUserEmail();
-    final dob = SharedPreferencesHelper.instance.getUserDOB();
-    final phone = SharedPreferencesHelper.instance.getUserPhoneNumber();
-    final image = SharedPreferencesHelper.instance.getUserImgUrl();
-
-    setState(() {
-      username = name ?? "Guest";
-      userEmail = email ?? "";
-      userDOB = dob ?? "unknown";
-      userPhone = phone ?? "";
-      userImageUrl = image ?? "";
-    });
   }
 
   @override
@@ -150,40 +160,40 @@ class _ParentProfileScreenState extends ConsumerState<ParentProfileScreen> {
                                   onTap: () {
                                     context.goNamed('bottomNavParent');
                                   },
-                                  child: Align(
-                                    alignment: Alignment.bottomLeft,
-                                    child: Container(
-                                      height: 4.h,
-                                      width: 8.w,
-                                      decoration: BoxDecoration(
-                                        color: Colors.blueGrey,
-                                        borderRadius: BorderRadius.all(
-                                          Radius.circular(10),
-                                        ),
-                                      ),
-                                      child: Icon(
-                                        Icons.arrow_back_ios_new,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Align(
-                                  alignment: Alignment.bottomRight,
                                   child: Container(
                                     height: 4.h,
                                     width: 8.w,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white70.withValues(
-                                        alpha: 0.3,
-                                      ),
+                                    decoration: const BoxDecoration(
+                                      color: Colors.blueGrey,
                                       borderRadius: BorderRadius.all(
                                         Radius.circular(10),
                                       ),
                                     ),
-                                    child: Icon(
-                                      Icons.refresh,
+                                    child: const Icon(
+                                      Icons.arrow_back_ios_new,
                                       color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                // Issue 4: Added Material & InkWell for refresh feedback
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () => _loadSharedPreferences(showToast: true),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      height: 4.h,
+                                      width: 8.w,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white70.withOpacity(0.3),
+                                        borderRadius: const BorderRadius.all(
+                                          Radius.circular(10),
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.refresh,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -200,26 +210,25 @@ class _ParentProfileScreenState extends ConsumerState<ParentProfileScreen> {
                                 width: 15.h,
                                 child: userImageUrl.isNotEmpty
                                     ? Image.network(
-                                        userImageUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                              return const Icon(
-                                                Icons.person,
-                                                size: 50,
-                                                color: Colors.grey,
-                                              );
-                                            },
-                                      )
+                                  userImageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder:
+                                      (context, error, stackTrace) {
+                                    return const Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.grey,
+                                    );
+                                  },
+                                )
                                     : const Icon(
-                                        Icons.person,
-                                        size: 50,
-                                        color: Colors.grey,
-                                      ),
+                                  Icons.person,
+                                  size: 50,
+                                  color: Colors.grey,
+                                ),
                               ),
                             ),
                           ),
-
                           SizedBox(height: 0.5.h),
                           Text(
                             username,
@@ -251,9 +260,11 @@ class _ParentProfileScreenState extends ConsumerState<ParentProfileScreen> {
                   SizedBox(height: 2.h),
                   _buildPersonalInfoCard(),
                   SizedBox(height: 2.h),
+                  // Issue 3: Await return to refresh data
                   GestureDetector(
-                    onTap: () {
-                      context.goNamed('parentEditProfile');
+                    onTap: () async {
+                      await context.pushNamed('parentEditProfile');
+                      _loadSharedPreferences();
                     },
                     child: SettingsTile(
                       title: "Edit Profile",
@@ -264,10 +275,10 @@ class _ParentProfileScreenState extends ConsumerState<ParentProfileScreen> {
                         height: 5.h,
                         width: 10.w,
                         decoration: BoxDecoration(
-                          color: Colors.blueGrey.withValues(alpha: 0.2),
+                          color: Colors.blueGrey.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.arrow_forward_ios,
                           color: Colors.blue,
                         ),
@@ -280,22 +291,21 @@ class _ParentProfileScreenState extends ConsumerState<ParentProfileScreen> {
                     title: "Delete Account",
                     titleColor: Colors.redAccent,
                     subtitle: "Permanently remove your \naccount",
-                    circleColor: Colors.redAccent.withValues(alpha: 0.4),
+                    circleColor: Colors.redAccent.withOpacity(0.4),
                     leadingIcon: Icons.delete,
                     trailing: Container(
                       height: 5.h,
                       width: 10.w,
                       decoration: BoxDecoration(
-                        color: Colors.redAccent.withValues(alpha: 0.2),
+                        color: Colors.redAccent.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.arrow_forward_ios,
                         color: Colors.redAccent,
                       ),
                     ),
                   ),
-
                   SizedBox(height: 5.h),
                 ],
               ),
@@ -308,80 +318,71 @@ class _ParentProfileScreenState extends ConsumerState<ParentProfileScreen> {
 
   Widget _buildPersonalInfoCard() {
     return Padding(
-      padding: EdgeInsets.only(left: 2.w, right: 2.w),
+      padding: EdgeInsets.symmetric(horizontal: 2.w),
       child: Material(
         elevation: 10,
-        borderRadius: BorderRadius.all(Radius.circular(15)),
+        borderRadius: const BorderRadius.all(Radius.circular(15)),
         child: Container(
-          height: 38.h,
           width: 100.w,
-          decoration: BoxDecoration(
+          padding: EdgeInsets.only(top: 4.h, left: 3.w, bottom: 2.h),
+          decoration: const BoxDecoration(
             color: Colors.white70,
             borderRadius: BorderRadius.all(Radius.circular(15)),
           ),
-          child: Padding(
-            padding: EdgeInsets.only(top: 4.h, left: 3.w),
-            child: SingleChildScrollView(
-              child: Column(
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        height: 6.h,
-                        width: 14.w,
-                        decoration: BoxDecoration(
-                          gradient: AppGradients.buttonGradient,
-                          borderRadius: BorderRadius.all(Radius.circular(10)),
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 8.w,
-                        ),
+                  Container(
+                    height: 6.h,
+                    width: 14.w,
+                    decoration: BoxDecoration(
+                      gradient: AppGradients.buttonGradient,
+                      borderRadius: const BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 8.w,
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.only(left: 2.5.w),
+                    child: Text(
+                      'Personal information',
+                      style: GoogleFonts.poppins(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
                       ),
-                      Column(
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.only(left: 2.5.w),
-                            child: Text(
-                              'Personal information',
-                              style: GoogleFonts.poppins(
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 2.5.h),
-                  ProfileInfoTile(
-                    icon: Icons.email,
-                    iconColor: Colors.blue,
-                    title: "Email Address",
-                    secondTitle: userEmail,
-                  ),
-                  SizedBox(height: 2.5.h),
-                  ProfileInfoTile(
-                    icon: Icons.calendar_today,
-                    iconColor: Colors.purpleAccent,
-                    rectangleColor: Colors.purpleAccent.withValues(alpha: 0.1),
-                    title: "Date of Birth",
-                    secondTitle: userDOB,
-                  ),
-                  SizedBox(height: 2.5.h),
-                  ProfileInfoTile(
-                    icon: Icons.call,
-                    iconColor: Colors.green,
-                    title: "Phone Number",
-                    secondTitle: userPhone,
-                    rectangleColor: Colors.green.shade50,
+                    ),
                   ),
                 ],
               ),
-            ),
+              SizedBox(height: 2.5.h),
+              ProfileInfoTile(
+                icon: Icons.email,
+                iconColor: Colors.blue,
+                title: "Email Address",
+                secondTitle: userEmail,
+              ),
+              SizedBox(height: 2.5.h),
+              ProfileInfoTile(
+                icon: Icons.calendar_today,
+                iconColor: Colors.purpleAccent,
+                rectangleColor: Colors.purpleAccent.withOpacity(0.1),
+                title: "Date of Birth",
+                secondTitle: userDOB,
+              ),
+              SizedBox(height: 2.5.h),
+              ProfileInfoTile(
+                icon: Icons.call,
+                iconColor: Colors.green,
+                title: "Phone Number",
+                secondTitle: userPhone,
+                rectangleColor: Colors.green.shade50,
+              ),
+            ],
           ),
         ),
       ),

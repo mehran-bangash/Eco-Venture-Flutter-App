@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
+import '../../../core/constants/route_names.dart';
 import '../../../core/utils/utils.dart';
 import '../../../core/widgets/settings_tile.dart';
 import '../../../viewmodels/auth/auth_provider.dart';
@@ -264,15 +265,10 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
 
                           // Step 2: If confirmed, call ViewModel
                           if (confirmed == true) {
-                            await authVM.signOut();
-
-                            //step:3
-                            if (context.mounted) context.goNamed('login');
-                            // Step 4: Show feedback to user
                             Utils.showDelightToast(
                               context,
                               "User successfully logged out",
-                              duration: Duration(seconds: 3),
+                              duration: const Duration(seconds: 3),
                               textColor: Colors.white,
                               bgColor: Colors.green,
                               position: DelightSnackbarPosition.bottom,
@@ -280,6 +276,12 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                               iconColor: Colors.white,
                             );
 
+                            //  Just sign out. The router redirect handles navigation automatically.
+                            await authVM.signOut();
+                            await Future.delayed(const Duration(milliseconds: 300));
+                            if (context.mounted) {
+                              context.go(RouteNames.login);
+                            }
 
                           }
                         },

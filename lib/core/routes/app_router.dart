@@ -75,7 +75,6 @@ class AppRouter {
       return _getRoleRoute(role);
     }
 
-    return null;
   }
 
   static String _getRoleRoute(String role) {

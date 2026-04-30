@@ -30,6 +30,18 @@ class AuthService {
     }
   }
 
+  Future<String> getUserNumber(String uid) async {
+    try {
+      final doc = await _firestore.collection("users").doc(uid).get();
+      if (doc.exists) {
+        return doc.data()?['phone'] ?? '';
+      }
+      return '';
+    } catch (e) {
+      throw Exception("Error fetching phone number: $e");
+    }
+  }
+
   Future<GoogleUserData> continueWithGoogle() async {
     try {
       if (!_initialized) {
