@@ -39,6 +39,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(userProfileProvider.notifier).resetLoading();
+    });
+
     _loadSharedPreferences();
   }
 

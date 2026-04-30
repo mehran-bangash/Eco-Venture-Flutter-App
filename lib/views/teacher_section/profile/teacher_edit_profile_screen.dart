@@ -40,6 +40,9 @@ class _TeacherEditProfileScreenState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(userProfileProvider.notifier).resetLoading();
+    });
     _loadSharedPreferences();
   }
 

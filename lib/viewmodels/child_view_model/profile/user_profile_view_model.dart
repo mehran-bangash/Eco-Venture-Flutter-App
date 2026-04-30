@@ -131,4 +131,7 @@ class UserProfileViewModel extends StateNotifier<UserProfileState> {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
   }
+  void resetLoading() {
+    state = state.copyWith(isLoading: false);
+  }
 }

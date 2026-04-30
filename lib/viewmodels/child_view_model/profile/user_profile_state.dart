@@ -1,7 +1,7 @@
 class UserProfileState {
   final bool isLoading;
   final String? error;
-  final String? teacherName; // NEW: Added to store teacher's name
+  final String? teacherName;
   final Map<String, dynamic>? userProfile;
 
   UserProfileState({
@@ -11,6 +11,7 @@ class UserProfileState {
     this.userProfile,
   });
 
+  // This ensures the screen starts without the loading spinner
   factory UserProfileState.initial() {
     return UserProfileState(
       isLoading: false,
@@ -28,8 +29,10 @@ class UserProfileState {
   }) {
     return UserProfileState(
       isLoading: isLoading ?? this.isLoading,
-      error: error,
-      teacherName: teacherName ?? this.teacherName, // Maintain current if not provided
+      // FIX: Use '?? this.error' so existing errors aren't cleared
+      // unless you explicitly pass a new error or null.
+      error: error ?? this.error,
+      teacherName: teacherName ?? this.teacherName,
       userProfile: userProfile ?? this.userProfile,
     );
   }
