@@ -175,11 +175,15 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                   ),
                   SizedBox(height: 2.h),
                   SettingsTile(
-                    title: "App Theme",
-                    subtitle: "Light mode",
-                    circleColor: Colors.blue,
+                    title: "App Theme ",
+                    subtitle: "(Coming Soon)",
+                    circleColor: Colors.grey,
                     leadingIcon: Icons.dark_mode,
-                    trailing: Switch(value: true, onChanged: (val) {}),
+                    trailing: Switch(
+                      value: false,
+                      onChanged: (val) {},
+                      activeThumbColor: Colors.blue,
+                    ),
                   ),
                   SizedBox(height: 2.h),
                   SettingsTile(
@@ -197,25 +201,6 @@ class _ChildSettingsState extends ConsumerState<ChildSettings>
                       child: Icon(
                         Icons.arrow_forward_ios,
                         color: Colors.purpleAccent,
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 2.h),
-                  SettingsTile(
-                    title: "Contact us",
-                    subtitle: "Get help and support",
-                    circleColor: Colors.orangeAccent,
-                    leadingIcon: Icons.support_agent,
-                    trailing: Container(
-                      height: 5.h,
-                      width: 10.w,
-                      decoration: BoxDecoration(
-                        color: Colors.orangeAccent.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.orangeAccent,
                       ),
                     ),
                   ),

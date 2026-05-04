@@ -39,7 +39,11 @@ class _TeacherSafetyDashboardState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(teacherSafetyViewModelProvider);
-    final List<TeacherReportModel> alerts = state.alerts;
+
+    // FILTER: Exclude Admin messages from this specific view
+    final List<TeacherReportModel> alerts = state.alerts.where((alert) {
+      return alert.fromName != "Support Admin";
+    }).toList();
 
     final pendingCount = alerts.where((a) {
       final s = a.status.toLowerCase();
@@ -64,11 +68,11 @@ class _TeacherSafetyDashboardState
   }
 
   Widget _buildContent(
-    TeacherSafetyState state,
-    List<TeacherReportModel> alerts,
-    int pending,
-    int resolved,
-  ) {
+      TeacherSafetyState state,
+      List<TeacherReportModel> alerts,
+      int pending,
+      int resolved,
+      ) {
     if (state.isLoading && alerts.isEmpty) {
       return Center(child: CircularProgressIndicator(color: _primaryBlue));
     }
@@ -130,11 +134,11 @@ class _TeacherSafetyDashboardState
 
   Widget _buildInboxTile(TeacherReportModel alert) {
     final statusLower = alert.status.toLowerCase();
-    // Logic: Treat both 'pending' and 'escalated' as pending
     final bool isPending =
         statusLower == 'pending' || statusLower == 'escalated';
 
-    // Logic: Identify message source
+    // The logic below remains in case you want to use the tile
+    // for Admin messages on a different page later.
     final bool isFromAdmin = alert.fromName == "Support Admin";
     final bool isFromParent =
         alert.childName != null && alert.childName!.isNotEmpty;
@@ -163,14 +167,14 @@ class _TeacherSafetyDashboardState
               backgroundColor: isFromAdmin
                   ? Colors.blue.withOpacity(0.2)
                   : (isPending ? _accentOrange : _accentGreen).withOpacity(
-                      0.12,
-                    ),
+                0.12,
+              ),
               child: Icon(
                 isFromAdmin
                     ? Icons.admin_panel_settings
                     : (isPending
-                          ? Icons.notification_important_rounded
-                          : Icons.verified_rounded),
+                    ? Icons.notification_important_rounded
+                    : Icons.verified_rounded),
                 color: isFromAdmin
                     ? Colors.blue
                     : (isPending ? _accentOrange : _accentGreen),
@@ -303,11 +307,11 @@ class _TeacherSafetyDashboardState
   }
 
   Widget _buildStatCard(
-    String count,
-    String label,
-    List<Color> colors,
-    IconData icon,
-  ) {
+      String count,
+      String label,
+      List<Color> colors,
+      IconData icon,
+      ) {
     return Container(
       padding: EdgeInsets.all(4.5.w),
       decoration: BoxDecoration(

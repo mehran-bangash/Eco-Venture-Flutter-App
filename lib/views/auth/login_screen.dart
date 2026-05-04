@@ -9,7 +9,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-
 class LoginScreen extends ConsumerStatefulWidget {
   final String? selectRole;
   const LoginScreen({super.key, this.selectRole});
@@ -20,25 +19,24 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
-  // Animation controllers
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late AnimationController _logoController;
   late AnimationController _formController;
-  late AnimationController _cardContentController; //  NEW
+  late AnimationController _cardContentController;
 
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
 
-  // Animations
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _logoScale;
   late Animation<double> _logoRotation;
   late Animation<Offset> _formSlideAnimation;
-
-  //  NEW: list of animations for card contents
   late List<Animation<double>> _cardItemAnimations;
+
+  final _formkey = GlobalKey<FormState>();
+
   @override
   void initState() {
     super.initState();
@@ -70,7 +68,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       vsync: this,
     );
 
-    //  NEW controller for inside card staggered animation
     _cardContentController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -89,25 +86,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
     );
 
-    _logoRotation = Tween<double>(
-      begin: -0.2,
-      end: 0.0,
-    ).animate(CurvedAnimation(parent: _logoController, curve: Curves.easeOut));
+    _logoRotation = Tween<double>(begin: -0.2, end: 0.0).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeOut),
+    );
 
     _formSlideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
           CurvedAnimation(parent: _formController, curve: Curves.easeOutBack),
         );
 
-    //  Staggered animations for card children (9 items as example)
-    int cardChildrenCount = 10; // update if you add/remove widgets
-
+    int cardChildrenCount = 10;
     _cardItemAnimations = List.generate(cardChildrenCount, (index) {
       final start = index * 0.1;
-      final end = (start + 0.4).clamp(
-        0.0,
-        1.0,
-      ); // <-- clamp makes sure end <= 1.0
+      final end = (start + 0.4).clamp(0.0, 1.0);
       return Tween<double>(begin: 0, end: 1).animate(
         CurvedAnimation(
           parent: _cardContentController,
@@ -120,17 +111,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   void _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 100));
     _fadeController.forward();
-
     await Future.delayed(const Duration(milliseconds: 200));
     _logoController.forward();
-
     await Future.delayed(const Duration(milliseconds: 400));
     _slideController.forward();
-
     await Future.delayed(const Duration(milliseconds: 600));
     _formController.forward();
 
-    //  When slideController (card) finishes, animate card contents
     _slideController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _cardContentController.forward();
@@ -138,17 +125,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     });
   }
 
-  final _formkey = GlobalKey<FormState>();
   @override
   void dispose() {
     _fadeController.dispose();
     _slideController.dispose();
     _logoController.dispose();
     _formController.dispose();
-    _cardContentController.dispose(); //  dispose new controller
+    _cardContentController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _handleNavigation() {
+    final targetRole = ref.read(authViewModelProvider).navigateToRole;
+    switch (targetRole) {
+      case 'child':
+        context.goNamed('bottomNavChild');
+        break;
+      case 'teacher':
+        context.goNamed('bottomNavTeacher');
+        break;
+      case 'parent':
+        context.goNamed('bottomNavParent');
+        break;
+      case 'pendingTeacher':
+        context.goNamed('teacherStatusPending');
+        break;
+    }
   }
 
   @override
@@ -170,13 +174,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           child: SafeArea(
             child: Stack(
               children: [
-                // Scrollable Column with logo + card
                 SingleChildScrollView(
                   padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
                   child: Form(
                     key: _formkey,
                     child: Column(
-                      mainAxisSize: MainAxisSize.min, // important!
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildLogoSection(),
                         SizedBox(height: 3.h),
@@ -198,9 +201,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                       style: GoogleFonts.poppins(
                                         fontSize: 24.sp,
                                         fontWeight: FontWeight.w800,
-                                        color: Theme.of(
-                                          context,
-                                        ).textTheme.headlineSmall?.color,
+                                        color: Theme.of(context)
+                                            .textTheme
+                                            .headlineSmall
+                                            ?.color,
                                       ),
                                     ),
                                   ),
@@ -255,7 +259,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                         "Forgot Password?",
                                         style: GoogleFonts.poppins(
                                           fontSize: 16.sp,
-                                          color: Color(0xFF667EEA),
+                                          color: const Color(0xFF667EEA),
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
@@ -265,9 +269,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 SizedBox(height: 2.h),
                                 Consumer(
                                   builder: (context, ref, child) {
-                                    final signInState = ref.watch(
-                                      authViewModelProvider,
-                                    );
+                                    final signInState =
+                                    ref.watch(authViewModelProvider);
                                     return Column(
                                       children: [
                                         GestureDetector(
@@ -275,52 +278,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                             if (_formkey.currentState!
                                                 .validate()) {
                                               await ref
-                                                  .read(
-                                                    authViewModelProvider
-                                                        .notifier,
-                                                  )
+                                                  .read(authViewModelProvider
+                                                  .notifier)
                                                   .signInUser(
-                                                    _emailController.text
-                                                        .trim(),
-                                                    _passwordController.text
-                                                        .trim(),
-                                                    onSuccess: () {
-                                                      final role = ref
-                                                          .read(
-                                                            authViewModelProvider,
-                                                          )
-                                                          .user
-                                                          ?.role; // role from backend
-                                                      switch (role) {
-                                                        case 'child':
-                                                          context.goNamed('bottomNavChild');
-                                                          break;
-                                                        case 'teacher':
-                                                          context.goNamed('bottomNavTeacher');
-                                                          break;
-                                                        case 'parent':
-                                                          context.goNamed('bottomNavParent');
-                                                          break;
-                                                      }
-                                                    },
-                                                  );
+                                                _emailController.text
+                                                    .trim(),
+                                                _passwordController.text
+                                                    .trim(),
+                                                onSuccess:
+                                                _handleNavigation,
+                                              );
                                             }
                                           },
                                           child: FadeTransition(
                                             opacity: _cardItemAnimations[6],
                                             child: Material(
                                               elevation: 5,
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(16),
-                                              ),
+                                              borderRadius:
+                                              const BorderRadius.all(
+                                                  Radius.circular(16)),
                                               child: Container(
                                                 height: 5.5.h,
                                                 width: 68.w,
-                                                decoration: BoxDecoration(
+                                                decoration: const BoxDecoration(
                                                   borderRadius:
-                                                      BorderRadius.all(
-                                                        Radius.circular(16),
-                                                      ),
+                                                  BorderRadius.all(
+                                                      Radius.circular(16)),
                                                   gradient: LinearGradient(
                                                     colors: [
                                                       Color(0xFF8092E9),
@@ -330,63 +313,59 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                                 ),
                                                 child: Row(
                                                   mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children:
-                                                      signInState.isSignInLoading
+                                                  MainAxisAlignment.center,
+                                                  children: signInState
+                                                      .isSignInLoading
                                                       ? [
-                                                          SizedBox(
-                                                            height: 18,
-                                                            width: 18,
-                                                            child:
-                                                                CircularProgressIndicator(
-                                                                  color: Colors
-                                                                      .white,
-                                                                  strokeWidth:
-                                                                      2,
-                                                                ),
-                                                          ),
-                                                          SizedBox(width: 2.w),
-                                                          Text(
-                                                            "Login In...",
-                                                            style:
-                                                                GoogleFonts.poppins(
-                                                                  fontSize:
-                                                                      16.sp,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  color: Colors
-                                                                      .white,
-                                                                ),
-                                                          ),
-                                                        ]
+                                                    const SizedBox(
+                                                      height: 18,
+                                                      width: 18,
+                                                      child:
+                                                      CircularProgressIndicator(
+                                                        color:
+                                                        Colors.white,
+                                                        strokeWidth: 2,
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 2.w),
+                                                    Text(
+                                                      "Logging In...",
+                                                      style: GoogleFonts
+                                                          .poppins(
+                                                        fontSize: 16.sp,
+                                                        fontWeight:
+                                                        FontWeight
+                                                            .bold,
+                                                        color:
+                                                        Colors.white,
+                                                      ),
+                                                    ),
+                                                  ]
                                                       : [
-                                                          Icon(
-                                                            Icons.login_rounded,
-                                                            color: Colors.white,
-                                                            size: 20.sp,
-                                                          ),
-                                                          SizedBox(width: 2.w),
-                                                          Text(
-                                                            'Sign In',
-                                                            style:
-                                                                GoogleFonts.poppins(
-                                                                  fontSize:
-                                                                      16.sp,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  color: Colors
-                                                                      .white,
-                                                                ),
-                                                          ),
-                                                        ],
+                                                    Icon(
+                                                      Icons.login_rounded,
+                                                      color: Colors.white,
+                                                      size: 20.sp,
+                                                    ),
+                                                    SizedBox(width: 2.w),
+                                                    Text(
+                                                      'Sign In',
+                                                      style: GoogleFonts
+                                                          .poppins(
+                                                        fontSize: 16.sp,
+                                                        fontWeight:
+                                                        FontWeight
+                                                            .bold,
+                                                        color:
+                                                        Colors.white,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                        //error message
                                         if (signInState.signInError != null)
                                           Padding(
                                             padding: EdgeInsets.only(top: 2.h),
@@ -419,132 +398,108 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 SizedBox(height: 1.5.h),
                                 Consumer(
                                   builder: (context, ref, child) {
-                                    final googleState = ref.watch(
-                                      authViewModelProvider,
-                                    );
+                                    final googleState =
+                                    ref.watch(authViewModelProvider);
                                     return Column(
                                       children: [
                                         GestureDetector(
                                           onTap: () async {
-
                                             await ref
-                                                .read(
-                                                  authViewModelProvider
-                                                      .notifier,
-                                                )
+                                                .read(authViewModelProvider
+                                                .notifier)
                                                 .continueWithGoogle(
-                                                  widget.selectRole??"",
-                                                  onSuccess: () {
-                                                    final role = ref
-                                                        .read(
-                                                          authViewModelProvider,
-                                                        )
-                                                        .user
-                                                        ?.role; // role from backend
-                                                    switch (role) {
-                                                      case 'child':
-                                                        context.goNamed('bottomNavChild');
-                                                        break;
-                                                      case 'teacher':
-                                                        context.goNamed('teacherNavTeacher');
-                                                        break;
-                                                      case 'parent':
-                                                        context.goNamed('bottomNavParent');
-                                                        break;
-                                                    }
-                                                  },
-                                                );
+                                              widget.selectRole ?? "",
+                                              onSuccess: _handleNavigation,
+                                            );
                                           },
                                           child: FadeTransition(
                                             opacity: _cardItemAnimations[8],
                                             child: Material(
                                               elevation: 5,
-                                              borderRadius: BorderRadius.all(
-                                                Radius.circular(16),
-                                              ),
+                                              borderRadius:
+                                              const BorderRadius.all(
+                                                  Radius.circular(16)),
                                               child: Container(
                                                 height: 5.5.h,
                                                 decoration: BoxDecoration(
                                                   borderRadius:
-                                                      BorderRadius.all(
-                                                        Radius.circular(16),
-                                                      ),
+                                                  const BorderRadius.all(
+                                                      Radius.circular(16)),
                                                   color: Colors.grey.shade300,
                                                 ),
                                                 child: Row(
                                                   crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children:
-                                                      googleState
-                                                          .isGoogleLoading
+                                                  CrossAxisAlignment.center,
+                                                  children: googleState
+                                                      .isGoogleLoading
                                                       ? [
-                                                          Padding(
-                                                            padding:  EdgeInsets.only(left: 15.w),
-                                                            child: SizedBox(
-                                                              height: 18,
-                                                              width: 18,
-                                                              child:
-                                                                  CircularProgressIndicator(
-                                                                    color: Colors
-                                                                        .black,
-                                                                    strokeWidth:
-                                                                        2,
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                          SizedBox(width: 2.w),
-                                                          Text(
-                                                            "connecting ...",
-                                                            style:
-                                                                GoogleFonts.poppins(
-                                                                  fontSize:
-                                                                      16.sp,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                  color: Colors
-                                                                      .black,
-                                                                ),
-                                                          ),
-                                                        ]
+                                                    Padding(
+                                                      padding:
+                                                      EdgeInsets.only(
+                                                          left: 15.w),
+                                                      child:
+                                                      const SizedBox(
+                                                        height: 18,
+                                                        width: 18,
+                                                        child:
+                                                        CircularProgressIndicator(
+                                                          color: Colors
+                                                              .black,
+                                                          strokeWidth: 2,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 2.w),
+                                                    Text(
+                                                      "Connecting...",
+                                                      style: GoogleFonts
+                                                          .poppins(
+                                                        fontSize: 16.sp,
+                                                        fontWeight:
+                                                        FontWeight
+                                                            .bold,
+                                                        color:
+                                                        Colors.black,
+                                                      ),
+                                                    ),
+                                                  ]
                                                       : [
-                                                          Flexible(
-                                                            child: Padding(
-                                                              padding:
-                                                                  EdgeInsets.only(
-                                                                    left: 6.w,
-                                                                  ),
-                                                              child: Image.asset(
-                                                                'assets/images/logoGoogle.png',
-                                                                height: 4.h,
-                                                                width: 8.w,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          SizedBox(width: 7.w),
-                                                          Text(
-                                                            'Continue with Google',
-                                                            style: GoogleFonts.poppins(
-                                                              fontSize: 16.sp,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              color:
-                                                                  Theme.of(
-                                                                        context,
-                                                                      )
-                                                                      .textTheme
-                                                                      .bodyLarge
-                                                                      ?.color,
-                                                            ),
-                                                          ),
-                                                        ],
+                                                    Flexible(
+                                                      child: Padding(
+                                                        padding:
+                                                        EdgeInsets
+                                                            .only(
+                                                          left: 6.w,
+                                                        ),
+                                                        child: Image.asset(
+                                                          'assets/images/logoGoogle.png',
+                                                          height: 4.h,
+                                                          width: 8.w,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    SizedBox(width: 7.w),
+                                                    Text(
+                                                      'Continue with Google',
+                                                      style: GoogleFonts
+                                                          .poppins(
+                                                        fontSize: 16.sp,
+                                                        fontWeight:
+                                                        FontWeight
+                                                            .w600,
+                                                        color: Theme.of(
+                                                            context)
+                                                            .textTheme
+                                                            .bodyLarge
+                                                            ?.color,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                        //error message
                                         if (googleState.googleError != null)
                                           Padding(
                                             padding: EdgeInsets.only(top: 2.h),
@@ -574,9 +529,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                         text: TextSpan(
                                           style: GoogleFonts.poppins(
                                             fontSize: 14.sp,
-                                            color: Theme.of(
-                                              context,
-                                            ).textTheme.bodyLarge?.color,
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color,
                                           ),
                                           children: [
                                             const TextSpan(
@@ -617,7 +573,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       padding: EdgeInsets.only(top: 10.h),
       child: Column(
         children: [
-          //  Animated Logo (scale + rotation)
           ScaleTransition(
             scale: _logoScale,
             child: RotationTransition(
@@ -640,18 +595,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
             ),
           ),
           SizedBox(height: 2.h),
-
-          //  Fade-in Welcome Text
           FadeTransition(
             opacity: _fadeAnimation,
             child: Text(
-              "WelCome Back",
+              "Welcome Back",
               style: AppTextStyles.body25RegularPureWhite,
             ),
           ),
           SizedBox(height: 2.h),
-
-          //  Slide-in Subtitle
           SlideTransition(
             position: _slideAnimation,
             child: Text(

@@ -1,13 +1,15 @@
 import '../../services/teacher/teacher_safety_service.dart';
 import '../../models/teacher/teacher_report_model.dart';
 
-
 class TeacherSafetyRepository {
   final TeacherSafetyService _service;
 
   TeacherSafetyRepository(this._service);
 
   Stream<List<TeacherReportModel>> getInbox() => _service.getInboxStream();
+
+  // Added to support the new Admin Inbox feature
+  Stream<List<TeacherReportModel>> getAdminInbox() => _service.getAdminInboxStream();
 
   Future<void> markResolved(String reportId, String? childId) async {
     await _service.updateReportStatus(reportId, 'Resolved', childId);

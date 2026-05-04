@@ -484,14 +484,14 @@ class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen>
                   fontWeight: FontWeight.bold,
                   color: _textMain,
                 ),
-              ),
-              Text(
-                "View All",
-                style: GoogleFonts.poppins(
-                  fontSize: 12.sp,
-                  color: _accentBlue,
-                  fontWeight: FontWeight.w600,
-                ),
+
+              // Text(
+              //   "View All",
+              //   style: GoogleFonts.poppins(
+              //     fontSize: 12.sp,
+              //     color: _accentBlue,
+              //     fontWeight: FontWeight.w600,
+              //   ),
               ),
             ],
           ),

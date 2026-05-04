@@ -119,6 +119,24 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
     });
   }
 
+  void _handleNavigation() {
+    final targetRole = ref.read(authViewModelProvider).navigateToRole;
+    switch (targetRole) {
+      case 'child':
+        context.goNamed('bottomNavChild');
+        break;
+      case 'teacher':
+        context.goNamed('bottomNavTeacher');
+        break;
+      case 'parent':
+        context.goNamed('bottomNavParent');
+        break;
+      case 'pendingTeacher':
+        context.goNamed('teacherStatusPending');
+        break;
+    }
+  }
+
   void _startAnimations() async {
     await Future.delayed(const Duration(milliseconds: 100));
     _fadeController.forward();
@@ -335,19 +353,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen>
                                               selectedRole,
                                               "${_firstNameController.text.trim()} ${_lastNameController.text.trim()}",
                                               defaultAgeGroup, // FIXED: Added missing ageGroup parameter
-                                              onSuccess: () {
-                                                switch (selectedRole) {
-                                                  case 'child':
-                                                    context.goNamed("bottomNavChild");
-                                                    break;
-                                                  case 'teacher':
-                                                    context.goNamed('bottomNavTeacher');
-                                                    break;
-                                                  case 'parent':
-                                                    context.goNamed('bottomNavParent');
-                                                    break;
-                                                }
-                                              },
+                                              onSuccess:_handleNavigation,
                                             );
                                           }
                                         },

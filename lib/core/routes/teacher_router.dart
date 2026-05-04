@@ -17,6 +17,7 @@ import 'package:eco_venture/views/teacher_section/settings/teacher_settings.dart
 import 'package:eco_venture/views/teacher_section/stem_challenges_module/teacher_edit_stem_challenge_screen.dart';
 import 'package:eco_venture/views/teacher_section/stem_challenges_module/teacher_stem_dashboard.dart';
 import 'package:eco_venture/views/teacher_section/teacher_home_screen.dart';
+import 'package:eco_venture/views/teacher_section/teacher_pending_screen/teacher_status_pending_screen.dart';
 import 'package:eco_venture/views/teacher_section/teacher_stem_approved_screen.dart';
 import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_add_treasure_hunt_screen.dart';
 import 'package:eco_venture/views/teacher_section/teacher_treasure_hunt/teacher_edit_treasure_hunt_screen.dart';
@@ -26,6 +27,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/teacher/teacher_report_model.dart';
 import '../../views/child_section/rewards_screen.dart';
+import '../../views/teacher_section/admin_inbox/teacher_admin_detail_screen.dart';
+import '../../views/teacher_section/admin_inbox/teacher_admin_inbox_screen.dart';
+import '../../views/teacher_section/admin_inbox/teacher_contact_admin_screen.dart';
 import '../../views/teacher_section/inbox_report/teacher_report_detail_screen.dart';
 import '../../views/teacher_section/inbox_report/teacher_safety_dashboard.dart';
 import '../../views/teacher_section/inbox_report/teacher_send_report_screen.dart';
@@ -40,6 +44,9 @@ class TeacherRouter {
     builder: (context, state) => const BottomNavTeacher(),
     routes: [
       // --- TEACHER PROFILE & SETTINGS ---
+      // --- TEACHER PROFILE & SETTINGS ---
+      
+
       GoRoute(
         path: RouteNames.teacherSettings,
         name: 'teacherSettings',
@@ -54,6 +61,27 @@ class TeacherRouter {
             path: RouteNames.teacherEditProfile,
             name: 'teacherEditProfile',
             builder: (context, state) => const TeacherEditProfileScreen(),
+          ),
+          // --- NEW ADMIN SUPPORT ROUTES ---
+          GoRoute(
+            path: RouteNames.teacherContactAdmin,
+            name: 'teacherContactAdmin',
+            builder: (context, state) => const TeacherContactAdminScreen(),
+          ),
+          GoRoute(
+            path: RouteNames.teacherAdminInbox,
+            name: 'teacherAdminInbox',
+            builder: (context, state) => const TeacherAdminInboxScreen(),
+            routes: [
+              GoRoute(
+                path: RouteNames.teacherAdminDetail,
+                name: 'teacherAdminDetail',
+                builder: (context, state) {
+                  final report = state.extra as TeacherReportModel;
+                  return TeacherAdminDetailScreen(report: report);
+                },
+              ),
+            ],
           ),
         ],
       ),

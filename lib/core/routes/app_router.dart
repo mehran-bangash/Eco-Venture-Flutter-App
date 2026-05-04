@@ -4,6 +4,7 @@ import '../../viewmodels/auth/auth_state.dart';
 import '../../views/auth/forgot_password_screen.dart';
 import '../../views/auth/sign_up_screen.dart';
 import '../../views/splash_screen/splash_screen.dart';
+import '../../views/teacher_section/teacher_pending_screen/teacher_status_pending_screen.dart';
 import '../constants/route_names.dart';
 import 'child_router.dart';
 import 'parent_router.dart';
@@ -30,6 +31,11 @@ class AppRouter {
         final role = state.extra as String?;
         return LoginScreen(selectRole: role);
       },
+    ),
+    GoRoute(
+      path: '/pending-teacher',
+      name: 'teacherStatusPending',
+      builder: (context, state) => const TeacherStatusPendingScreen(),
     ),
     GoRoute(
       path: RouteNames.signup,

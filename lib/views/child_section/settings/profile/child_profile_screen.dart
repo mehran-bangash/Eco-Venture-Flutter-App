@@ -122,166 +122,174 @@ class _ChildProfileState extends ConsumerState<ChildProfile> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            automaticallyImplyLeading: false,
-            pinned: true,
-            expandedHeight: 28.h,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: AppGradients.backgroundGradient,
-                ),
-                child: Center(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: EdgeInsets.only(left: 4.w, top: 2.5.h, right: 4.w),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  context.goNamed('bottomNavChild');
-                                },
-                                child: Container(
-                                  height: 4.h,
-                                  width: 8.w,
-                                  decoration: const BoxDecoration(
-                                      color: Colors.blueGrey,
-                                      borderRadius: BorderRadius.all(Radius.circular(10))),
-                                  child: const Icon(
-                                    Icons.arrow_back_ios_new,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              // Issue 4: Added Material & InkWell for better feedback
-                              Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  onTap: () => _loadSharedPreferences(showToast: true),
-                                  borderRadius: BorderRadius.circular(10),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if(!didPop){
+          context.goNamed("bottomNavChild");
+        }
+      },
+      child: Scaffold(
+        body: CustomScrollView(
+          slivers: [
+            SliverAppBar(
+              automaticallyImplyLeading: false,
+              pinned: true,
+              expandedHeight: 28.h,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: AppGradients.backgroundGradient,
+                  ),
+                  child: Center(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.only(left: 4.w, top: 2.5.h, right: 4.w),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                GestureDetector(
+                                  onTap: () {
+                                    context.goNamed('bottomNavChild');
+                                  },
                                   child: Container(
                                     height: 4.h,
                                     width: 8.w,
-                                    decoration: BoxDecoration(
-                                        color: Colors.white70.withOpacity(0.3),
-                                        borderRadius: const BorderRadius.all(Radius.circular(10))),
+                                    decoration: const BoxDecoration(
+                                        color: Colors.blueGrey,
+                                        borderRadius: BorderRadius.all(Radius.circular(10))),
                                     child: const Icon(
-                                      Icons.refresh,
+                                      Icons.arrow_back_ios_new,
                                       color: Colors.white,
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Material(
-                          elevation: 10,
-                          borderRadius: BorderRadius.circular(10.h),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10.h),
-                            child: SizedBox(
-                              height: 15.h,
-                              width: 15.h,
-                              child: userImageUrl.isNotEmpty
-                                  ? Image.network(
-                                userImageUrl,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return const Icon(Icons.person, size: 50, color: Colors.grey);
-                                },
-                              )
-                                  : const Icon(Icons.person, size: 50, color: Colors.grey),
+                                // Issue 4: Added Material & InkWell for better feedback
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () => _loadSharedPreferences(showToast: true),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      height: 4.h,
+                                      width: 8.w,
+                                      decoration: BoxDecoration(
+                                          color: Colors.white70.withOpacity(0.3),
+                                          borderRadius: const BorderRadius.all(Radius.circular(10))),
+                                      child: const Icon(
+                                        Icons.refresh,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                        SizedBox(height: 0.5.h),
-                        Text(
-                          username,
-                          style: GoogleFonts.poppins(
-                            fontSize: 20.sp,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                          Material(
+                            elevation: 10,
+                            borderRadius: BorderRadius.circular(10.h),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10.h),
+                              child: SizedBox(
+                                height: 15.h,
+                                width: 15.h,
+                                child: userImageUrl.isNotEmpty
+                                    ? Image.network(
+                                  userImageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Icon(Icons.person, size: 50, color: Colors.grey);
+                                  },
+                                )
+                                    : const Icon(Icons.person, size: 50, color: Colors.grey),
+                              ),
+                            ),
                           ),
-                        ),
-                        SizedBox(height: 0.5.h),
-                        Text(
-                          userEmail,
-                          style: GoogleFonts.poppins(
-                            fontSize: 17.sp,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                          SizedBox(height: 0.5.h),
+                          Text(
+                            username,
+                            style: GoogleFonts.poppins(
+                              fontSize: 20.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                      ],
+                          SizedBox(height: 0.5.h),
+                          Text(
+                            userEmail,
+                            style: GoogleFonts.poppins(
+                              fontSize: 17.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                SizedBox(height: 2.h),
-                _buildPersonalInfoCard(),
-                SizedBox(height: 2.h),
-                // Issue 3: Navigation logic to refresh on return
-                GestureDetector(
-                  onTap: () async {
-                    // Using pushNamed so we can await the result and refresh
-                    await context.pushNamed('editProfile');
-                    _loadSharedPreferences();
-                  },
-                  child: SettingsTile(
-                    title: "Edit Profile",
-                    subtitle: "Update your personal \ninformation",
-                    circleColor: Colors.blue,
-                    leadingIcon: Icons.edit,
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  SizedBox(height: 2.h),
+                  _buildPersonalInfoCard(),
+                  SizedBox(height: 2.h),
+                  // Issue 3: Navigation logic to refresh on return
+                  GestureDetector(
+                    onTap: () async {
+                      // Using pushNamed so we can await the result and refresh
+                      await context.pushNamed('editProfile');
+                      _loadSharedPreferences();
+                    },
+                    child: SettingsTile(
+                      title: "Edit Profile",
+                      subtitle: "Update your personal \ninformation",
+                      circleColor: Colors.blue,
+                      leadingIcon: Icons.edit,
+                      trailing: Container(
+                        height: 5.h,
+                        width: 10.w,
+                        decoration: BoxDecoration(
+                          color: Colors.blueGrey.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.arrow_forward_ios, color: Colors.blue),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  SettingsTile(
+                    onPressed: () => _handleDeleteAccount(context),
+                    title: "Delete Account",
+                    titleColor: Colors.redAccent,
+                    subtitle: "Permanently remove your \naccount",
+                    circleColor: Colors.redAccent.withOpacity(0.4),
+                    leadingIcon: Icons.delete,
                     trailing: Container(
                       height: 5.h,
                       width: 10.w,
                       decoration: BoxDecoration(
-                        color: Colors.blueGrey.withOpacity(0.2),
+                        color: Colors.redAccent.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.arrow_forward_ios, color: Colors.blue),
+                      child: const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Colors.redAccent,
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(height: 2.h),
-                SettingsTile(
-                  onPressed: () => _handleDeleteAccount(context),
-                  title: "Delete Account",
-                  titleColor: Colors.redAccent,
-                  subtitle: "Permanently remove your \naccount",
-                  circleColor: Colors.redAccent.withOpacity(0.4),
-                  leadingIcon: Icons.delete,
-                  trailing: Container(
-                    height: 5.h,
-                    width: 10.w,
-                    decoration: BoxDecoration(
-                      color: Colors.redAccent.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.redAccent,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 5.h),
-              ],
+                  SizedBox(height: 5.h),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

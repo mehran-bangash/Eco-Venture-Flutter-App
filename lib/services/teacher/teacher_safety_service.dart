@@ -13,78 +13,17 @@ class TeacherSafetyService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  final String _backendUrl = "https://eco-venture-backend.onrender.com";
-
   Future<String?> _getTeacherId() async {
     String? id = _auth.currentUser?.uid;
     id ??= SharedPreferencesHelper.instance.getUserId();
     return id;
   }
+
   Future<void> _notifyChild(String childUid, String title, String body) async {
     await _sendPushNotification(targetId: childUid, role: 'child', title: title, body: body);
   }
 
-
-  // --- CRITICAL FIX: DATA MAPPING & FLEXIBLE FILTERING ---
-  List<TeacherReportModel> _parseReports(
-      dynamic data,
-      String fromSource, {
-        String? childId,
-        String? targetTeacherId,
-      }) {
-    if (data == null) return [];
-    final List<TeacherReportModel> reports = [];
-    try {
-      if (data is Map) {
-        data.forEach((key, value) {
-          if (value is Map) {
-            final map = Map<String, dynamic>.from(value);
-
-            final reportTeacherId = map['teacherId'] ?? map['teacher_id'] ?? map['targetId'];
-
-            if (targetTeacherId != null && reportTeacherId != targetTeacherId) {
-              return;
-            }
-
-            if (childId != null && map['recipient'] != 'Teacher') {
-              return;
-            }
-
-            map['id'] = key;
-
-            // FIX: Explicitly check for status in Parent Reports
-            // If the parent app doesn't send 'status', we force it to 'Pending' or 'Escalated'
-            if (map['status'] == null || map['status'].toString().isEmpty) {
-              map['status'] = 'Pending';
-            }
-
-            if (map['title'] == null) {
-              map['title'] = map['reportTitle'] ?? map['issueType'] ?? 'Alert';
-            }
-
-            String desc = map['description'] ?? map['reportDesc'] ?? map['details'] ?? '';
-            String note = map['parentNote'] ?? '';
-            if (note.isNotEmpty) desc += "\n\nParent Note: $note";
-            map['description'] = desc;
-
-            if (map['fromName'] == null) {
-              map['fromName'] = fromSource == "Parent"
-                  ? (map['senderName'] ?? map['parentName'] ?? "Parent")
-                  : "Student: $fromSource";
-            }
-
-            if (childId != null) map['childId'] = childId;
-
-            reports.add(TeacherReportModel.fromMap(key, map));
-          }
-        });
-      }
-    } catch (e) {
-      print("Error parsing: $e");
-    }
-    return reports;
-  }
-
+  // --- RESTORED: STATUS UPDATE LOGIC ---
   Future<void> updateReportStatus(String reportId, String newStatus, String? childId) async {
     try {
       final parentReportRef = _database.ref('parent_to_teacher_reports/$reportId');
@@ -94,26 +33,20 @@ class TeacherSafetyService {
         final data = Map<String, dynamic>.from(snapshot.value as Map);
         final String? originalId = data['originalReportId'];
 
-        // 1. Update Parent Escalation node (Both status and teacherStatus)
         await parentReportRef.update({
           'status': newStatus,
-          'teacherStatus': newStatus, // FIX: Syncing the second field
+          'teacherStatus': newStatus,
           'resolvedAt': DateTime.now().toIso8601String(),
         });
 
-        // 2. Sync back to the Parent's Dashboard (safety_alerts node)
         if (childId != null && originalId != null) {
           await _database.ref('safety_alerts/$childId/$originalId').update({
             'teacherStatus': newStatus,
-            // We don't force 'status' to resolved here if you want Parent to
-            // manually close their local view, but usually, it's better to sync:
-            // 'status': newStatus,
           });
         }
         return;
       }
 
-      // 3. Direct Child Alert Logic
       if (childId != null) {
         await _database.ref('safety_alerts/$childId/$reportId').update({
           'status': newStatus,
@@ -128,6 +61,7 @@ class TeacherSafetyService {
     }
   }
 
+  // --- RESTORED: PARENT REMARK LOGIC ---
   Future<void> sendRemarkToParent({
     required String studentId,
     required String title,
@@ -155,28 +89,101 @@ class TeacherSafetyService {
     );
   }
 
+  // --- TRICK: ROBUST PARSER FOR ADMIN REPORTS ---
+  List<TeacherReportModel> _parseAdminReports(dynamic data) {
+    if (data == null) return [];
+    final List<TeacherReportModel> reports = [];
+    try {
+      if (data is Map) {
+        data.forEach((key, value) {
+          if (value is Map) {
+            final map = Map<String, dynamic>.from(value);
+            map['id'] = key;
+
+            if (map['status'] == null || map['status'].toString().isEmpty) {
+              map['status'] = map['adminStatus'] ?? 'Pending';
+            }
+
+            if (map['title'] == null) {
+              map['title'] = map['reportTitle'] ?? 'Support Request';
+            }
+
+            map['fromName'] = "Support Admin";
+
+            reports.add(TeacherReportModel.fromMap(key, map));
+          }
+        });
+      }
+    } catch (e) {
+      print("Error parsing admin reports: $e");
+    }
+    return reports;
+  }
+
+  List<TeacherReportModel> _parseReports(
+      dynamic data,
+      String fromSource, {
+        String? childId,
+        String? targetTeacherId,
+      }) {
+    if (data == null) return [];
+    final List<TeacherReportModel> reports = [];
+    try {
+      if (data is Map) {
+        data.forEach((key, value) {
+          if (value is Map) {
+            final map = Map<String, dynamic>.from(value);
+            final reportTeacherId = map['teacherId'] ?? map['teacher_id'] ?? map['targetId'];
+
+            if (targetTeacherId != null && reportTeacherId != targetTeacherId) return;
+            if (childId != null && map['recipient'] != 'Teacher') return;
+
+            map['id'] = key;
+            if (map['status'] == null || map['status'].toString().isEmpty) {
+              map['status'] = 'Pending';
+            }
+
+            if (map['title'] == null) {
+              map['title'] = map['reportTitle'] ?? map['issueType'] ?? 'Alert';
+            }
+
+            if (map['fromName'] == null) {
+              map['fromName'] = fromSource == "Parent"
+                  ? (map['senderName'] ?? map['parentName'] ?? "Parent")
+                  : "Student: $fromSource";
+            }
+
+            if (childId != null) map['childId'] = childId;
+            reports.add(TeacherReportModel.fromMap(key, map));
+          }
+        });
+      }
+    } catch (e) {
+      print("Error parsing: $e");
+    }
+    return reports;
+  }
+
   Future<void> reportToAdmin(String title, String message, String type) async {
     try {
       final teacherId = await _getTeacherId();
       if (teacherId == null) throw Exception("Teacher session not found.");
 
-      // 1. Fetch Teacher's Name from Firestore
       final teacherDoc = await _firestore.collection('users').doc(teacherId).get();
       final String teacherName = teacherDoc.data()?['name'] ?? "Teacher";
 
       final newKey = _database.ref('teacher_to_admin_reports').push().key!;
 
-      // 2. Set comprehensive report data
       await _database.ref('teacher_to_admin_reports/$newKey').set({
         'title': title,
         'description': message,
         'type': type,
         'fromTeacherId': teacherId,
-        'fromTeacherName': teacherName, // Included teacher name
+        'fromTeacherName': teacherName,
         'timestamp': DateTime.now().toIso8601String(),
-        'status': 'Pending',            // Primary status
-        'adminStatus': 'Pending',       // Resolution tracking status
-        'isAdminEscalated': true,       // Flag for admin visibility
+        'status': 'Pending',
+        'adminStatus': 'Pending',
+        'isAdminEscalated': true,
         'senderRole': 'Teacher',
       });
     } catch (e) {
@@ -202,35 +209,22 @@ class TeacherSafetyService {
     }
   }
 
-
   Stream<List<TeacherReportModel>> getInboxStream() {
     return Stream.fromFuture(_getTeacherId()).switchMap((teacherId) {
       if (teacherId == null) return Stream.value([]);
 
-      // A. Teacher's Direct Inbox
       final directInboxStream = _database
           .ref('Teacher_Content/$teacherId/inbox')
           .onValue
           .map((event) => _parseReports(event.snapshot.value, "Parent"))
           .startWith([]);
 
-      // B. Global Parent-to-Teacher Reports
       final parentToTeacherStream = _database
           .ref('parent_to_teacher_reports')
           .onValue
           .map((event) => _parseReports(event.snapshot.value, "Parent", targetTeacherId: teacherId))
           .startWith([]);
 
-      // C. NEW: Teacher-to-Admin Reports (Tracking your own requests)
-      final teacherToAdminStream = _database
-          .ref('teacher_to_admin_reports')
-          .orderByChild('fromTeacherId')
-          .equalTo(teacherId)
-          .onValue
-          .map((event) => _parseReports(event.snapshot.value, "Support Admin"))
-          .startWith([]);
-
-      // D. Student Alerts from Firestore Linked Students
       return _firestore
           .collection('users')
           .where('teacher_id', isEqualTo: teacherId)
@@ -240,7 +234,6 @@ class TeacherSafetyService {
         List<Stream<List<TeacherReportModel>>> allStreams = [
           directInboxStream,
           parentToTeacherStream,
-          teacherToAdminStream, // Added to the merge
         ];
 
         if (snapshot.docs.isNotEmpty) {
@@ -262,6 +255,24 @@ class TeacherSafetyService {
           return all;
         });
       });
+    });
+  }
+
+  Stream<List<TeacherReportModel>> getAdminInboxStream() {
+    return Stream.fromFuture(_getTeacherId()).switchMap((teacherId) {
+      if (teacherId == null) return Stream.value([]);
+
+      return _database
+          .ref('teacher_to_admin_reports')
+          .orderByChild('fromTeacherId')
+          .equalTo(teacherId)
+          .onValue
+          .map((event) {
+        final reports = _parseAdminReports(event.snapshot.value);
+        reports.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        return reports;
+      })
+          .startWith([]);
     });
   }
 }

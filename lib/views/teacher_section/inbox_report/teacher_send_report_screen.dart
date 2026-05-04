@@ -6,8 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../viewmodels/teacher_safety_report/teacher_safety_provider.dart';
 
 class TeacherSendReportScreen extends ConsumerStatefulWidget {
-  /// Logic: Accepts 'extra' map from context.pushNamed in the Detail Screen
-  /// Expected keys: 'studentId', 'studentName', 'type'
+  /// Logic: Now strictly accepts student details for Parent Communication
   final Map<String, dynamic> extra;
   const TeacherSendReportScreen({super.key, required this.extra});
 
@@ -16,8 +15,7 @@ class TeacherSendReportScreen extends ConsumerStatefulWidget {
       _TeacherSendReportScreenState();
 }
 
-class _TeacherSendReportScreenState
-    extends ConsumerState<TeacherSendReportScreen> {
+class _TeacherSendReportScreenState extends ConsumerState<TeacherSendReportScreen> {
   String _selectedType = 'Behavior Remark';
   String? _studentId;
   String? _studentName;
@@ -30,11 +28,6 @@ class _TeacherSendReportScreenState
     'Progress Update',
     'Urgent Issue',
   ];
-  final List<String> _bugTypes = [
-    'App Crash',
-    'Feature Request',
-    'Content Error',
-  ];
 
   final Color _primaryBlue = const Color(0xFF1565C0);
   final Color _bg = const Color(0xFFF4F7FE);
@@ -43,16 +36,9 @@ class _TeacherSendReportScreenState
   @override
   void initState() {
     super.initState();
-    // Logic: Automatically extract specific student details passed from the Profile button
     _studentId = widget.extra['studentId'];
     _studentName = widget.extra['studentName'];
-
-    // Default selection based on route type (Admin support vs Parent Remark)
-    if (widget.extra['type'] == 'Admin') {
-      _selectedType = 'App Crash';
-    } else {
-      _selectedType = 'Behavior Remark';
-    }
+    _selectedType = 'Behavior Remark';
   }
 
   Future<void> _send() async {
@@ -63,35 +49,25 @@ class _TeacherSendReportScreenState
       return;
     }
 
-    final isAdmin = widget.extra['type'] == 'Admin';
-
-    if (isAdmin) {
-      await ref
-          .read(teacherSafetyViewModelProvider.notifier)
-          .sendAdminReport(_titleCtrl.text, _messageCtrl.text, _selectedType);
-    } else {
-      if (_studentId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error: No recipient identified")),
-        );
-        return;
-      }
-
-      await ref
-          .read(teacherSafetyViewModelProvider.notifier)
-          .sendParentMessage(
-        _studentId!,
-        _titleCtrl.text,
-        _messageCtrl.text,
+    if (_studentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error: No recipient identified")),
       );
+      return;
     }
+
+    await ref
+        .read(teacherSafetyViewModelProvider.notifier)
+        .sendParentMessage(
+      _studentId!,
+      _titleCtrl.text,
+      _messageCtrl.text,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(teacherSafetyViewModelProvider);
-    bool isAdmin = widget.extra['type'] == 'Admin';
-    List<String> options = isAdmin ? _bugTypes : _types;
 
     ref.listen(teacherSafetyViewModelProvider, (prev, next) {
       if (next.isSuccess) {
@@ -107,7 +83,7 @@ class _TeacherSendReportScreenState
       backgroundColor: _bg,
       appBar: AppBar(
         title: Text(
-          isAdmin ? "Contact Admin" : "Message Parent",
+          "Message Parent",
           style: GoogleFonts.poppins(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18.sp),
         ),
         backgroundColor: Colors.white,
@@ -123,63 +99,60 @@ class _TeacherSendReportScreenState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- RECIPIENT CARD (DROPDOWN REPLACED) ---
-            if (!isAdmin) ...[
-              _buildLabel("Selected Explorer"),
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(4.w),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 22.sp,
-                      backgroundColor: _primaryBlue.withOpacity(0.1),
-                      child: Icon(Icons.person_rounded, color: _primaryBlue, size: 22.sp),
-                    ),
-                    SizedBox(width: 4.w),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _studentName ?? "Student",
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16.sp,
-                              color: _textDark,
-                            ),
-                          ),
-                          Text(
-                            "Verified Student Account",
-                            style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.verified_user_rounded, color: Colors.green, size: 18.sp),
-                  ],
-                ),
+            _buildLabel("Selected Explorer"),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(4.w),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
               ),
-              SizedBox(height: 3.h),
-            ],
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22.sp,
+                    backgroundColor: _primaryBlue.withOpacity(0.1),
+                    child: Icon(Icons.person_rounded, color: _primaryBlue, size: 22.sp),
+                  ),
+                  SizedBox(width: 4.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _studentName ?? "Student",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16.sp,
+                            color: _textDark,
+                          ),
+                        ),
+                        Text(
+                          "Verified Student Account",
+                          style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.verified_user_rounded, color: Colors.green, size: 18.sp),
+                ],
+              ),
+            ),
+            SizedBox(height: 3.h),
 
-            _buildLabel("Subject / Type"),
+            _buildLabel("Message Type"),
             Wrap(
               spacing: 2.w,
               runSpacing: 1.h,
-              children: options.map((type) => _buildChoiceChip(type)).toList(),
+              children: _types.map((type) => _buildChoiceChip(type)).toList(),
             ),
 
             SizedBox(height: 3.5.h),
             _buildLabel("Title"),
-            _buildTextField(_titleCtrl, "Give this report a short title...", 1),
+            _buildTextField(_titleCtrl, "Give this message a short title...", 1),
 
             SizedBox(height: 3.5.h),
             _buildLabel("Message Details"),
@@ -187,7 +160,6 @@ class _TeacherSendReportScreenState
 
             SizedBox(height: 5.h),
 
-            // --- PREMIUM ACTION BUTTON ---
             SizedBox(
               width: double.infinity,
               height: 7.5.h,
@@ -202,7 +174,7 @@ class _TeacherSendReportScreenState
                 child: state.isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                  isAdmin ? "SUBMIT TO ADMIN" : "SEND MESSAGE",
+                  "SEND MESSAGE",
                   style: GoogleFonts.poppins(
                     fontSize: 16.sp,
                     color: Colors.white,

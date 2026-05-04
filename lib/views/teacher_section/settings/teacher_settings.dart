@@ -167,12 +167,12 @@ class _TeacherSettingsState extends State<TeacherSettings>
 
                   // 2. App Theme Tile
                   SettingsTile(
-                    title: "App Theme",
-                    subtitle: "Light mode",
-                    circleColor: Colors.blue,
+                    title: "App Theme ",
+                    subtitle: "(Coming Soon)",
+                    circleColor: Colors.grey,
                     leadingIcon: Icons.dark_mode,
                     trailing: Switch(
-                      value: true,
+                      value: false,
                       onChanged: (val) {},
                       activeThumbColor: Colors.blue,
                     ),
@@ -195,7 +195,7 @@ class _TeacherSettingsState extends State<TeacherSettings>
                   GestureDetector(
                     onTap: () {
                       // Navigates to report screen with Admin type pre-selected
-                      context.pushNamed('teacherSendReportScreen', extra: {'type': 'Admin'});
+                      context.goNamed('teacherContactAdmin');
                     },
                     child: SettingsTile(
                       title: "Contact Admin",

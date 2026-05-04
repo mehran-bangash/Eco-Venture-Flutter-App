@@ -66,75 +66,83 @@ class _TeacherStemDashboardState extends ConsumerState<TeacherStemDashboard> {
   Widget build(BuildContext context) {
     final stemState = ref.watch(teacherStemViewModelProvider);
 
-    return Scaffold(
-      backgroundColor: _bg,
-      appBar: AppBar(
+    return PopScope(
+       canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if(!didPop){
+          context.goNamed("bottomNavTeacher");
+        }
+      },
+      child: Scaffold(
         backgroundColor: _bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 20.sp),
-          onPressed: () => context.pop(),
-        ),
-        centerTitle: true,
-        title: Text(
-          "STEM Challenges",
-          style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp),
-        ),
-        actions: [
-          IconButton(
-            onPressed: _showFilterDialog,
-            icon: Icon(Icons.filter_list_rounded, color: _primary, size: 22.sp),
+        appBar: AppBar(
+          backgroundColor: _bg,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 20.sp),
+            onPressed: () => context.goNamed("bottomNavTeacher"),
           ),
-          SizedBox(width: 3.w),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.read(teacherStemViewModelProvider.notifier).loadChallenges(_selectedCategory);
-        },
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
-              child: Row(
-                children: [
-                  Text("Showing: $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 13.sp)),
-                ],
-              ),
+          centerTitle: true,
+          title: Text(
+            "STEM Challenges",
+            style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp),
+          ),
+          actions: [
+            IconButton(
+              onPressed: _showFilterDialog,
+              icon: Icon(Icons.filter_list_rounded, color: _primary, size: 22.sp),
             ),
-
-            Expanded(
-              child: stemState.isLoading
-                  ? Center(child: CircularProgressIndicator(color: _primary))
-                  : stemState.challenges.isEmpty
-                  ? SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Container(
-                  height: 60.h,
-                  alignment: Alignment.center,
-                  child: Text("No challenges in $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 15.sp)),
-                ),
-              )
-                  : ListView.separated(
-                physics: const AlwaysScrollableScrollPhysics(), // Needed for RefreshIndicator
-                padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
-                itemCount: stemState.challenges.length,
-                separatorBuilder: (c, i) => SizedBox(height: 2.h),
-                itemBuilder: (context, index) {
-                  final challenge = stemState.challenges[index];
-                  return _buildChallengeCard(challenge);
-                },
-              ),
-            ),
+            SizedBox(width: 3.w),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.pushNamed('teacherAddStemChallengeScreen'),
-        backgroundColor: _primary,
-        elevation: 4,
-        icon: Icon(Icons.science_rounded, size: 18.sp),
-        label: Text("Create Challenge", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15.sp)),
+        body: RefreshIndicator(
+          onRefresh: () async {
+            ref.read(teacherStemViewModelProvider.notifier).loadChallenges(_selectedCategory);
+          },
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                child: Row(
+                  children: [
+                    Text("Showing: $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 13.sp)),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: stemState.isLoading
+                    ? Center(child: CircularProgressIndicator(color: _primary))
+                    : stemState.challenges.isEmpty
+                    ? SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Container(
+                    height: 60.h,
+                    alignment: Alignment.center,
+                    child: Text("No challenges in $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 15.sp)),
+                  ),
+                )
+                    : ListView.separated(
+                  physics: const AlwaysScrollableScrollPhysics(), // Needed for RefreshIndicator
+                  padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                  itemCount: stemState.challenges.length,
+                  separatorBuilder: (c, i) => SizedBox(height: 2.h),
+                  itemBuilder: (context, index) {
+                    final challenge = stemState.challenges[index];
+                    return _buildChallengeCard(challenge);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => context.pushNamed('teacherAddStemChallengeScreen'),
+          backgroundColor: _primary,
+          elevation: 4,
+          icon: Icon(Icons.science_rounded, size: 18.sp),
+          label: Text("Create Challenge", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15.sp)),
+        ),
       ),
     );
   }

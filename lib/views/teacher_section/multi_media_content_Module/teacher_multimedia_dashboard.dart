@@ -11,44 +11,52 @@ class TeacherMultimediaDashboard extends StatelessWidget {
     final Color bg = const Color(0xFFF4F7FE);
     final Color textDark = const Color(0xFF1B2559);
 
-    return Scaffold(
-      backgroundColor: bg,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if(!didPop){
+          context.goNamed("bottomNavTeacher");
+        }
+      },
+      child: Scaffold(
         backgroundColor: bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: textDark, size: 20.sp),
-          onPressed: () => context.pop(),
+        appBar: AppBar(
+          backgroundColor: bg,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: textDark, size: 20.sp),
+            onPressed: () => context.goNamed("bottomNavTeacher"),
+          ),
+          centerTitle: true,
+          title: Text(
+            "Multimedia Content",
+            style: GoogleFonts.poppins(color: textDark, fontWeight: FontWeight.w700, fontSize: 18.sp),
+          ),
         ),
-        centerTitle: true,
-        title: Text(
-          "Multimedia Content",
-          style: GoogleFonts.poppins(color: textDark, fontWeight: FontWeight.w700, fontSize: 18.sp),
-        ),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(5.w),
-        child: Column(
-          children: [
-            SizedBox(height: 2.h),
-            _buildMenuCard(
-              context,
-              "Educational Videos",
-              "Upload & Manage Class Videos",
-              Icons.play_circle_fill_rounded,
-              const [Color(0xFFFF512F), Color(0xFFDD2476)],
-                  () => context.pushNamed('teacherVideoDashboard'),
-            ),
-            SizedBox(height: 3.h),
-            _buildMenuCard(
-              context,
-              "Interactive Stories",
-              "Create Digital Storybooks",
-              Icons.auto_stories_rounded,
-              const [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
-                  () => context.pushNamed('teacherStoryDashboard'),
-            ),
-          ],
+        body: Padding(
+          padding: EdgeInsets.all(5.w),
+          child: Column(
+            children: [
+              SizedBox(height: 2.h),
+              _buildMenuCard(
+                context,
+                "Educational Videos",
+                "Upload & Manage Class Videos",
+                Icons.play_circle_fill_rounded,
+                const [Color(0xFFFF512F), Color(0xFFDD2476)],
+                    () => context.pushNamed('teacherVideoDashboard'),
+              ),
+              SizedBox(height: 3.h),
+              _buildMenuCard(
+                context,
+                "Interactive Stories",
+                "Create Digital Storybooks",
+                Icons.auto_stories_rounded,
+                const [Color(0xFF8E2DE2), Color(0xFF4A00E0)],
+                    () => context.pushNamed('teacherStoryDashboard'),
+              ),
+            ],
+          ),
         ),
       ),
     );

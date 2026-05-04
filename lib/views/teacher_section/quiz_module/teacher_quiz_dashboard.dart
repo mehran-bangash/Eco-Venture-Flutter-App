@@ -64,66 +64,74 @@ class _TeacherQuizDashboardState extends ConsumerState<TeacherQuizDashboard> {
   Widget build(BuildContext context) {
     final quizState = ref.watch(teacherQuizViewModelProvider);
 
-    return Scaffold(
-      backgroundColor: _bg,
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if(!didPop){
+          context.goNamed("bottomNavTeacher");
+        }
+      },
+      child: Scaffold(
         backgroundColor: _bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 20.sp),
-          onPressed: () => context.pop(),
-        ),
-        centerTitle: true,
-        title: Text(
-          "My Quizzes",
-          style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp),
-        ),
-        actions: [
-          IconButton(
-              onPressed: _showFilterDialog,
-              icon: Icon(Icons.filter_list_rounded, color: _primary, size: 22.sp)
+        appBar: AppBar(
+          backgroundColor: _bg,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new, color: _textDark, size: 20.sp),
+            onPressed: () => context.goNamed("bottomNavTeacher"),
           ),
-          SizedBox(width: 3.w),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Header Info
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
-            child: Row(
-              children: [
-                Text("Showing: $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 13.sp)),
-              ],
+          centerTitle: true,
+          title: Text(
+            "My Quizzes",
+            style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp),
+          ),
+          actions: [
+            IconButton(
+                onPressed: _showFilterDialog,
+                icon: Icon(Icons.filter_list_rounded, color: _primary, size: 22.sp)
             ),
-          ),
-
-          // List of Topics
-          Expanded(
-            child: quizState.isLoading
-                ? Center(child: CircularProgressIndicator(color: _primary))
-                : quizState.quizzes.isEmpty
-                ? Center(child: Text("No quizzes found in $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 15.sp)))
-                : ListView.separated(
+            SizedBox(width: 3.w),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Header Info
+            Padding(
               padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
-              itemCount: quizState.quizzes.length,
-              separatorBuilder: (c, i) => SizedBox(height: 2.h),
-              itemBuilder: (context, index) {
-                final topic = quizState.quizzes[index];
-                return _buildTopicCard(topic);
-              },
+              child: Row(
+                children: [
+                  Text("Showing: $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 13.sp)),
+                ],
+              ),
             ),
+
+            // List of Topics
+            Expanded(
+              child: quizState.isLoading
+                  ? Center(child: CircularProgressIndicator(color: _primary))
+                  : quizState.quizzes.isEmpty
+                  ? Center(child: Text("No quizzes found in $_selectedCategory", style: GoogleFonts.poppins(color: _textGrey, fontSize: 15.sp)))
+                  : ListView.separated(
+                padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 1.h),
+                itemCount: quizState.quizzes.length,
+                separatorBuilder: (c, i) => SizedBox(height: 2.h),
+                itemBuilder: (context, index) {
+                  final topic = quizState.quizzes[index];
+                  return _buildTopicCard(topic);
+                },
+              ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => context.pushNamed('teacherAddQuizScreen'),
+          backgroundColor: _primary,
+          elevation: 4,
+          icon: Icon(Icons.add, size: 18.sp),
+          label: Text(
+              "Create Quiz",
+              style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15.sp)
           ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.pushNamed('teacherAddQuizScreen'),
-        backgroundColor: _primary,
-        elevation: 4,
-        icon: Icon(Icons.add, size: 18.sp),
-        label: Text(
-            "Create Quiz",
-            style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 15.sp)
         ),
       ),
     );

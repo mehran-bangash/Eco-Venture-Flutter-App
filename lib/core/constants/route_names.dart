@@ -99,6 +99,9 @@ class RouteNames {
 
   // Teacher Profile Section
   static const teacherSettings = '/teacher/teacher-settings';
+  static const teacherContactAdmin='/teacher/teacher-settings/contact-admin';
+  static const teacherAdminInbox = '/teacher/teacher-settings/admin-inbox';
+  static const teacherAdminDetail = '/teacher/teacher-settings/admin-inbox/detail';
   static const teacherProfile = '/teacher/teacher-settings/teacher-profile';
   static const teacherEditProfile =
       '/teacher/teacher-settings/teacher-edit-profile';
