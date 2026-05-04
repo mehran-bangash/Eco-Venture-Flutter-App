@@ -34,7 +34,7 @@ class QuizCompletionScreen extends StatelessWidget {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if(!didPop){
-          context.goNamed('childQuizTopicDetailScreen');
+          context.goNamed('interactiveQuiz');
         }
       },
       child: Scaffold(

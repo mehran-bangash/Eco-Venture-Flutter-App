@@ -10,16 +10,17 @@ final authRepoProvider = Provider<AuthRepo>((ref) {
 
 final authViewModelProvider =
 StateNotifierProvider<AuthViewModel, AuthState>((ref) {
-  final repo = ref.read(authRepoProvider);
+  // Use watch to react to repository changes if necessary
+  final repo = ref.watch(authRepoProvider);
   final prefs = SharedPreferencesHelper.instance;
 
-  // ✅ Read prefs synchronously right here — SharedPreferences is
-  // already initialized in main() so this is safe and instant
+  // Read prefs synchronously
   final initialState = AuthState.fromPrefs(
     isFirstTime: prefs.getIsFirstTime(),
     userId: prefs.getUserId(),
     role: prefs.getUserRole(),
   );
 
-  return AuthViewModel(repo, initialState);
+  // Logic: Pass 'ref' as the second argument to match the updated constructor
+  return AuthViewModel(repo, ref, initialState);
 });

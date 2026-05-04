@@ -436,10 +436,7 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
   Widget _buildHeader() {
     final profileState = ref.watch(userProfileProvider);
     final String studentDisplayName =
-        profileState.userProfile?['full_name'] ??
-            profileState.userProfile?['name'] ??
-            profileState.userProfile?['displayName'] ??
-            username;
+        SharedPreferencesHelper.instance.getUserName() ?? "Explorer";
     final String teacherName =
         profileState.teacherName ?? "Classroom";
 

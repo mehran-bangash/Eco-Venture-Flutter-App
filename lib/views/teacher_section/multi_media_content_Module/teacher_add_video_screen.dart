@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:eco_venture/core/config/app_constants.dart'; // IMPORTED
+import 'package:eco_venture/core/config/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+
+
 import '../../../../models/video_model.dart';
 import '../../../core/config/api_constants.dart';
 import '../../../services/shared_preferences_helper.dart';
@@ -21,7 +23,6 @@ class TeacherAddVideoScreen extends ConsumerStatefulWidget {
 }
 
 class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
-  // --- CONTROLLERS ---
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
@@ -29,22 +30,16 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
 
   String _selectedCategory = 'Science';
   final List<String> _categories = ['Science', 'Maths', 'History', 'Ecosystem'];
-
-  // FIX: Changed from _selectedYear to _selectedAgeGroup
   String? _selectedAgeGroup;
-
-  // NEW: Safety Toggle
   bool _isSensitive = false;
 
   File? _thumbnailImage;
   File? _videoFile;
 
-  // --- COLORS ---
-  final Color _primary = const Color(0xFFE53935); // Red for Video
+  final Color _primary = const Color(0xFFE53935);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
   final Color _border = const Color(0xFFE0E0E0);
-  final Color _dashedBorderColor = const Color(0xFFBDBDBD);
 
   @override
   void dispose() {
@@ -55,14 +50,12 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
     super.dispose();
   }
 
-  // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(
-      String teacherId,
-      String videoTitle,
-      String ageGroup,
-      ) async {
+    String teacherId,
+    String videoTitle,
+    String ageGroup,
+  ) async {
     const String backendUrl = ApiConstants.notifyChildClassEndPoints;
-
     try {
       await http.post(
         Uri.parse(backendUrl),
@@ -93,8 +86,9 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
   }
 
   Future<void> _uploadVideo() async {
-    // FIX: Check for _selectedAgeGroup
-    if (_titleController.text.isEmpty || _videoFile == null || _selectedAgeGroup == null) {
+    if (_titleController.text.isEmpty ||
+        _videoFile == null ||
+        _selectedAgeGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Title, Video file, and Target Class are required"),
@@ -107,18 +101,36 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
     String? teacherId = SharedPreferencesHelper.instance.getUserId();
     if (teacherId == null) return;
 
+    // --- Compression Logic ---
+    File videoToUpload = _videoFile!;
+    File? thumbToUpload = _thumbnailImage;
+
+    /* // Implementation for when you add the packages:
+    final MediaInfo? info = await VideoCompress.compressVideo(
+      _videoFile!.path,
+      quality: VideoQuality.MediumQuality,
+      deleteOrigin: false,
+    );
+    if (info != null && info.file != null) videoToUpload = info.file!;
+
+    if (_thumbnailImage != null) {
+      final String targetPath = _thumbnailImage!.path.replaceFirst('.jpg', '_compressed.jpg');
+      final XFile? result = await FlutterImageCompress.compressAndGetFile(
+        _thumbnailImage!.absolute.path, targetPath,
+        quality: 70,
+      );
+      if (result != null) thumbToUpload = File(result.path);
+    }
+    */
+
     List<String> tagsList = _tagsController.text
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
 
-    if (_isSensitive && !tagsList.contains('scary')) {
-      tagsList.add('scary');
-    }
-    if (!_isSensitive) {
-      tagsList.remove('scary');
-    }
+    if (_isSensitive && !tagsList.contains('scary')) tagsList.add('scary');
+    if (!_isSensitive) tagsList.remove('scary');
 
     final newVideo = VideoModel(
       id: '',
@@ -126,15 +138,15 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
       title: _titleController.text.trim(),
       description: _descController.text.trim(),
       category: _selectedCategory,
-      videoUrl: _videoFile!.path,
-      thumbnailUrl: _thumbnailImage?.path,
+      videoUrl: videoToUpload.path,
+      thumbnailUrl: thumbToUpload?.path,
       duration: _durationController.text.isNotEmpty
           ? _durationController.text
           : "00:00",
       uploadedAt: DateTime.now(),
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: _selectedAgeGroup!, // Directly use the selected group
+      ageGroup: _selectedAgeGroup!,
       likes: 0,
       dislikes: 0,
       views: 0,
@@ -148,7 +160,11 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
         .addVideo(newVideo);
 
     if (!_isSensitive) {
-      await _sendClassNotification(teacherId, newVideo.title, _selectedAgeGroup!);
+      await _sendClassNotification(
+        teacherId,
+        newVideo.title,
+        _selectedAgeGroup!,
+      );
     }
   }
 
@@ -195,14 +211,15 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
                 _buildTextField(_titleController, "Enter title"),
                 SizedBox(height: 2.h),
                 _buildLabel("Description"),
-                _buildTextField(_descController, "Enter description", maxLines: 3),
+                _buildTextField(
+                  _descController,
+                  "Enter description",
+                  maxLines: 3,
+                ),
                 SizedBox(height: 2.h),
-
-                // --- NEW: Dynamic Age Selection Dropdown ---
                 _buildLabel("Target Class / Age Group"),
                 _buildDynamicAgeDropdown(),
                 SizedBox(height: 2.h),
-
                 Row(
                   children: [
                     Expanded(
@@ -223,31 +240,42 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
                     ),
                   ],
                 ),
-
                 SizedBox(height: 4.h),
                 _buildSectionHeader("Content Safety"),
                 SizedBox(height: 1.5.h),
-
                 Container(
                   padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: _border)),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: _border),
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildLabel("Tags (comma separated)"),
-                      _buildTextField(_tagsController, "e.g. animals, space, fun"),
+                      _buildTextField(
+                        _tagsController,
+                        "e.g. animals, space, fun",
+                      ),
                       SizedBox(height: 2.h),
                       SwitchListTile(
                         contentPadding: EdgeInsets.zero,
                         activeThumbColor: Colors.red,
-                        title: Text("Contains Sensitive Content?", style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: _textDark)),
+                        title: Text(
+                          "Contains Sensitive Content?",
+                          style: GoogleFonts.poppins(
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w600,
+                            color: _textDark,
+                          ),
+                        ),
                         value: _isSensitive,
                         onChanged: (val) => setState(() => _isSensitive = val),
                       ),
                     ],
                   ),
                 ),
-
                 SizedBox(height: 4.h),
                 _buildSectionHeader("Media Content"),
                 SizedBox(height: 2.h),
@@ -256,30 +284,43 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
                 SizedBox(height: 3.h),
                 _buildLabel("Video File"),
                 _buildVideoUpload(),
-
                 SizedBox(height: 5.h),
                 SizedBox(
                   width: double.infinity,
                   height: 7.h,
                   child: ElevatedButton(
                     onPressed: state.isLoading ? null : _uploadVideo,
-                    style: ElevatedButton.styleFrom(backgroundColor: _primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                    ),
                     child: state.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : Text("Upload Video", style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.white, fontWeight: FontWeight.bold)),
+                        : Text(
+                            "Upload Video",
+                            style: GoogleFonts.poppins(
+                              fontSize: 16.sp,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ],
             ),
           ),
           if (state.isLoading)
-            Container(color: Colors.black26, child: const Center(child: CircularProgressIndicator())),
+            Container(
+              color: Colors.black26,
+              child: const Center(child: CircularProgressIndicator()),
+            ),
         ],
       ),
     );
   }
 
-  // --- DYNAMIC DROPDOWN FOR VIDEO ---
   Widget _buildDynamicAgeDropdown() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w),
@@ -292,14 +333,20 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
         child: DropdownButton<String>(
           value: _selectedAgeGroup,
           isExpanded: true,
-          hint: Text("Select Class Group", style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.grey)),
+          hint: Text(
+            "Select Class Group",
+            style: GoogleFonts.poppins(fontSize: 15.sp, color: Colors.grey),
+          ),
           items: AppConstants.teacherClassRanges
               .map(
                 (range) => DropdownMenuItem(
-              value: range,
-              child: Text("Group $range", style: GoogleFonts.poppins(fontSize: 15.sp)),
-            ),
-          )
+                  value: range,
+                  child: Text(
+                    "Group $range",
+                    style: GoogleFonts.poppins(fontSize: 15.sp),
+                  ),
+                ),
+              )
               .toList(),
           onChanged: (v) => setState(() => _selectedAgeGroup = v),
         ),
@@ -307,23 +354,63 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
     );
   }
 
-  Widget _buildSectionHeader(String title) => Text(title, style: GoogleFonts.poppins(fontSize: 17.sp, fontWeight: FontWeight.w700, color: _textDark));
-  Widget _buildLabel(String text) => Padding(padding: EdgeInsets.only(bottom: 1.h), child: Text(text, style: GoogleFonts.poppins(fontSize: 15.sp, fontWeight: FontWeight.w600, color: _textDark)));
-  Widget _buildTextField(TextEditingController ctrl, String hint, {int maxLines = 1}) => TextField(
+  Widget _buildSectionHeader(String title) => Text(
+    title,
+    style: GoogleFonts.poppins(
+      fontSize: 17.sp,
+      fontWeight: FontWeight.w700,
+      color: _textDark,
+    ),
+  );
+  Widget _buildLabel(String text) => Padding(
+    padding: EdgeInsets.only(bottom: 1.h),
+    child: Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontSize: 15.sp,
+        fontWeight: FontWeight.w600,
+        color: _textDark,
+      ),
+    ),
+  );
+  Widget _buildTextField(
+    TextEditingController ctrl,
+    String hint, {
+    int maxLines = 1,
+  }) => TextField(
     controller: ctrl,
     maxLines: maxLines,
     style: GoogleFonts.poppins(fontSize: 15.sp),
-    decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _border))),
+    decoration: InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: _border),
+      ),
+    ),
   );
 
   Widget _buildDropdown() => Container(
     padding: EdgeInsets.symmetric(horizontal: 4.w),
-    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: _border),
+    ),
     child: DropdownButtonHideUnderline(
       child: DropdownButton<String>(
         value: _selectedCategory,
         isExpanded: true,
-        items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)))).toList(),
+        items: _categories
+            .map(
+              (c) => DropdownMenuItem(
+                value: c,
+                child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)),
+              ),
+            )
+            .toList(),
         onChanged: (v) => setState(() => _selectedCategory = v!),
       ),
     ),
@@ -334,9 +421,24 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
       onTap: _pickThumbnail,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        height: 18.h, width: double.infinity,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: _border), image: _thumbnailImage != null ? DecorationImage(image: FileImage(_thumbnailImage!), fit: BoxFit.cover) : null),
-        child: _thumbnailImage == null ? Center(child: Icon(Icons.image, color: Colors.orange, size: 30.sp)) : null,
+        height: 18.h,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _border),
+          image: _thumbnailImage != null
+              ? DecorationImage(
+                  image: FileImage(_thumbnailImage!),
+                  fit: BoxFit.cover,
+                )
+              : null,
+        ),
+        child: _thumbnailImage == null
+            ? Center(
+                child: Icon(Icons.image, color: Colors.orange, size: 30.sp),
+              )
+            : null,
       ),
     );
   }
@@ -346,11 +448,24 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
       onTap: _pickVideo,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        height: 18.h, width: double.infinity,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: _border)),
+        height: 18.h,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _border),
+        ),
         child: _videoFile == null
-            ? Center(child: Icon(Icons.video_library, color: _primary, size: 30.sp))
-            : Center(child: Icon(Icons.check_circle, color: Colors.green, size: 40.sp)),
+            ? Center(
+                child: Icon(Icons.video_library, color: _primary, size: 30.sp),
+              )
+            : Center(
+                child: Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 40.sp,
+                ),
+              ),
       ),
     );
   }

@@ -11,7 +11,6 @@ import 'teacher_router.dart';
 import '../../views/landing/landing_screen.dart';
 import '../../views/auth/login_screen.dart';
 
-
 class AppRouter {
   static List<RouteBase> routes = [
     GoRoute(
@@ -32,15 +31,11 @@ class AppRouter {
         return LoginScreen(selectRole: role);
       },
     ),
-    // Signup
     GoRoute(
       path: RouteNames.signup,
       name: 'signup',
       builder: (context, state) => const SignUpScreen(),
     ),
-
-    //forgot Password
-    // Login
     GoRoute(
       path: RouteNames.forgotPassword,
       name: 'forgotPassword',
@@ -56,16 +51,24 @@ class AppRouter {
     final String? userId = authState.userId;
     final String? role = authState.role;
 
-    // If on splash screen
+    // --- NEW: SESSION BLOCKING LOGIC (CHILD ONLY) ---
+    // This logic only runs for children.
+    // It checks if a 'sessionInvalid' flag exists in your AuthState.
+    final bool isChild = role?.toLowerCase() == 'child';
+    final bool isSessionInvalid = authState.isSessionInvalid ?? false;
+
+    if (isChild && userId != null && isSessionInvalid) {
+      // If session is invalid, force them back to landing/login
+      return RouteNames.login;
+    }
+    // ------------------------------------------------
+
     if (state.matchedLocation == RouteNames.splash) {
-      // Still first time — let them see splash
       if (isFirstTime) return null;
-      // Finished onboarding — send to role dashboard or landing
       if (userId != null && role != null) return _getRoleRoute(role);
       return RouteNames.login;
     }
 
-    // If on auth pages but already logged in — skip to dashboard
     final bool isAuthPage =
         state.matchedLocation == RouteNames.landing ||
             state.matchedLocation == RouteNames.login ||
@@ -75,10 +78,10 @@ class AppRouter {
       return _getRoleRoute(role);
     }
 
+    return null; // Added return null to satisfy function signature
   }
 
   static String _getRoleRoute(String role) {
-    // Issue #5: Handle empty or unexpected role strings safely
     switch (role.toLowerCase()) {
       case 'child': return RouteNames.bottomNavChild;
       case 'parent': return RouteNames.bottomNavParent;
