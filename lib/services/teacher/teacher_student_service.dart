@@ -23,16 +23,14 @@ class TeacherStudentService {
           .where('role', isEqualTo: 'child')
           .snapshots()
           .map((snapshot) {
-        return snapshot.docs.map((doc) {
-          final data = doc.data();
-          data['uid'] = doc.id;
-          return data;
-        }).toList();
-      });
+            return snapshot.docs.map((doc) {
+              final data = doc.data();
+              data['uid'] = doc.id;
+              return data;
+            }).toList();
+          });
     });
   }
-
-
 
   Future<void> removeStudentFromClass(String studentUid) async {
     // Unlinking removes them from the dashboard instantly due to the Stream above.
@@ -55,11 +53,11 @@ class TeacherStudentService {
     final qrStream = _database.ref('child_qr_progress/$studentId').onValue;
 
     return Rx.combineLatest4(profileStream, quizStream, stemStream, qrStream, (
-        DocumentSnapshot profile,
-        DatabaseEvent quiz,
-        DatabaseEvent stem,
-        DatabaseEvent qr,
-        ) {
+      DocumentSnapshot profile,
+      DatabaseEvent quiz,
+      DatabaseEvent stem,
+      DatabaseEvent qr,
+    ) {
       final userData = profile.data() as Map<String, dynamic>?;
 
       final String name = userData?['name'] ?? 'Student';
@@ -118,7 +116,7 @@ class TeacherStudentService {
             'type': 'Quiz',
             'isPositive': isPassed,
             'score': '${data['correct_answers']} correct',
-            'question_details': questionDetails,  // ← NEW LINE ONLY
+            'question_details': questionDetails, // ← NEW LINE ONLY
           });
         });
       }
@@ -243,11 +241,11 @@ class TeacherStudentService {
       await _database
           .ref('student_stem_submissions/$studentId/$challengeId')
           .update({
-        'status': status,
-        'points_awarded': status == 'approved' ? points : 0,
-        'teacherFeedback': feedback ?? '',
-        'reviewedAt': DateTime.now().toIso8601String(),
-      });
+            'status': status,
+            'points_awarded': status == 'approved' ? points : 0,
+            'teacherFeedback': feedback ?? '',
+            'reviewedAt': DateTime.now().toIso8601String(),
+          });
 
       await _notifyChild(
         studentId,
@@ -280,6 +278,4 @@ class TeacherStudentService {
       print("Notify Error: $e");
     }
   }
-
-
 }

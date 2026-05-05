@@ -11,7 +11,6 @@ class TeacherHomeViewModel extends StateNotifier<TeacherHomeState> {
   TeacherHomeViewModel(this._service) : super(TeacherHomeState()) {
     _initStudentStream();
   }
-
   void _initStudentStream() {
     state = state.copyWith(isLoading: true);
     _subscription?.cancel();
@@ -20,20 +19,29 @@ class TeacherHomeViewModel extends StateNotifier<TeacherHomeState> {
           (studentDataList) {
         final List<UserModel> studentModels = studentDataList.map((map) {
 
-          // FIX: Prioritize 'studentAge' and handle parsing strictly
-          final dynamic rawAge = map['studentAge'] ?? map['age'] ?? 0;
-          final int age = int.tryParse(rawAge.toString()) ?? 0;
+          final dynamic rawAge = map['studentAge'] ?? map['age'];
 
-          String group;
-          if (age >= 11) {
-            group = "10 - 12";
-          } else if (age >= 9) {
-            group = "9 - 10"; // Age 9 & 10 go here
-          } else {
-            group = "6 - 8"; // Everything else (6, 7, 8)
+          int age = 0;
+
+          if (rawAge is int) {
+            age = rawAge;
+          } else if (rawAge is String) {
+            age = int.tryParse(rawAge.trim()) ?? 0;
           }
 
-          // We inject the correct ageGroup into the map before creating the model
+          print("AGE DEBUG => raw: $rawAge | parsed: $age");
+
+          String group;
+          if (age >= 11 && age <= 12) {
+            group = "11 - 12";
+          } else if (age >= 9 && age <= 10) {
+            group = "9 - 10";
+          } else if (age >= 6 && age <= 8) {
+            group = "6 - 8";
+          } else {
+            group = "Unknown"; // important for catching bad data
+          }
+
           final updatedMap = Map<String, dynamic>.from(map);
           updatedMap['ageGroup'] = group;
 
@@ -47,11 +55,13 @@ class TeacherHomeViewModel extends StateNotifier<TeacherHomeState> {
         );
       },
       onError: (error) {
-        state = state.copyWith(isLoading: false, errorMessage: error.toString());
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: error.toString(),
+        );
       },
     );
   }
-
   @override
   void dispose() {
     _subscription?.cancel();

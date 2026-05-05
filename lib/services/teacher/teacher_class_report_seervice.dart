@@ -19,9 +19,7 @@ class TeacherClassReportService {
 
   Stream<TeacherClassReportModel> getClassReportStream() {
     return Stream.fromFuture(_getTeacherId()).switchMap((teacherId) {
-      if (teacherId == null) {
-        return Stream.value(TeacherClassReportModel.empty());
-      }
+      if (teacherId == null) return Stream.value(TeacherClassReportModel.empty());
 
       return _firestore
           .collection('users')
@@ -29,133 +27,106 @@ class TeacherClassReportService {
           .where('role', isEqualTo: 'child')
           .snapshots()
           .switchMap((snapshot) {
-            if (snapshot.docs.isEmpty) {
-              return Stream.value(TeacherClassReportModel.empty());
+        if (snapshot.docs.isEmpty) return Stream.value(TeacherClassReportModel.empty());
+
+        List<Stream<StudentRankItem>> studentStreams = [];
+
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          final studentId = doc.id;
+
+          // ROBUST AGE CHECK: Check both 'studentAge' and 'age' fields
+          final rawAge = data['studentAge'] ?? data['age'] ?? '0';
+          final int studentAge = int.tryParse(rawAge.toString()) ?? 0;
+
+          final quizStream = _database.ref('child_quiz_progress/$studentId').onValue;
+          final stemStream = _database.ref('student_stem_submissions/$studentId').onValue;
+          final qrStream = _database.ref('child_qr_progress/$studentId').onValue;
+
+          final studentStatStream = Rx.combineLatest3(quizStream, stemStream, qrStream, (
+              DatabaseEvent quiz,
+              DatabaseEvent stem,
+              DatabaseEvent qr,
+              ) {
+            int points = 0;
+            int sQuizCount = 0;
+            int sStemCount = 0;
+            int sQrCount = 0;
+
+            final quizData = quiz.snapshot.value;
+            if (quizData is Map) {
+              _processRecursive(quizData, (d) {
+                if (d['is_passed'] == true) { points += 20; sQuizCount++; }
+              });
             }
 
-            List<Stream<StudentRankItem>> studentStreams = [];
-
-            for (var doc in snapshot.docs) {
-              final studentId = doc.id;
-              final studentName = doc.data()['name'] ?? 'Student';
-              final imgUrl = doc.data()['imgUrl'];
-
-              final quizStream = _database
-                  .ref('child_quiz_progress/$studentId')
-                  .onValue;
-              final stemStream = _database
-                  .ref('student_stem_submissions/$studentId')
-                  .onValue;
-              final qrStream = _database
-                  .ref('child_qr_progress/$studentId')
-                  .onValue;
-
-              // Combine per student
-              final studentStatStream =
-                  Rx.combineLatest3(quizStream, stemStream, qrStream, (
-                    DatabaseEvent quiz,
-                    DatabaseEvent stem,
-                    DatabaseEvent qr,
-                  ) {
-                    int points = 0;
-                    int sQuizCount = 0;
-                    int sStemCount = 0;
-                    int sQrCount = 0;
-
-                    // A. Quiz
-                    final quizData = quiz.snapshot.value;
-                    if (quizData is Map) {
-                      _processRecursive(quizData, (d) {
-                        if (d['is_passed'] == true) {
-                          points += 20;
-                          sQuizCount++;
-                        }
-                      });
-                    }
-
-                    // B. STEM
-                    final stemData = stem.snapshot.value;
-                    if (stemData is Map) {
-                      stemData.forEach((k, v) {
-                        if (v is Map) {
-                          final map = Map<String, dynamic>.from(v);
-                          if (map['status'] == 'approved') {
-                            points += (map['points_awarded'] as int? ?? 0);
-                            sStemCount++;
-                          }
-                        }
-                      });
-                    }
-
-                    // C. QR
-                    final qrData = qr.snapshot.value;
-                    if (qrData is Map) {
-                      qrData.forEach((k, v) {
-                        if (v is Map) {
-                          final map = Map<String, dynamic>.from(v);
-                          if (map['is_completed'] == true) {
-                            points += (map['score_earned'] as int? ?? 0);
-                            sQrCount++;
-                          }
-                        }
-                      });
-                    }
-
-                    return StudentRankItem(
-                      uid: studentId,
-                      name: studentName,
-                      totalPoints: points,
-                      avatarUrl: imgUrl,
-                      quizCount: sQuizCount,
-                      stemCount: sStemCount,
-                      qrCount: sQrCount,
-                    );
-                  }).handleError((e) {
-                    print("Error processing student $studentName: $e");
-                    return StudentRankItem(
-                      uid: studentId,
-                      name: studentName,
-                      totalPoints: 0,
-                    );
-                  });
-
-              studentStreams.add(studentStatStream);
+            final stemData = stem.snapshot.value;
+            if (stemData is Map) {
+              stemData.forEach((k, v) {
+                if (v is Map) {
+                  final map = Map<String, dynamic>.from(v);
+                  if (map['status'] == 'approved') {
+                    points += (map['points_awarded'] as int? ?? 0);
+                    sStemCount++;
+                  }
+                }
+              });
             }
 
-            // Aggregate All Students
-            return Rx.combineLatest(studentStreams, (
-              List<StudentRankItem> students,
-            ) {
-              final List<StudentRankItem> sortedStudents = List.from(students);
-              sortedStudents.sort(
-                (a, b) => b.totalPoints.compareTo(a.totalPoints),
-              );
+            final qrData = qr.snapshot.value;
+            if (qrData is Map) {
+              qrData.forEach((k, v) {
+                if (v is Map) {
+                  final map = Map<String, dynamic>.from(v);
+                  if (map['is_completed'] == true) {
+                    points += (map['score_earned'] as int? ?? 0);
+                    sQrCount++;
+                  }
+                }
+              });
+            }
 
-              int totalStudents = sortedStudents.length;
-              int totalPoints = 0;
-              int totalQuizzes = 0;
-              int totalStem = 0;
-              int totalQr = 0;
-
-              for (var s in sortedStudents) {
-                totalPoints += s.totalPoints;
-                totalQuizzes += s.quizCount;
-                totalStem += s.stemCount;
-                totalQr += s.qrCount;
-              }
-
-              double avg = totalStudents == 0 ? 0 : totalPoints / totalStudents;
-
-              return TeacherClassReportModel(
-                totalStudents: totalStudents,
-                classAverageScore: avg,
-                totalQuizzesPassed: totalQuizzes,
-                totalStemSubmissions: totalStem,
-                totalQrHuntsSolved: totalQr,
-                studentRankings: sortedStudents,
-              );
-            });
+            return StudentRankItem(
+              uid: studentId,
+              name: data['name'] ?? 'Student',
+              totalPoints: points,
+              avatarUrl: data['imgUrl'],
+              quizCount: sQuizCount,
+              stemCount: sStemCount,
+              qrCount: sQrCount,
+              age: studentAge,
+            );
           });
+
+          studentStreams.add(studentStatStream);
+        }
+
+        return Rx.combineLatest(studentStreams, (List<StudentRankItem> students) {
+          final List<StudentRankItem> sortedStudents = List.from(students);
+          sortedStudents.sort((a, b) => b.totalPoints.compareTo(a.totalPoints));
+
+          int totalPoints = 0;
+          int totalQuizzes = 0;
+          int totalStem = 0;
+          int totalQr = 0;
+
+          for (var s in sortedStudents) {
+            totalPoints += s.totalPoints;
+            totalQuizzes += s.quizCount;
+            totalStem += s.stemCount;
+            totalQr += s.qrCount;
+          }
+
+          return TeacherClassReportModel(
+            totalStudents: sortedStudents.length,
+            classAverageScore: sortedStudents.isEmpty ? 0 : totalPoints / sortedStudents.length,
+            totalQuizzesPassed: totalQuizzes,
+            totalStemSubmissions: totalStem,
+            totalQrHuntsSolved: totalQr,
+            studentRankings: sortedStudents,
+          );
+        });
+      });
     });
   }
 
@@ -172,4 +143,7 @@ class TeacherClassReportService {
       }
     }
   }
+
+
+
 }

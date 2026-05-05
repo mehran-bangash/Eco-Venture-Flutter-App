@@ -25,9 +25,7 @@ Future<void> main() async {
   await SharedPreferencesHelper.init();
   await dotenv.load(fileName: ".env");
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // 1. Register Background Handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -61,8 +59,8 @@ class _MyAppState extends ConsumerState<MyApp> {
   void initState() {
     super.initState();
     _router = ref.read(goRouterProvider);
-
   }
+
   @override
   Widget build(BuildContext context) {
     return ResponsiveSizer(

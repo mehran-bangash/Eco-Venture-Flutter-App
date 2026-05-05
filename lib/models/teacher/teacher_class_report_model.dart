@@ -4,7 +4,6 @@ class TeacherClassReportModel {
   final int totalQuizzesPassed;
   final int totalStemSubmissions;
   final int totalQrHuntsSolved;
-
   final List<StudentRankItem> studentRankings;
 
   TeacherClassReportModel({
@@ -26,11 +25,10 @@ class StudentRankItem {
   final String name;
   final int totalPoints;
   final String? avatarUrl;
-
-  // NEW: Breakdown for aggregation
   final int quizCount;
   final int stemCount;
   final int qrCount;
+  final int age; // Added for filtering logic
 
   StudentRankItem({
     required this.uid,
@@ -40,5 +38,6 @@ class StudentRankItem {
     this.quizCount = 0,
     this.stemCount = 0,
     this.qrCount = 0,
+    this.age = 0,
   });
 }
