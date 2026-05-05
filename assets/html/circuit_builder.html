@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EcoVenture - High Performance Physics Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0F172A; --accent: #38BDF8; --bulb-on: #FDE047; --danger: #EF4444;
+            --success: #10B981; --glass: rgba(255, 255, 255, 0.05);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: none; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg); color: white; margin: 0;
+            height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+            background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0);
+            background-size: 32px 32px;
+        }
+
+        .header {
+            width: 100%; padding: 15px 20px; background: rgba(0,0,0,0.4);
+            display: flex; justify-content: space-around; border-bottom: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px); z-index: 100;
+        }
+        .stat { text-align: center; }
+        .stat-l { font-size: 9px; text-transform: uppercase; color: #94A3B8; font-weight: 700; letter-spacing: 1px; }
+        .stat-v { font-family: 'Fredoka', sans-serif; font-size: 16px; color: var(--accent); }
+
+        #lab-bench { flex: 1; position: relative; width: 100%; overflow: hidden; }
+
+        .component {
+            position: absolute; width: 85px; height: 85px;
+            background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 22px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: grab;
+            transition: border-color 0.3s, background 0.3s; z-index: 10;
+            /* Performance optimization: hardware acceleration */
+            will-change: transform;
+            transform: translate3d(0,0,0);
+        }
+        .comp-icon { font-size: 36px; transition: 0.3s; pointer-events: none; }
+        .comp-label { font-size: 8px; font-weight: 700; margin-top: 4px; color: #94A3B8; text-transform: uppercase; pointer-events: none; }
+
+        .glow-bulb { filter: drop-shadow(0 0 25px var(--bulb-on)) brightness(1.3); color: var(--bulb-on) !important; }
+        .active-comp { border-color: var(--accent) !important; background: rgba(56,189,248,0.1); }
+
+        .switch-btn {
+            width: 36px; height: 18px; background: #334155; border-radius: 10px;
+            position: relative; margin-top: 4px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .switch-toggle {
+            width: 14px; height: 14px; background: white; border-radius: 50%;
+            position: absolute; left: 1px; top: 1px; transition: 0.3s;
+        }
+        .switch-on .switch-toggle { left: 19px; background: var(--accent); }
+
+        .hint-container {
+            position: absolute; bottom: 20px; width: 100%; padding: 0 20px;
+            text-align: center; pointer-events: none;
+        }
+        #hint-text {
+            display: inline-block; padding: 8px 20px; background: rgba(0,0,0,0.5);
+            border-radius: 15px; color: #CBD5E1; font-size: 12px; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .overlay {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98);
+            display: none; flex-direction: column; justify-content: center;
+            align-items: center; color: white; z-index: 1000;
+        }
+        .card {
+            background: white; padding: 40px; border-radius: 40px; color: #1E293B;
+            width: 85%; max-width: 340px; box-shadow: 0 25px 50px rgba(0,0,0,0.5); text-align: center;
+        }
+        .btn-action {
+            background: #4F46E5; color: white; border: none; padding: 16px;
+            border-radius: 20px; width: 100%; font-weight: 800; margin-top: 25px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="stat"><div class="stat-l">Experiment</div><div class="stat-v" id="lvl-val">01</div></div>
+    <div class="stat"><div class="stat-l">Mission</div><div class="stat-v" id="mission-name">BASIC LOOP</div></div>
+    <div class="stat"><div class="stat-l">Status</div><div class="stat-v" id="status-val">INCOMPLETE</div></div>
+</div>
+
+<div id="lab-bench"></div>
+
+<div class="hint-container">
+    <div id="hint-text">Arrange the components to connect the power!</div>
+</div>
+
+<div id="overlay" class="overlay">
+    <div class="card">
+        <div id="win-icon" style="font-size:70px;">⚡</div>
+        <h2 id="win-title" style="margin:15px 0;">Brilliant!</h2>
+        <p id="win-msg" style="color:#64748B;">Level complete. Circuit logic is perfect!</p>
+        <button class="btn-action" onclick="handleOverlayAction()">NEXT EXPERIMENT</button>
+    </div>
+</div>
+
+<script>
+    const levels = [
+        { name: "BASIC LOOP", hint: "Link Battery, Switch, and Bulb!", components: [{ id: 'bat1', type: 'battery', icon: '🔋', label: 'Battery', x: 20, y: 20 }, { id: 'sw1', type: 'switch', icon: '🔌', label: 'Switch', x: 60, y: 20 }, { id: 'bulb1', type: 'bulb', icon: '💡', label: 'Bulb', x: 40, y: 60 }] },
+        { name: "DOUBLE GLOW", hint: "Parallel Power! Light both bulbs.", components: [{ id: 'bat1', type: 'battery', icon: '🔋', label: 'Battery', x: 15, y: 20 }, { id: 'sw1', type: 'switch', icon: '🔌', label: 'Main Switch', x: 45, y: 20 }, { id: 'bulb1', type: 'bulb', icon: '💡', label: 'Bulb A', x: 25, y: 65 }, { id: 'bulb2', type: 'bulb', icon: '💡', label: 'Bulb B', x: 65, y: 65 }] },
+        { name: "SAFETY SERIES", hint: "Turn both switches ON to light the bulb!", components: [{ id: 'bat1', type: 'battery', icon: '🔋', label: 'Power', x: 15, y: 15 }, { id: 'sw1', type: 'switch', icon: '🔌', label: 'Safe A', x: 45, y: 15 }, { id: 'sw2', type: 'switch', icon: '🔌', label: 'Safe B', x: 75, y: 15 }, { id: 'bulb1', type: 'bulb', icon: '💡', label: 'Main Light', x: 45, y: 60 }] },
+        { name: "VOLTAGE SURGE", hint: "Two batteries give extra power!", components: [{ id: 'bat1', type: 'battery', icon: '🔋', label: 'Cell A', x: 15, y: 25 }, { id: 'bat2', type: 'battery', icon: '🔋', label: 'Cell B', x: 15, y: 55 }, { id: 'sw1', type: 'switch', icon: '🔌', label: 'Activator', x: 45, y: 40 }, { id: 'bulb1', type: 'bulb', icon: '💡', label: 'Super Bulb', x: 75, y: 40 }] }
+    ];
+
+    let currentLevelIdx = 0, switchesState = {}, isCircuitComplete = false, score = 0;
+    let activeEl = null, offset = { x: 0, y: 0 }, currentPos = { x: 0, y: 0 };
+
+    function initLevel(idx) {
+        const level = levels[idx];
+        const bench = document.getElementById('lab-bench');
+        bench.innerHTML = '';
+        switchesState = {};
+        isCircuitComplete = false;
+
+        document.getElementById('lvl-val').innerText = (idx + 1).toString().padStart(2, '0');
+        document.getElementById('mission-name').innerText = level.name;
+        document.getElementById('hint-text').innerText = level.hint;
+        document.getElementById('status-val').innerText = "INCOMPLETE";
+        document.getElementById('status-val').style.color = "#94A3B8";
+
+        level.components.forEach(c => {
+            const el = document.createElement('div');
+            el.className = 'component';
+            el.id = c.id;
+            // Use translate3d instead of top/left for performance
+            const startX = (c.x / 100) * window.innerWidth;
+            const startY = (c.y / 100) * (window.innerHeight - 150);
+            el.style.transform = `translate3d(${startX}px, ${startY}px, 0)`;
+            el.dataset.x = startX;
+            el.dataset.y = startY;
+
+            let inner = `<div class="comp-icon" id="icon-${c.id}">${c.icon}</div><div class="comp-label">${c.label}</div>`;
+            if (c.type === 'switch') {
+                switchesState[c.id] = false;
+                inner += `<div class="switch-btn" id="toggle-${c.id}" onclick="toggleSwitch(event, '${c.id}')"><div class="switch-toggle"></div></div>`;
+            }
+            el.innerHTML = inner;
+            bench.appendChild(el);
+            el.onpointerdown = handlePointerDown;
+        });
+    }
+
+    function handlePointerDown(e) {
+        if (e.target.closest('.switch-btn')) return;
+        activeEl = this;
+        const currentX = parseFloat(activeEl.dataset.x);
+        const currentY = parseFloat(activeEl.dataset.y);
+        offset.x = e.clientX - currentX;
+        offset.y = e.clientY - currentY;
+        activeEl.setPointerCapture(e.pointerId);
+        activeEl.style.zIndex = 100;
+        activeEl.style.transition = 'none'; // No transition while dragging
+    }
+
+    window.onpointermove = (e) => {
+        if (!activeEl) return;
+        const x = e.clientX - offset.x;
+        const y = e.clientY - offset.y;
+        activeEl.dataset.x = x;
+        activeEl.dataset.y = y;
+        // requestAnimationFrame for buttery smooth 60fps movement
+        requestAnimationFrame(() => {
+            if(activeEl) activeEl.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+        });
+        // Throttled circuit check for performance
+        if(!window.checkTimeout) {
+            window.checkTimeout = setTimeout(() => { checkCircuit(); window.checkTimeout = null; }, 100);
+        }
+    };
+
+    window.onpointerup = () => {
+        if (!activeEl) return;
+        activeEl.style.zIndex = 10;
+        activeEl.style.transition = 'transform 0.2s cubic-bezier(0.2, 0, 0.2, 1)';
+        activeEl = null;
+        checkCircuit();
+    };
+
+    function toggleSwitch(e, id) {
+        e.stopPropagation();
+        if (!isCircuitComplete) { showHint("Circuit incomplete! Connect parts first.", true); return; }
+        switchesState[id] = !switchesState[id];
+        document.getElementById(`toggle-${id}`).classList.toggle('switch-on', switchesState[id]);
+        updateGlows();
+    }
+
+    function checkCircuit() {
+        const comps = document.querySelectorAll('.component');
+        let connected = true;
+        comps.forEach(c1 => {
+            let hasNeighbor = false;
+            const x1 = parseFloat(c1.dataset.x), y1 = parseFloat(c1.dataset.y);
+            comps.forEach(c2 => {
+                if (c1.id === c2.id) return;
+                const x2 = parseFloat(c2.dataset.x), y2 = parseFloat(c2.dataset.y);
+                const dist = Math.hypot(x1 - x2, y1 - y2);
+                if (dist < 180) hasNeighbor = true;
+            });
+            if (!hasNeighbor) connected = false;
+        });
+
+        if (connected && !isCircuitComplete) {
+            isCircuitComplete = true;
+            document.getElementById('status-val').innerText = "CONNECTED";
+            document.getElementById('status-val').style.color = "var(--accent)";
+            showHint("Path found! Power the switches.");
+            comps.forEach(c => c.classList.add('active-comp'));
+        } else if (!connected && isCircuitComplete) {
+            isCircuitComplete = false;
+            document.getElementById('status-val').innerText = "INCOMPLETE";
+            document.getElementById('status-val').style.color = "#94A3B8";
+            comps.forEach(c => {
+                c.classList.remove('active-comp');
+                const icon = document.getElementById(`icon-${c.id}`);
+                if(icon) icon.classList.remove('glow-bulb');
+            });
+        }
+    }
+
+    function updateGlows() {
+        levels[currentLevelIdx].components.forEach(c => {
+            if (c.type === 'bulb') {
+                let shouldGlow = false;
+                if (currentLevelIdx < 2 || currentLevelIdx === 3) shouldGlow = isCircuitComplete && switchesState['sw1'];
+                else if (currentLevelIdx === 2) shouldGlow = isCircuitComplete && switchesState['sw1'] && switchesState['sw2'];
+
+                const icon = document.getElementById(`icon-${c.id}`);
+                if (shouldGlow) { icon.classList.add('glow-bulb'); setTimeout(triggerWin, 1000); }
+                else icon.classList.remove('glow-bulb');
+            }
+        });
+    }
+
+    function triggerWin() {
+        if (document.getElementById('overlay').style.display === 'flex') return;
+        score += 100;
+        const status = (currentLevelIdx >= levels.length - 1) ? 'completed' : 'level_up';
+        window.GameChannel?.postMessage(JSON.stringify({ score, level: currentLevelIdx + 1, status }));
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function handleOverlayAction() {
+        if (currentLevelIdx < levels.length - 1) {
+            currentLevelIdx++;
+            document.getElementById('overlay').style.display = 'none';
+            initLevel(currentLevelIdx);
+        } else { window.location.reload(); }
+    }
+
+    function showHint(msg, isError = false) {
+        const h = document.getElementById('hint-text');
+        h.innerText = msg; h.style.color = isError ? 'var(--danger)' : '#CBD5E1';
+    }
+
+    window.setStartingLevel = (l) => { currentLevelIdx = (l > 0 && l <= levels.length) ? l - 1 : 0; initLevel(currentLevelIdx); };
+    initLevel(0);
+</script>
+</body>
+</html>

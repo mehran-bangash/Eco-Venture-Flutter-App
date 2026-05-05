@@ -38,6 +38,15 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
   final math.Random _random = math.Random();
 
   final List<Map<String, dynamic>> _modules = [
+    // --- ADDED: ECO SORTER GAME CARD ---
+    {
+      'title': 'Eco Sorter',
+      'icon': Icons.recycling_rounded,
+      'color1': const Color(0xFF2E7D32),
+      'color2': const Color(0xFF1B5E20),
+      'route': 'gameDashboard',
+      'imageUrl': 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?auto=format&fit=crop&w=800&q=80',
+    },
     {
       'title': 'QR Treasure',
       'icon': Icons.qr_code_scanner_rounded,

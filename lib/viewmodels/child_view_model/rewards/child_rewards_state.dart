@@ -11,12 +11,14 @@ class ChildRewardsState {
   final int stemCount;
   final int videoCount;
   final int qrCount;
+  final int gameCount;
 
   // NEW: Stores the name of a badge if JUST earned (null otherwise)
   final String? newEarnedBadge;
 
   ChildRewardsState({
     this.totalPoints = 0,
+    this.gameCount=0,
     this.badgesEarned = 0,
     this.currentLevel = 1,
     this.xpProgress = 0.0,
@@ -34,11 +36,12 @@ class ChildRewardsState {
     int? totalPoints, int? badgesEarned, int? currentLevel, double? xpProgress,
     List<Map<String, dynamic>>? recentAchievements, bool? isLoading,
     int? quizCount, int? stemCount, int? videoCount, int? qrCount,
-    String? newEarnedBadge,
+    String? newEarnedBadge, int? gameCount
   }) {
     return ChildRewardsState(
       totalPoints: totalPoints ?? this.totalPoints,
       badgesEarned: badgesEarned ?? this.badgesEarned,
+      gameCount: gameCount ?? this.gameCount,
       currentLevel: currentLevel ?? this.currentLevel,
       xpProgress: xpProgress ?? this.xpProgress,
       recentAchievements: recentAchievements ?? this.recentAchievements,

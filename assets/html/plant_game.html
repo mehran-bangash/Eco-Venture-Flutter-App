@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EcoVenture - Life Cycle</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2D5A27; --sky: #87CEEB; --o2: #00E5FF;
+            --danger: #FF5252; --glass: rgba(255, 255, 255, 0.9);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0; display: flex; flex-direction: column; align-items: center;
+            height: 100vh; overflow: hidden; transition: background 1s ease;
+            background: linear-gradient(180deg, #A8E6CF 0%, #DCEDC1 100%);
+        }
+
+        .header {
+            width: 90%; margin-top: 15px; padding: 12px;
+            background: var(--glass); border-radius: 20px;
+            display: flex; justify-content: space-around;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.1); z-index: 100;
+        }
+        .stat-box { text-align: center; }
+        .stat-label { font-size: 9px; text-transform: uppercase; color: #666; font-weight: 700; }
+        .stat-value { font-family: 'Fredoka', sans-serif; font-size: 16px; color: var(--primary); }
+
+        #game-stage {
+            flex: 1; width: 100%; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; position: relative;
+        }
+
+        /* Message Box - Positioned BEHIND foliage */
+        #msg-box {
+            position: absolute; width: 260px; background: white;
+            padding: 15px; border-radius: 20px; font-size: 13px;
+            font-weight: 600; text-align: center; z-index: 1;
+            transform: scale(0) translateY(0);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .plant-container { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; }
+        #plant-display {
+            font-size: 100px; transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            filter: drop-shadow(0 15px 15px rgba(0,0,0,0.1));
+            transform: scale(0.5); /* Start small */
+        }
+        .pot {
+            width: 140px; height: 70px; background: #8B4513;
+            border-radius: 10px 10px 40px 40px; border-top: 6px solid #5D2E0A;
+        }
+
+        .bars-container { width: 80%; margin-top: 20px; z-index: 100; }
+        .progress-wrapper {
+            width: 100%; height: 12px; background: rgba(0,0,0,0.1);
+            border-radius: 10px; overflow: hidden; margin-bottom: 8px; border: 2px solid white;
+        }
+        #growth-fill { height: 100%; width: 0%; background: #4CAF50; transition: width 0.4s; }
+
+        .controls { display: flex; gap: 15px; padding: 20px 0 40px; z-index: 100; }
+        .btn {
+            width: 65px; height: 65px; border-radius: 20px; border: 4px solid white;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            transition: transform 0.1s; font-size: 28px; background: white;
+        }
+        .btn:active { transform: scale(0.9); }
+        .water { background: #E3F2FD; color: #2196F3; }
+        .sun { background: #FFF9C4; color: #FBC02D; }
+        .axe { background: #FFEBEE; color: #D32F2F; }
+
+        .overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+            display: none; flex-direction: column; justify-content: center;
+            align-items: center; color: white; z-index: 1000; text-align: center;
+            padding: 20px;
+        }
+        .card { background: white; padding: 30px; border-radius: 30px; color: #333; width: 90%; max-width: 320px; }
+        .shake { animation: shake 0.4s; }
+        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="stat-box"><div class="stat-label">Mission</div><div class="stat-value" id="lvl-val">01</div></div>
+    <div class="stat-box"><div class="stat-label">Eco-Score</div><div class="stat-value" id="score-val">000</div></div>
+</div>
+
+<div id="game-stage">
+    <div id="msg-box"></div>
+    <div class="plant-container">
+        <div id="plant-display">🌱</div>
+        <div class="pot"></div>
+    </div>
+    <div class="bars-container">
+        <div class="stat-label" style="font-size: 10px; margin-bottom: 5px;">TREE GROWTH</div>
+        <div class="progress-wrapper"><div id="growth-fill"></div></div>
+    </div>
+</div>
+
+<div class="controls">
+    <div class="btn axe" onclick="handleAction('axe')">🪓</div>
+    <div class="btn sun" onclick="handleAction('sun')">☀️</div>
+    <div class="btn water" onclick="handleAction('water')">💧</div>
+</div>
+
+<div id="overlay" class="overlay">
+    <div class="card">
+        <div id="win-icon" style="font-size:60px; margin-bottom:15px;">🌳</div>
+        <h2 id="win-title">Evolution!</h2>
+        <p id="win-msg">Your care made the nature bloom.</p>
+        <button id="next-btn" onclick="nextLevel()" style="background:var(--primary); color:white; border:none; padding:15px; border-radius:20px; width:100%; font-weight:bold; cursor:pointer;">CONTINUE</button>
+    </div>
+</div>
+
+<script>
+    const missions = [
+        { stages: ['🌱', '🌿', '🌻'], target: 6, name: "Sunflower" },
+        { stages: ['🌿', '🪴', '🍎'], target: 8, name: "Apple Tree" },
+        { stages: ['🪴', '🌳', '🌲'], target: 10, name: "Ancient Oak" }
+    ];
+
+    let curLvl = 1, score = 0, growthPoints = 2, axeDamage = 0;
+    const maxGrowth = 10;
+
+    window.setStartingLevel = (l) => { curLvl = Math.min(l, 3); resetGame(); };
+
+    function handleAction(type) {
+        const plant = document.getElementById('plant-display');
+
+        if (type === 'sun' || type === 'water') {
+            growthPoints = Math.min(maxGrowth, growthPoints + 1);
+            score += 20;
+            axeDamage = Math.max(0, axeDamage - 1); // Healing the tree
+            showMsg(type === 'sun' ? "Sunshine boosts photosynthesis! ☀️" : "Water helps the roots grow deep! 💧", "#2E7D32");
+        }
+        else if (type === 'axe') {
+            growthPoints = Math.max(0, growthPoints - 1);
+            axeDamage++;
+            score = Math.max(0, score - 30);
+            plant.classList.add('shake');
+            setTimeout(() => plant.classList.remove('shake'), 400);
+
+            if (growthPoints <= 0 || axeDamage >= 5) {
+                showGameOver();
+                return;
+            }
+            showMsg("Stop! Each cut makes the tree weaker! 🛑", "#D32F2F");
+        }
+
+        updateUI();
+        if (growthPoints >= missions[curLvl-1].target) triggerWin();
+    }
+
+    function showMsg(txt, col) {
+        const b = document.getElementById('msg-box');
+        b.innerText = txt;
+        b.style.borderLeft = `5px solid ${col}`;
+        b.style.transform = "scale(1) translateY(-220px)";
+        setTimeout(() => b.style.transform = "scale(0) translateY(0)", 2500);
+    }
+
+    function updateUI() {
+        const m = missions[curLvl-1];
+        const plant = document.getElementById('plant-display');
+
+        // Calculate scale: 0.5 to 1.5 based on growth
+        const scaleFactor = 0.4 + (growthPoints / maxGrowth);
+        plant.style.transform = `scale(${scaleFactor})`;
+
+        // Change Emoji based on growth phase
+        if (growthPoints < 4) plant.innerText = m.stages[0];
+        else if (growthPoints < 7) plant.innerText = m.stages[1];
+        else plant.innerText = m.stages[2];
+
+        document.getElementById('growth-fill').style.width = (growthPoints / m.target * 100) + "%";
+        document.getElementById('score-val').innerText = score.toString().padStart(3, '0');
+        document.getElementById('lvl-val').innerText = curLvl.toString().padStart(2, '0');
+    }
+
+    function triggerWin() {
+        const status = (curLvl >= 3) ? 'completed' : 'level_up';
+        window.GameChannel?.postMessage(JSON.stringify({ score, level: curLvl, status }));
+        document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function showGameOver() {
+        document.getElementById('win-icon').innerText = "🪓";
+        document.getElementById('win-title').innerText = "Tree Destroyed!";
+        document.getElementById('win-title').style.color = "#D32F2F";
+        document.getElementById('win-msg').innerText = "You destroyed the tree and you badly affected nature. Trees provide the air we breathe!";
+        document.getElementById('next-btn').innerText = "RETRY MISSION";
+        document.getElementById('next-btn').style.background = "#D32F2F";
+        document.getElementById('overlay').style.display = 'flex';
+        // Set flag to reset current level instead of advancing
+        window.isDead = true;
+    }
+
+    function nextLevel() {
+        if (window.isDead) {
+            window.isDead = false;
+            resetGame();
+        } else if (curLvl < 3) {
+            curLvl++;
+            resetGame();
+        } else {
+            window.GameChannel?.postMessage(JSON.stringify({ status: 'exit' }));
+        }
+        document.getElementById('overlay').style.display = 'none';
+    }
+
+    function resetGame() {
+        growthPoints = 2;
+        axeDamage = 0;
+        document.getElementById('win-title').style.color = "#333";
+        document.getElementById('next-btn').innerText = "CONTINUE";
+        document.getElementById('next-btn').style.background = "var(--primary)";
+        updateUI();
+    }
+
+    updateUI();
+</script>
+</body>
+</html>

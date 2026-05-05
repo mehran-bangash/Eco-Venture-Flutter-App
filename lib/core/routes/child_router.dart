@@ -5,6 +5,9 @@ import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_completion_
 import 'package:eco_venture/views/child_section/InteractiveQuiz/quiz_question_screen.dart';
 import 'package:eco_venture/views/child_section/blocked_screen/app_locked_screen.dart';
 import 'package:eco_venture/views/child_section/blocked_screen/content_blocked_screen.dart';
+import 'package:eco_venture/views/child_section/game_module/circuit_game_screen.dart';
+import 'package:eco_venture/views/child_section/game_module/game_dashboard.dart';
+import 'package:eco_venture/views/child_section/game_module/plant_game_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/story_play_screen.dart';
 import 'package:eco_venture/views/child_section/multimedia/video_play_screen.dart';
 import 'package:eco_venture/views/child_section/naturePhotoJournal/learn_with_ai.dart';
@@ -40,6 +43,8 @@ import '../../navigation/bottom_nav_child.dart';
 import '../../views/child_section/InteractiveQuiz/interactive_quiz_screen.dart';
 import '../../views/child_section/child_home_screen.dart';
 import '../../views/child_section/child_safety_enforcer.dart';
+import '../../views/child_section/game_module/eco_game_screen.dart';
+import '../../views/child_section/game_module/math_adventure_screen.dart';
 import '../../views/child_section/inbox_report/child_report_issue_screen.dart';
 import '../../views/child_section/inbox_report/child_safety_dashboard.dart';
 import '../../views/child_section/multimedia/child_multimedia_screen.dart';
@@ -134,6 +139,35 @@ class ChildRouter {
             path: RouteNames.childNotificationsScreen,
             name: 'childNotificationsScreen',
             builder: (context, state) => const ChildNotificationScreen(),
+          ),
+
+
+          GoRoute(
+            path: 'game-dashboard',
+            name: 'gameDashboard',
+            builder: (context, state) => const GameDashboard(),
+            routes: [
+              GoRoute(
+                path: 'eco-game',
+                name: 'ecoGame',
+                builder: (context, state) => const EcoGameScreen(),
+              ),
+              GoRoute(
+                path: 'plant-game',
+                name: 'plantGame',
+                builder: (context, state) => const PlantGameScreen(),
+              ),
+              GoRoute(
+                path: 'circuit-game',
+                name: 'circuitGame',
+                builder: (context, state) => const CircuitGameScreen(),
+              ),
+              GoRoute(
+                path: 'math-game',
+                name: 'mathGame',
+                builder: (context, state) => const MathAdventureScreen(),
+              ),
+            ]
           ),
 
           GoRoute(

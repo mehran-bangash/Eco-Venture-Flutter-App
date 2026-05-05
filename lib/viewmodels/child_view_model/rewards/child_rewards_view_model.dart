@@ -1,8 +1,6 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:state_notifier/state_notifier.dart';
-
 import '../../../services/child/child_rewards_service.dart';
 import 'child_rewards_state.dart';
 
@@ -15,12 +13,14 @@ class ChildRewardsViewModel extends StateNotifier<ChildRewardsState> {
   static const int stemTarget = 50;
   static const int videoTarget = 200;
   static const int qrTarget = 50;
+  static const int gameTarget = 50; // New Game Target
 
   // --- SESSION TRACKING ---
   bool _isFirstLoad = true;
   int _lastQuiz = 0;
   int _lastStem = 0;
   int _lastQr = 0;
+  int _lastGame = 0; // New Session Tracker
 
   ChildRewardsViewModel() : super(ChildRewardsState()) {
     startListening();
@@ -33,12 +33,12 @@ class ChildRewardsViewModel extends StateNotifier<ChildRewardsState> {
       final quizCount = stats['quizCount'] as int;
       final stemCount = stats['stemCount'] as int;
       final qrCount = stats['qrCount'] as int;
+      final gameCount = stats['gameCount'] as int; // Pull from Service
       final videoCount = 0;
 
       // --- NOTIFICATION LOGIC ---
       String? notificationBadge;
 
-      // Only trigger popup if crossing threshold in this session
       if (!_isFirstLoad) {
         if (_lastQuiz < quizTarget && quizCount >= quizTarget) {
           notificationBadge = "Quiz Master";
@@ -49,11 +49,15 @@ class ChildRewardsViewModel extends StateNotifier<ChildRewardsState> {
         if (_lastQr < qrTarget && qrCount >= qrTarget) {
           notificationBadge = "Treasure Hunter";
         }
+        if (_lastGame < gameTarget && gameCount >= gameTarget) {
+          notificationBadge = "Game Master"; // New Notification
+        }
       }
 
       _lastQuiz = quizCount;
       _lastStem = stemCount;
       _lastQr = qrCount;
+      _lastGame = gameCount;
       _isFirstLoad = false;
 
       // --- LEVEL & BADGE LOGIC ---
@@ -65,30 +69,21 @@ class ChildRewardsViewModel extends StateNotifier<ChildRewardsState> {
 
       if (quizCount >= quizTarget) {
         badges++;
-        earnedBadges.add({
-          'title': 'Quiz Master',
-          'icon': Icons.quiz,
-          'color': Colors.purple,
-        });
+        earnedBadges.add({'title': 'Quiz Master', 'icon': Icons.quiz, 'color': Colors.purple});
       }
       if (stemCount >= stemTarget) {
         badges++;
-        earnedBadges.add({
-          'title': 'STEM Explorer',
-          'icon': Icons.science,
-          'color': Colors.blue,
-        });
+        earnedBadges.add({'title': 'STEM Explorer', 'icon': Icons.science, 'color': Colors.blue});
       }
       if (qrCount >= qrTarget) {
         badges++;
-        earnedBadges.add({
-          'title': 'Treasure Hunter',
-          'icon': Icons.map,
-          'color': Colors.green,
-        });
+        earnedBadges.add({'title': 'Treasure Hunter', 'icon': Icons.map, 'color': Colors.green});
+      }
+      if (gameCount >= gameTarget) {
+        badges++;
+        earnedBadges.add({'title': 'Game Master', 'icon': Icons.sports_esports, 'color': Colors.orange});
       }
 
-      // Use copyWith but specifically handle the nullable newEarnedBadge
       state = ChildRewardsState(
         isLoading: false,
         totalPoints: points,
@@ -99,17 +94,14 @@ class ChildRewardsViewModel extends StateNotifier<ChildRewardsState> {
         quizCount: quizCount,
         stemCount: stemCount,
         qrCount: qrCount,
+        gameCount: gameCount, // Ensure your State class has this field
         videoCount: videoCount,
-        newEarnedBadge:
-            notificationBadge ??
-            state.newEarnedBadge, // Keep existing unless overwritten
+        newEarnedBadge: notificationBadge ?? state.newEarnedBadge,
       );
     });
   }
 
-  // --- THIS IS THE MISSING FUNCTION ---
   void clearNotification() {
-    // Force the badge notification to null so dialog doesn't show again
     state = ChildRewardsState(
       isLoading: state.isLoading,
       totalPoints: state.totalPoints,
@@ -121,14 +113,9 @@ class ChildRewardsViewModel extends StateNotifier<ChildRewardsState> {
       stemCount: state.stemCount,
       videoCount: state.videoCount,
       qrCount: state.qrCount,
-      newEarnedBadge: null, // CLEAR IT HERE
+      gameCount: state.gameCount,
+      newEarnedBadge: null,
     );
-  }
-
-  // Added this if you need to force refresh manually, though stream handles it
-  void loadRealRewardsData() {
-    // Just restarts the listener
-    startListening();
   }
 
   @override

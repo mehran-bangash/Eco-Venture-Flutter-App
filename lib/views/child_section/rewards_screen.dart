@@ -7,7 +7,7 @@ import 'package:responsive_sizer/responsive_sizer.dart';
 
 // Providers
 import '../../../viewmodels/child_view_model/rewards/child_rewards_provider.dart';
-import '../../viewmodels/child_view_model/rewards/child_rewards_state.dart';
+import '../../../viewmodels/child_view_model/rewards/child_rewards_state.dart';
 
 class RewardsScreen extends ConsumerStatefulWidget {
   const RewardsScreen({super.key});
@@ -22,7 +22,6 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
   late final Animation<double> _shineAnimation;
   final List<AnimationController> _badgeControllers = [];
 
-  // Consistent Colors from Home Screen
   final Color _primaryDark = const Color(0xFF1E293B);
   final Color _subText = const Color(0xFF64748B);
   final Color _accentCyan = const Color(0xFF22D3EE);
@@ -43,7 +42,6 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
       ),
     );
 
-    // Prepare controllers for the badges
     for (int i = 0; i < 5; i++) {
       final badgeController = AnimationController(
         vsync: this,
@@ -342,7 +340,6 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(35),
-        // MATCHING REFERENCE: Cyan Border + Elevation
         border: Border.all(color: Colors.cyan.withOpacity(0.3), width: 2),
         boxShadow: [
           BoxShadow(
@@ -433,7 +430,6 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(30),
-        // MATCHING REFERENCE: Amber/Yellow Border + Elevation
         border: Border.all(color: Colors.amber.withOpacity(0.3), width: 2),
         boxShadow: [
           BoxShadow(
@@ -502,15 +498,16 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
   }
 
   Widget _buildRewardCategories(double t, ChildRewardsState state) {
-    bool hasQuizBadge =
-    state.recentAchievements.any((a) => a['title'] == 'Quiz Novice');
-    bool hasStemBadge =
-    state.recentAchievements.any((a) => a['title'] == 'STEM Explorer');
-    bool hasQrBadge =
-    state.recentAchievements.any((a) => a['title'] == 'Treasure Hunter');
+    bool hasQuizBadge = state.recentAchievements.any((a) => a['title'] == 'Quiz Master');
+    bool hasStemBadge = state.recentAchievements.any((a) => a['title'] == 'STEM Explorer');
+    bool hasQrBadge = state.recentAchievements.any((a) => a['title'] == 'Treasure Hunter');
+    bool hasGameBadge = state.recentAchievements.any((a) => a['title'] == 'Game Master');
 
-    double quizProg = hasQuizBadge ? 1.0 : (state.totalPoints > 0 ? 0.4 : 0.0);
-    double stemProg = hasStemBadge ? 1.0 : (state.totalPoints > 50 ? 0.3 : 0.0);
+    // Progress Logic
+    double quizProg = hasQuizBadge ? 1.0 : (state.quizCount / 50).clamp(0.0, 1.0);
+    double stemProg = hasStemBadge ? 1.0 : (state.stemCount / 50).clamp(0.0, 1.0);
+    double qrProg = hasQrBadge ? 1.0 : (state.qrCount / 50).clamp(0.0, 1.0);
+    double gameProg = hasGameBadge ? 1.0 : (state.gameCount / 50).clamp(0.0, 1.0);
 
     final List<Map<String, dynamic>> categories = [
       {
@@ -532,7 +529,7 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
       {
         'title': 'Media Whiz',
         'icon': Icons.play_circle_filled_rounded,
-        'progress': 0.6,
+        'progress': 0.0,
         'color': Colors.redAccent,
         'borderColor': Colors.orange.withOpacity(0.3),
         'status': 'In Progress'
@@ -540,19 +537,19 @@ class _RewardsScreenState extends ConsumerState<RewardsScreen>
       {
         'title': 'Treasure Hunter',
         'icon': Icons.qr_code_scanner_rounded,
-        'progress': hasQrBadge ? 1.0 : 0.2,
+        'progress': qrProg,
         'color': Colors.green,
         'borderColor': Colors.green.withOpacity(0.3),
         'status': hasQrBadge ? 'Earned!' : 'In Progress'
       },
       {
-        'title': 'Game Pro',
+        'title': 'Game Master',
         'icon': Icons.sports_esports_rounded,
-        'progress': 0.0,
+        'progress': gameProg,
         'color': Colors.pink,
         'borderColor': Colors.pink.withOpacity(0.2),
-        'status': 'Soon',
-        'locked': true
+        'status': hasGameBadge ? 'Earned!' : 'In Progress',
+        'locked': false
       },
     ];
 
