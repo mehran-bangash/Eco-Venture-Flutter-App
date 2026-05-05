@@ -93,12 +93,32 @@ class TeacherStudentService {
           if (topicName.isNotEmpty) title += " - $topicName";
           title += " (Lvl $level)";
 
+          // Extract question_details safely
+          List<Map<String, dynamic>> questionDetails = [];
+          final rawQd = data['question_details'];
+          if (rawQd is List) {
+            for (var q in rawQd) {
+              if (q is Map) {
+                questionDetails.add(Map<String, dynamic>.from(q));
+              }
+            }
+          } else if (rawQd is Map) {
+            final sorted = rawQd.entries.toList()
+              ..sort((a, b) => a.key.toString().compareTo(b.key.toString()));
+            for (var e in sorted) {
+              if (e.value is Map) {
+                questionDetails.add(Map<String, dynamic>.from(e.value));
+              }
+            }
+          }
+
           activity.add({
             'title': title,
             'time': data['attempt_date'],
             'type': 'Quiz',
             'isPositive': isPassed,
             'score': '${data['correct_answers']} correct',
+            'question_details': questionDetails,  // ← NEW LINE ONLY
           });
         });
       }

@@ -45,7 +45,7 @@ Future<void> main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-// ✅ Use ConsumerStatefulWidget so the router instance is created ONCE
+//  Use ConsumerStatefulWidget so the router instance is created ONCE
 // and never recreated on state changes
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});

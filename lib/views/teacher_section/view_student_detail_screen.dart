@@ -37,6 +37,216 @@ class _ViewStudentDetailScreenState
           .loadStudent(uid),
     );
   }
+  void _showQuizBreakdownSheet(
+      BuildContext context,
+      String quizTitle,
+      List<Map<String, dynamic>> questions,
+      ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  // Handle bar
+                  Padding(
+                    padding: EdgeInsets.only(top: 1.2.h),
+                    child: Container(
+                      width: 10.w,
+                      height: 0.5.h,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  // Title
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
+                    child: Row(
+                      children: [
+                        Icon(Icons.quiz_rounded, color: _primaryBlue, size: 20.sp),
+                        SizedBox(width: 2.w),
+                        Expanded(
+                          child: Text(
+                            quizTitle,
+                            style: GoogleFonts.poppins(
+                              fontSize: 15.sp,
+                              fontWeight: FontWeight.bold,
+                              color: _textDark,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(height: 0, color: Colors.grey[200]),
+                  // Question list
+                  Expanded(
+                    child: questions.isEmpty
+                        ? Center(
+                      child: Text(
+                        "No question details available.",
+                        style: GoogleFonts.poppins(
+                          color: Colors.grey,
+                          fontSize: 13.sp,
+                        ),
+                      ),
+                    )
+                        : ListView.separated(
+                      controller: scrollController,
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 4.w, vertical: 2.h),
+                      itemCount: questions.length,
+                      separatorBuilder: (_, __) => SizedBox(height: 1.5.h),
+                      itemBuilder: (_, i) {
+                        final q = questions[i];
+                        final bool isCorrect = q['is_correct'] == true;
+                        return Container(
+                          padding: EdgeInsets.all(3.5.w),
+                          decoration: BoxDecoration(
+                            color: isCorrect
+                                ? _green.withOpacity(0.05)
+                                : _red.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isCorrect
+                                  ? _green.withOpacity(0.3)
+                                  : _red.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Q number + question
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 2.w, vertical: 0.3.h),
+                                    decoration: BoxDecoration(
+                                      color: _primaryBlue.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      "Q${i + 1}",
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 11.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: _primaryBlue,
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 2.w),
+                                  Expanded(
+                                    child: Text(
+                                      q['question']?.toString() ?? '-',
+                                      style: GoogleFonts.poppins(
+                                        fontSize: 13.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: _textDark,
+                                      ),
+                                    ),
+                                  ),
+                                  Icon(
+                                    isCorrect
+                                        ? Icons.check_circle_rounded
+                                        : Icons.cancel_rounded,
+                                    color: isCorrect ? _green : _red,
+                                    size: 16.sp,
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 1.h),
+                              // Selected Answer
+                              _buildAnswerRow(
+                                label: "Selected",
+                                value: q['selected']?.toString() ?? '-',
+                                color: isCorrect ? _green : _red,
+                                icon: isCorrect
+                                    ? Icons.check_rounded
+                                    : Icons.close_rounded,
+                              ),
+                              SizedBox(height: 0.5.h),
+                              // Correct Answer
+                              _buildAnswerRow(
+                                label: "Correct",
+                                value: q['correct']?.toString() ?? '-',
+                                color: _green,
+                                icon: Icons.check_circle_outline_rounded,
+                              ),
+                              // Wrong answer hint (only if wrong)
+                              if (!isCorrect) ...[
+                                SizedBox(height: 0.5.h),
+                                _buildAnswerRow(
+                                  label: "Wrong",
+                                  value: q['selected']?.toString() ?? '-',
+                                  color: _red,
+                                  icon: Icons.highlight_off_rounded,
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAnswerRow({
+    required String label,
+    required String value,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 13.sp),
+        SizedBox(width: 1.5.w),
+        Text(
+          "$label: ",
+          style: GoogleFonts.poppins(
+            fontSize: 11.sp,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[600],
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: GoogleFonts.poppins(
+              fontSize: 12.sp,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -466,8 +676,21 @@ class _ViewStudentDetailScreenState
       subtitle = activity['score'];
     }
 
+    final bool isQuiz = activity['type'] == 'Quiz';
+    final List<Map<String, dynamic>> questionDetails = [];
+    if (isQuiz) {
+      final raw = activity['question_details'];
+      if (raw is List) {
+        for (var q in raw) {
+          if (q is Map) questionDetails.add(Map<String, dynamic>.from(q));
+        }
+      }
+    }
+
     return GestureDetector(
-      onTap: (isSubmission && isPendingOrRejected)
+      onTap: isQuiz
+          ? () => _showQuizBreakdownSheet(context, activity['title'] ?? 'Quiz', questionDetails)
+          : (isSubmission && isPendingOrRejected)
           ? () {
         context.goNamed(
           'teacherStemApprovedScreen',
