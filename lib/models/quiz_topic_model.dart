@@ -7,7 +7,7 @@ class QuizTopicModel {
   final List<QuizLevelModel> levels;
   final bool isSensitive;
   final List<String> tags;
-  final String ageGroup; // Dynamic classification logic
+  final String ageGroup;
 
   QuizTopicModel({
     this.id,
@@ -21,12 +21,22 @@ class QuizTopicModel {
     required this.ageGroup,
   });
 
+  // --- FIX: Added empty factory ---
+  factory QuizTopicModel.empty() {
+    return QuizTopicModel(
+      category: '',
+      topicName: '',
+      levels: [],
+      ageGroup: '6 - 8',
+      tags: [],
+    );
+  }
+
   Map<String, dynamic> toMap() {
     Map<String, dynamic> levelsMap = {};
     for (var level in levels) {
       levelsMap[level.order.toString()] = level.toMap();
     }
-
     return {
       'topic_name': topicName,
       'created_by': createdBy,
@@ -42,7 +52,6 @@ class QuizTopicModel {
   factory QuizTopicModel.fromMap(String id, String category, Map<String, dynamic> map) {
     var rawLevels = map['levels'];
     List<QuizLevelModel> parsedLevels = [];
-
     if (rawLevels != null) {
       if (rawLevels is Map) {
         rawLevels.forEach((key, value) {
@@ -59,9 +68,7 @@ class QuizTopicModel {
         }
       }
     }
-
     parsedLevels.sort((a, b) => a.order.compareTo(b.order));
-
     return QuizTopicModel(
       id: id,
       category: category,
@@ -105,6 +112,7 @@ class QuizLevelModel {
   final String title;
   final int passingPercentage;
   final int points;
+  final int timerSeconds; // NEW: Added timer field
   final List<QuestionModel> questions;
 
   QuizLevelModel({
@@ -112,6 +120,7 @@ class QuizLevelModel {
     required this.title,
     required this.passingPercentage,
     required this.points,
+    this.timerSeconds = 30, // Default 30 seconds
     required this.questions,
   });
 
@@ -120,6 +129,7 @@ class QuizLevelModel {
       'title': title,
       'passing_percentage': passingPercentage,
       'points': points,
+      'timer_seconds': timerSeconds, // Save to Firebase
       'questions': questions.map((q) => q.toMap()).toList(),
     };
   }
@@ -130,6 +140,7 @@ class QuizLevelModel {
       title: map['title'] ?? '',
       passingPercentage: map['passing_percentage']?.toInt() ?? 60,
       points: map['points']?.toInt() ?? 0,
+      timerSeconds: map['timer_seconds']?.toInt() ?? 30, // Read from Firebase
       questions: List<QuestionModel>.from(
         (map['questions'] as List<dynamic>? ?? []).map<QuestionModel>(
               (x) => QuestionModel.fromMap(Map<String, dynamic>.from(x as Map)),
@@ -143,6 +154,7 @@ class QuizLevelModel {
     String? title,
     int? passingPercentage,
     int? points,
+    int? timerSeconds,
     List<QuestionModel>? questions,
   }) {
     return QuizLevelModel(
@@ -150,11 +162,11 @@ class QuizLevelModel {
       title: title ?? this.title,
       passingPercentage: passingPercentage ?? this.passingPercentage,
       points: points ?? this.points,
+      timerSeconds: timerSeconds ?? this.timerSeconds,
       questions: questions ?? this.questions,
     );
   }
 }
-
 class QuestionModel {
   final String question;
   final List<String> options;

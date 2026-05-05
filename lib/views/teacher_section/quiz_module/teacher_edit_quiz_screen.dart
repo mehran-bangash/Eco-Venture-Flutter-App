@@ -19,11 +19,11 @@ class TeacherEditQuizScreen extends ConsumerStatefulWidget {
   const TeacherEditQuizScreen({super.key, required this.quizData});
 
   @override
-  ConsumerState<TeacherEditQuizScreen> createState() => _TeacherEditQuizScreenState();
+  ConsumerState<TeacherEditQuizScreen> createState() =>
+      _TeacherEditQuizScreenState();
 }
 
 class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
-  // --- PRO COLORS ---
   final Color _primary = const Color(0xFF1565C0);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _surface = Colors.white;
@@ -31,18 +31,14 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
   final Color _textGrey = const Color(0xFFA3AED0);
   final Color _border = const Color(0xFFE0E0E0);
 
-  // --- CONTROLLERS ---
   late TextEditingController _topicNameController;
   late TextEditingController _tagsController;
 
-  // --- STATE ---
   late QuizTopicModel _topic;
   late String _selectedCategory;
   final List<String> _categories = ['Science', 'Maths', 'Animals', 'Ecosystem'];
   late List<QuizLevelModel> _levels;
   late bool _isSensitive;
-
-  // --- NEW: Age Selection State ---
   String? _selectedAgeGroup;
 
   @override
@@ -53,16 +49,20 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
       _topic = widget.quizData as QuizTopicModel;
     } else {
       final map = Map<String, dynamic>.from(widget.quizData as Map);
-      _topic = QuizTopicModel.fromMap(map['id'] ?? '', map['category'] ?? 'Science', map);
+      _topic = QuizTopicModel.fromMap(
+        map['id'] ?? '',
+        map['category'] ?? 'Science',
+        map,
+      );
     }
 
     _topicNameController = TextEditingController(text: _topic.topicName);
     _tagsController = TextEditingController(text: _topic.tags.join(', '));
-    _selectedCategory = _categories.contains(_topic.category) ? _topic.category : _categories.first;
+    _selectedCategory = _categories.contains(_topic.category)
+        ? _topic.category
+        : _categories.first;
     _levels = List<QuizLevelModel>.from(_topic.levels);
     _isSensitive = _topic.isSensitive;
-
-    // --- NEW: Initialize selected age group from existing range string ---
     _selectedAgeGroup = _topic.ageGroup;
   }
 
@@ -73,14 +73,14 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     super.dispose();
   }
 
-
-  // --- NOTIFICATION LOGIC ---
-  Future<void> _sendClassNotification(String teacherId, String topicName, String ageGroup) async {
-    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
-
+  Future<void> _sendClassNotification(
+    String teacherId,
+    String topicName,
+    String ageGroup,
+  ) async {
     try {
       await http.post(
-        Uri.parse(backendUrl),
+        Uri.parse(ApiConstants.notifyChildClassEndPoints),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "teacherId": teacherId,
@@ -91,11 +91,10 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
         }),
       );
     } catch (e) {
-      print("❌ Error calling backend: $e");
+      debugPrint("❌ Notification error: $e");
     }
   }
 
-  // --- UPDATE LOGIC ---
   Future<void> _updateTopic() async {
     if (_topicNameController.text.trim().isEmpty || _selectedAgeGroup == null) {
       _showError("Please enter a Topic Name and select Target Age");
@@ -107,19 +106,14 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     }
 
     String? teacherId = SharedPreferencesHelper.instance.getUserId();
-
     List<String> tagsList = _tagsController.text
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
 
-    if (_isSensitive && !tagsList.contains('scary')) {
-      tagsList.add('scary');
-    }
-    if (!_isSensitive) {
-      tagsList.remove('scary');
-    }
+    if (_isSensitive && !tagsList.contains('scary')) tagsList.add('scary');
+    if (!_isSensitive) tagsList.remove('scary');
 
     final updatedTopic = _topic.copyWith(
       category: _selectedCategory,
@@ -127,19 +121,24 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
       levels: _levels,
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: _selectedAgeGroup!, // Pass updated age group
+      ageGroup: _selectedAgeGroup!,
     );
 
-    await ref.read(teacherQuizViewModelProvider.notifier).updateQuiz(updatedTopic);
-
+    await ref
+        .read(teacherQuizViewModelProvider.notifier)
+        .updateQuiz(updatedTopic);
     if (!_isSensitive && teacherId != null) {
-      _sendClassNotification(teacherId, updatedTopic.topicName, _selectedAgeGroup!);
+      _sendClassNotification(
+        teacherId,
+        updatedTopic.topicName,
+        _selectedAgeGroup!,
+      );
     }
   }
 
   void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg, style: TextStyle(fontSize: 15.sp)), backgroundColor: Colors.red.shade700, behavior: SnackBarBehavior.floating),
+      SnackBar(content: Text(msg), backgroundColor: Colors.red.shade700),
     );
   }
 
@@ -149,14 +148,8 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
 
     ref.listen(teacherQuizViewModelProvider, (previous, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Quiz Updated Successfully!", style: TextStyle(fontSize: 15.sp)), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
-        );
         ref.read(teacherQuizViewModelProvider.notifier).resetSuccess();
         Navigator.pop(context);
-      }
-      if (next.errorMessage != null) {
-        _showError(next.errorMessage!);
       }
     });
 
@@ -172,11 +165,11 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
         ),
         title: Text(
           "Edit Quiz",
-          style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp),
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: _border, height: 1),
+          style: GoogleFonts.poppins(
+            color: _textDark,
+            fontWeight: FontWeight.w700,
+            fontSize: 18.sp,
+          ),
         ),
       ),
       body: Stack(
@@ -186,163 +179,102 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("General Info", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textGrey)),
+                _buildProLabel("General Info"),
                 SizedBox(height: 1.5.h),
-
                 Container(
                   padding: EdgeInsets.all(5.w),
                   decoration: BoxDecoration(
                     color: _surface,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
                     border: Border.all(color: _border),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildProLabel("Category"),
-                      SizedBox(height: 1.h),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 4.w),
-                        decoration: BoxDecoration(
-                          color: _bg,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _border),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedCategory,
-                            isExpanded: true,
-                            icon: Icon(Icons.keyboard_arrow_down_rounded, color: _textDark, size: 24.sp),
-                            items: _categories.map((c) => DropdownMenuItem(
-                                value: c,
-                                child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w600))
-                            )).toList(),
-                            onChanged: (val) => setState(() => _selectedCategory = val!),
-                          ),
-                        ),
-                      ),
+                      _buildCategoryDropdown(),
                       SizedBox(height: 3.h),
-
                       _buildProLabel("Topic Name"),
-                      SizedBox(height: 1.h),
-                      _buildProTextField(controller: _topicNameController, hint: "e.g. Solar System", icon: Icons.title_rounded),
-
-                      // --- NEW: Target Age Dropdown ---
+                      _buildProTextField(
+                        controller: _topicNameController,
+                        hint: "e.g. Solar System",
+                        icon: Icons.title_rounded,
+                      ),
                       SizedBox(height: 3.h),
                       _buildProLabel("Target Age (Years)"),
-                      SizedBox(height: 1.h),
                       _buildAgeDropdown(),
-
                       SizedBox(height: 3.h),
-                      _buildProLabel("Tags (comma-separated)"),
-                      SizedBox(height: 1.h),
-                      _buildProTextField(controller: _tagsController, hint: "e.g. history, fun", icon: Icons.tag),
-
-                      SizedBox(height: 3.h),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: _bg,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _border),
-                        ),
-                        child: SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text("Mark as Sensitive Content",
-                              style: GoogleFonts.poppins(
-                                fontSize: 15.sp,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.red.shade400,
-                              )),
-                          subtitle: Text(
-                            "If enabled, this quiz will be blocked for younger children.",
-                            style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.grey),
-                          ),
-                          value: _isSensitive,
-                          onChanged: (v) => setState(() => _isSensitive = v),
-                          activeThumbColor: Colors.red,
-                        ),
+                      _buildProLabel("Tags"),
+                      _buildProTextField(
+                        controller: _tagsController,
+                        hint: "e.g. history, fun",
+                        icon: Icons.tag,
                       ),
+                      SizedBox(height: 3.h),
+                      _buildSensitiveSwitch(),
                     ],
                   ),
                 ),
-
                 SizedBox(height: 4.h),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("Levels Config", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textGrey)),
-                    InkWell(
-                      onTap: () => _showLevelEditor(),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-                        decoration: BoxDecoration(
-                          color: _primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.add_rounded, size: 18.sp, color: _primary),
-                            SizedBox(width: 1.5.w),
-                            Text("Add Level", style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.bold, color: _primary)),
-                          ],
-                        ),
-                      ),
-                    )
-                  ],
-                ),
+                _buildLevelsHeader(),
                 SizedBox(height: 2.h),
-
-                if (_levels.isEmpty)
-                  _buildEmptyState()
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _levels.length,
-                    separatorBuilder: (c, i) => SizedBox(height: 2.h),
-                    itemBuilder: (context, index) => _buildProLevelCard(index, _levels[index]),
-                  ),
-
+                _buildLevelsList(),
                 SizedBox(height: 5.h),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 7.h,
-                  child: ElevatedButton(
-                    onPressed: quizState.isLoading ? null : _updateTopic,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 4,
-                    ),
-                    child: quizState.isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text("UPDATE QUIZ", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
-                  ),
-                ),
+                _buildUpdateButton(quizState.isLoading),
                 SizedBox(height: 5.h),
               ],
             ),
           ),
           if (quizState.isLoading)
-            Container(color: Colors.black26, child: const Center(child: CircularProgressIndicator(color: Colors.white))),
+            Container(
+              color: Colors.black26,
+              child: const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  // --- PRO WIDGETS ---
+  // --- UI HELPERS ---
+
+  Widget _buildCategoryDropdown() {
+    return Container(
+      margin: EdgeInsets.only(top: 1.h),
+      padding: EdgeInsets.symmetric(horizontal: 4.w),
+      decoration: BoxDecoration(
+        color: _bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _border),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedCategory,
+          isExpanded: true,
+          items: _categories
+              .map(
+                (c) => DropdownMenuItem(
+                  value: c,
+                  child: Text(
+                    c,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
+          onChanged: (val) => setState(() => _selectedCategory = val!),
+        ),
+      ),
+    );
+  }
 
   Widget _buildAgeDropdown() {
-    final items = [...AppConstants.teacherClassRanges];
-    if (_selectedAgeGroup != null && !items.contains(_selectedAgeGroup)) {
-      items.add(_selectedAgeGroup!);
-    }
-
     return Container(
+      margin: EdgeInsets.only(top: 1.h),
       padding: EdgeInsets.symmetric(horizontal: 4.w),
       decoration: BoxDecoration(
         color: _bg,
@@ -353,93 +285,452 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
         child: DropdownButton<String>(
           value: _selectedAgeGroup,
           isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down_rounded, color: _textDark, size: 24.sp),
-          items: items.map((range) => DropdownMenuItem(
-              value: range,
-              child: Text("Group $range", style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w600))
-          )).toList(),
+          items: AppConstants.teacherClassRanges
+              .map(
+                (range) => DropdownMenuItem(
+                  value: range,
+                  child: Text(
+                    "Group $range",
+                    style: GoogleFonts.poppins(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              )
+              .toList(),
           onChanged: (val) => setState(() => _selectedAgeGroup = val!),
         ),
       ),
     );
   }
 
-  Widget _buildProLabel(String text) {
-    return Text(text, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w700, color: _textGrey));
-  }
-
-  Widget _buildProTextField({required TextEditingController controller, required String hint, required IconData icon, bool isNumber = false}) {
-    return TextField(
-      controller: controller,
-      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark, fontWeight: FontWeight.w600),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: GoogleFonts.poppins(color: Colors.grey.shade400, fontSize: 15.sp),
-        prefixIcon: Icon(icon, size: 22.sp, color: _textGrey),
-        filled: true,
-        fillColor: _bg,
-        contentPadding: EdgeInsets.symmetric(vertical: 2.h),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _border)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _border)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: _primary, width: 2)),
-      ),
+  Widget _buildLevelsHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildProLabel("Levels Config"),
+        TextButton.icon(
+          onPressed: () => _showLevelEditor(),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text("Add Level"),
+        ),
+      ],
     );
   }
 
-  Widget _buildEmptyState() {
-    return Container(
+  Widget _buildLevelsList() {
+    if (_levels.isEmpty) return _buildEmptyState();
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _levels.length,
+      separatorBuilder: (_, __) => SizedBox(height: 2.h),
+      itemBuilder: (ctx, i) => _buildProLevelCard(i, _levels[i]),
+    );
+  }
+
+  Widget _buildUpdateButton(bool loading) {
+    return SizedBox(
       width: double.infinity,
-      padding: EdgeInsets.all(6.w),
-      decoration: BoxDecoration(
-        color: _surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _border, style: BorderStyle.solid),
-      ),
-      child: Column(
-        children: [
-          Icon(Icons.layers_clear_outlined, size: 36.sp, color: Colors.grey.shade300),
-          SizedBox(height: 1.h),
-          Text("No Levels Added", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textGrey)),
-          Text("Create a learning path by adding levels.", style: GoogleFonts.poppins(fontSize: 14.sp, color: Colors.grey.shade400), textAlign: TextAlign.center),
-        ],
+      height: 7.h,
+      child: ElevatedButton(
+        onPressed: loading ? null : _updateTopic,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: loading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text(
+                "UPDATE QUIZ",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }
 
-  Widget _buildProLevelCard(int index, QuizLevelModel level) {
+  // --- LEVEL EDITOR (TIMER ADDED) ---
+  void _showLevelEditor({QuizLevelModel? existingLevel, int? index}) {
+    final titleCtrl = TextEditingController(text: existingLevel?.title ?? "");
+    final orderCtrl = TextEditingController(
+      text: existingLevel?.order.toString() ?? "${_levels.length + 1}",
+    );
+    final pointsCtrl = TextEditingController(
+      text: existingLevel?.points.toString() ?? "10",
+    );
+    final passCtrl = TextEditingController(
+      text: existingLevel?.passingPercentage.toString() ?? "60",
+    );
+    // TIMER CONTROLLER ADDED
+    final timerCtrl = TextEditingController(
+      text: existingLevel?.timerSeconds.toString() ?? "30",
+    );
+
+    List<QuestionModel> tempQuestions = existingLevel != null
+        ? List.from(existingLevel.questions)
+        : [];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: 90.h,
+          padding: EdgeInsets.fromLTRB(
+            5.w,
+            2.h,
+            5.w,
+            MediaQuery.of(context).viewInsets.bottom + 2.h,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                width: 15.w,
+                height: 0.6.h,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                existingLevel == null ? "Add Level" : "Edit Level",
+                style: GoogleFonts.poppins(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: EdgeInsets.symmetric(vertical: 2.h),
+                  children: [
+                    _buildProLabel("Level Title"),
+                    _buildProTextField(
+                      controller: titleCtrl,
+                      hint: "e.g. Basics",
+                      icon: Icons.text_fields_rounded,
+                    ),
+                    SizedBox(height: 2.h),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildProLabel("Order"),
+                              _buildProTextField(
+                                controller: orderCtrl,
+                                hint: "1",
+                                icon: Icons.format_list_numbered,
+                                isNumber: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 3.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildProLabel("Points"),
+                              _buildProTextField(
+                                controller: pointsCtrl,
+                                hint: "10",
+                                icon: Icons.star_border,
+                                isNumber: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 2.h),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildProLabel("Pass %"),
+                              _buildProTextField(
+                                controller: passCtrl,
+                                hint: "60",
+                                icon: Icons.percent,
+                                isNumber: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: 3.w),
+                        // TIMER UI FIELD ADDED
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildProLabel("Timer (Sec)"),
+                              _buildProTextField(
+                                controller: timerCtrl,
+                                hint: "30",
+                                icon: Icons.timer_outlined,
+                                isNumber: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4.h),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Questions (${tempQuestions.length})",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16.sp,
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => _showQuestionEditor(
+                            context,
+                            (q) => setModalState(() => tempQuestions.add(q)),
+                          ),
+                          icon: const Icon(Icons.add_circle),
+                          label: const Text("Add New"),
+                        ),
+                      ],
+                    ),
+                    ...tempQuestions.asMap().entries.map(
+                      (e) => ListTile(
+                        title: Text(
+                          "Q${e.key + 1}: ${e.value.question}",
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () => _showQuestionEditor(
+                                context,
+                                (up) => setModalState(
+                                  () => tempQuestions[e.key] = up,
+                                ),
+                                existingQuestion: e.value,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => setModalState(
+                                () => tempQuestions.removeAt(e.key),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 2.h),
+              SizedBox(
+                width: double.infinity,
+                height: 6.5.h,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (titleCtrl.text.isEmpty || tempQuestions.isEmpty) return;
+                    final newLevel = QuizLevelModel(
+                      title: titleCtrl.text,
+                      order: int.tryParse(orderCtrl.text) ?? 1,
+                      passingPercentage: int.tryParse(passCtrl.text) ?? 60,
+                      points: int.tryParse(pointsCtrl.text) ?? 10,
+                      timerSeconds:
+                          int.tryParse(timerCtrl.text) ?? 30, // TIMER SAVED
+                      questions: tempQuestions,
+                    );
+                    setState(() {
+                      if (index != null)
+                        _levels[index] = newLevel;
+                      else
+                        _levels.add(newLevel);
+                      _levels.sort((a, b) => a.order.compareTo(b.order));
+                    });
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: _textDark),
+                  child: Text(
+                    index == null ? "ADD LEVEL" : "UPDATE LEVEL",
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showQuestionEditor(
+    BuildContext ctx,
+    Function(QuestionModel) onSave, {
+    QuestionModel? existingQuestion,
+  }) {
+    final qTextCtrl = TextEditingController(
+      text: existingQuestion?.question ?? "",
+    );
+    final opCtrls = List.generate(
+      4,
+      (i) => TextEditingController(
+        text: (existingQuestion?.options.length == 4)
+            ? existingQuestion!.options[i]
+            : "",
+      ),
+    );
+    int correctIdx = (existingQuestion != null)
+        ? existingQuestion.options.indexOf(existingQuestion.answer)
+        : 0;
+    File? newImg;
+    String? oldUrl = existingQuestion?.imageUrl;
+
+    showDialog(
+      context: ctx,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Container(
+            padding: EdgeInsets.all(5.w),
+            height: 80.h,
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  Text(
+                    existingQuestion == null ? "New Question" : "Edit Question",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  SizedBox(height: 2.h),
+                  _buildProTextField(
+                    controller: qTextCtrl,
+                    hint: "Question text",
+                    icon: Icons.help_outline,
+                  ),
+                  SizedBox(height: 2.h),
+                  _buildImageEditor(
+                    newImg,
+                    oldUrl,
+                    (f) => setState(() => newImg = f),
+                  ),
+                  ...List.generate(
+                    4,
+                    (i) => Row(
+                      children: [
+                        Radio(
+                          value: i,
+                          groupValue: correctIdx,
+                          onChanged: (v) => setState(() => correctIdx = v!),
+                          activeColor: _primary,
+                        ),
+                        Expanded(
+                          child: _buildProTextField(
+                            controller: opCtrls[i],
+                            hint: "Option ${i + 1}",
+                            icon: Icons.abc,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 3.h),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 6.h,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (qTextCtrl.text.isEmpty) return;
+                        onSave(
+                          QuestionModel(
+                            question: qTextCtrl.text,
+                            options: opCtrls.map((c) => c.text).toList(),
+                            answer: opCtrls[correctIdx].text,
+                            imageUrl: newImg?.path ?? oldUrl,
+                          ),
+                        );
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _primary,
+                      ),
+                      child: const Text(
+                        "SAVE",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- REUSABLE WIDGETS ---
+  Widget _buildProLevelCard(int i, QuizLevelModel level) {
     return Container(
       decoration: BoxDecoration(
         color: _surface,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5))],
         border: Border.all(color: _border),
       ),
       child: ListTile(
-        contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-        leading: Container(
-          width: 13.w, height: 13.w,
-          decoration: BoxDecoration(
-            color: _primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+        leading: CircleAvatar(
+          backgroundColor: _primary.withOpacity(0.1),
+          child: Text(
+            "${level.order}",
+            style: TextStyle(color: _primary, fontWeight: FontWeight.bold),
           ),
-          child: Center(child: Text("${level.order}", style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.w800, color: _primary))),
         ),
-        title: Text(level.title, style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textDark)),
-        subtitle: Padding(
-          padding: EdgeInsets.only(top: 0.5.h),
-          child: Text("${level.questions.length} Questions • ${level.points} Pts • Pass: ${level.passingPercentage}%", style: GoogleFonts.poppins(fontSize: 13.sp, color: _textGrey)),
+        title: Text(
+          level.title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
+        subtitle: Text(
+          "${level.questions.length} Qs • ${level.timerSeconds}s Timer",
+        ), // TIMER SHOWN ON CARD
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.edit_rounded, color: Colors.blue, size: 20.sp),
-              onPressed: () => _showLevelEditor(existingLevel: level, index: index),
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () => _showLevelEditor(existingLevel: level, index: i),
             ),
             IconButton(
-              icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20.sp),
-              onPressed: () => setState(() => _levels.removeAt(index)),
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => setState(() => _levels.removeAt(i)),
             ),
           ],
         ),
@@ -447,260 +738,71 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     );
   }
 
-  void _showLevelEditor({QuizLevelModel? existingLevel, int? index}) {
-    final titleCtrl = TextEditingController(text: existingLevel?.title ?? "");
-    final orderCtrl = TextEditingController(text: existingLevel?.order.toString() ?? "${_levels.length + 1}");
-    final pointsCtrl = TextEditingController(text: existingLevel?.points.toString() ?? "10");
-    final passCtrl = TextEditingController(text: existingLevel?.passingPercentage.toString() ?? "60");
-
-    List<QuestionModel> tempQuestions = existingLevel != null ? List.from(existingLevel.questions) : [];
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            height: 90.h,
-            padding: EdgeInsets.fromLTRB(5.w, 2.h, 5.w, MediaQuery.of(context).viewInsets.bottom + 2.h),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(25), topRight: Radius.circular(25)),
-            ),
-            child: Column(
-              children: [
-                Container(width: 15.w, height: 0.6.h, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(10))),
-                SizedBox(height: 2.h),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(existingLevel == null ? "Add Level" : "Edit Level", style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.w800, color: _textDark)),
-                    IconButton(onPressed: () => Navigator.pop(context), icon: Icon(Icons.close, color: _textGrey, size: 22.sp)),
-                  ],
-                ),
-                Divider(height: 1, color: _border),
-
-                Expanded(
-                  child: ListView(
-                    padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 2.h),
-                    children: [
-                      _buildProLabel("Level Title"),
-                      SizedBox(height: 1.h),
-                      _buildProTextField(controller: titleCtrl, hint: "e.g. Basics", icon: Icons.text_fields_rounded),
-                      SizedBox(height: 2.h),
-
-                      Row(
-                        children: [
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildProLabel("Order"), SizedBox(height: 1.h), _buildProTextField(controller: orderCtrl, hint: "1", icon: Icons.format_list_numbered_rounded, isNumber: true)])),
-                          SizedBox(width: 3.w),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildProLabel("Points"), SizedBox(height: 1.h), _buildProTextField(controller: pointsCtrl, hint: "10", icon: Icons.star_border_rounded, isNumber: true)])),
-                        ],
-                      ),
-                      SizedBox(height: 2.h),
-                      _buildProLabel("Passing Percentage"),
-                      SizedBox(height: 1.h),
-                      _buildProTextField(controller: passCtrl, hint: "60", icon: Icons.percent_rounded, isNumber: true),
-
-                      SizedBox(height: 4.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text("Questions (${tempQuestions.length})", style: GoogleFonts.poppins(fontSize: 16.sp, fontWeight: FontWeight.w700, color: _textDark)),
-                          TextButton.icon(
-                            onPressed: () {
-                              _showQuestionEditor(context, (newQ) {
-                                setModalState(() => tempQuestions.add(newQ));
-                              });
-                            },
-                            icon: Icon(Icons.add_circle, size: 20.sp),
-                            label: Text("Add", style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600)),
-                            style: TextButton.styleFrom(foregroundColor: _primary),
-                          )
-                        ],
-                      ),
-                      SizedBox(height: 1.h),
-
-                      if (tempQuestions.isEmpty)
-                        Container(
-                          padding: EdgeInsets.all(3.h),
-                          decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(12), border: Border.all(color: _border)),
-                          child: Center(child: Text("No questions added yet", style: GoogleFonts.poppins(fontSize: 14.sp, color: _textGrey))),
-                        )
-                      else
-                        ...tempQuestions.asMap().entries.map((e) => Container(
-                          margin: EdgeInsets.only(bottom: 1.5.h),
-                          decoration: BoxDecoration(color: _surface, border: Border.all(color: _border), borderRadius: BorderRadius.circular(12)),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.5.h),
-                            title: Text("Q${e.key+1}: ${e.value.question}", maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.poppins(fontSize: 14.sp, fontWeight: FontWeight.w600)),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.edit, color: _primary, size: 20.sp),
-                                  onPressed: () {
-                                    _showQuestionEditor(
-                                        context,
-                                            (updatedQ) => setModalState(() => tempQuestions[e.key] = updatedQ),
-                                        existingQuestion: e.value
-                                    );
-                                  },
-                                ),
-                                IconButton(
-                                  icon: Icon(Icons.delete_outline, color: Colors.red.shade300, size: 20.sp),
-                                  onPressed: () => setModalState(() => tempQuestions.removeAt(e.key)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )),
-                      SizedBox(height: 10.h),
-                    ],
-                  ),
-                ),
-
-                Container(
-                  padding: EdgeInsets.all(5.w),
-                  decoration: BoxDecoration(color: _surface, border: Border(top: BorderSide(color: _border))),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 7.h,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        if (titleCtrl.text.isEmpty || tempQuestions.isEmpty) return;
-                        final newLevel = QuizLevelModel(
-                          title: titleCtrl.text,
-                          order: int.tryParse(orderCtrl.text) ?? 1,
-                          passingPercentage: int.tryParse(passCtrl.text) ?? 60,
-                          points: int.tryParse(pointsCtrl.text) ?? 10,
-                          questions: tempQuestions,
-                        );
-                        setState(() {
-                          if (index != null) {
-                            _levels[index] = newLevel;
-                          } else {
-                            _levels.add(newLevel);
-                          }
-                          _levels.sort((a, b) => a.order.compareTo(b.order));
-                        });
-                        Navigator.pop(context);
-                      },
-                      style: ElevatedButton.styleFrom(backgroundColor: _textDark, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                      child: Text(index == null ? "ADD LEVEL" : "UPDATE LEVEL", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                )
-              ],
-            ),
-          );
-        },
+  Widget _buildImageEditor(File? newF, String? url, Function(File) onPick) {
+    return InkWell(
+      onTap: () async {
+        final img = await ImagePicker().pickImage(source: ImageSource.gallery);
+        if (img != null) onPick(File(img.path));
+      },
+      child: Container(
+        height: 12.h,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: _bg,
+          borderRadius: BorderRadius.circular(12),
+          image: newF != null
+              ? DecorationImage(image: FileImage(newF), fit: BoxFit.cover)
+              : (url != null
+                    ? DecorationImage(
+                        image: NetworkImage(url),
+                        fit: BoxFit.cover,
+                      )
+                    : null),
+        ),
+        child: (newF == null && url == null)
+            ? const Center(child: Icon(Icons.camera_alt))
+            : null,
       ),
     );
   }
 
-  void _showQuestionEditor(BuildContext ctx, Function(QuestionModel) onSave, {QuestionModel? existingQuestion}) {
-    final qTextController = TextEditingController(text: existingQuestion?.question ?? "");
-    final op1 = TextEditingController(text: existingQuestion?.options.isNotEmpty == true ? existingQuestion!.options[0] : "");
-    final op2 = TextEditingController(text: existingQuestion?.options.length == 4 ? existingQuestion!.options[1] : "");
-    final op3 = TextEditingController(text: existingQuestion?.options.length == 4 ? existingQuestion!.options[2] : "");
-    final op4 = TextEditingController(text: existingQuestion?.options.length == 4 ? existingQuestion!.options[3] : "");
-
-    File? newImageFile;
-    String? existingImageUrl = existingQuestion?.imageUrl;
-
-    int correctIdx = 0;
-    if (existingQuestion != null) {
-      int foundIdx = existingQuestion.options.indexOf(existingQuestion.answer);
-      if (foundIdx != -1) correctIdx = foundIdx;
-    }
-
-    showDialog(context: ctx, builder: (context) => StatefulBuilder(
-      builder: (context, setState) => Dialog(
-        backgroundColor: _surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: EdgeInsets.all(5.w),
-          height: 80.h,
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                Text(existingQuestion == null ? "New Question" : "Edit Question", style: GoogleFonts.poppins(fontSize: 18.sp, fontWeight: FontWeight.bold, color: _textDark)),
-                SizedBox(height: 3.h),
-
-                _buildProTextField(controller: qTextController, hint: "Question Text", icon: Icons.help_outline),
-                SizedBox(height: 2.h),
-
-                InkWell(
-                  onTap: () async {
-                    final ImagePicker picker = ImagePicker();
-                    final XFile? img = await picker.pickImage(source: ImageSource.gallery);
-                    if(img != null) setState(() { newImageFile = File(img.path); existingImageUrl = null; });
-                  },
-                  child: Container(
-                    height: 12.h,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                        color: _bg,
-                        border: Border.all(color: _border),
-                        borderRadius: BorderRadius.circular(12),
-                        image: newImageFile != null
-                            ? DecorationImage(image: FileImage(newImageFile!), fit: BoxFit.cover)
-                            : (existingImageUrl != null ? DecorationImage(image: NetworkImage(existingImageUrl!), fit: BoxFit.cover) : null)
-                    ),
-                    child: (newImageFile == null && existingImageUrl == null)
-                        ? Center(child: Text("Tap to add Image (Optional)", style: GoogleFonts.poppins(fontSize: 14.sp, color: _primary)))
-                        : Align(
-                      alignment: Alignment.topRight,
-                      child: IconButton(
-                        icon: Icon(Icons.cancel, color: Colors.red, size: 20.sp),
-                        onPressed: () => setState(() { newImageFile = null; existingImageUrl = null; }),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 2.h),
-
-                ...List.generate(4, (i) => Padding(
-                  padding: EdgeInsets.only(bottom: 1.h),
-                  child: Row(
-                    children: [
-                      Radio(value: i, groupValue: correctIdx, onChanged: (v) => setState(() => correctIdx = v!), activeColor: _primary),
-                      Expanded(child: TextField(
-                          controller: [op1, op2, op3, op4][i],
-                          style: TextStyle(fontSize: 15.sp),
-                          decoration: InputDecoration(hintText: "Option ${i+1}", filled: true, fillColor: _bg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)))
-                      )),
-                    ],
-                  ),
-                )),
-
-                SizedBox(height: 3.h),
-                SizedBox(
-                  width: double.infinity,
-                  height: 6.5.h,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (qTextController.text.isNotEmpty) {
-                        onSave(QuestionModel(
-                          question: qTextController.text,
-                          options: [op1.text, op2.text, op3.text, op4.text],
-                          answer: [op1.text, op2.text, op3.text, op4.text][correctIdx],
-                          imageUrl: newImageFile?.path ?? existingImageUrl,
-                        ));
-                        Navigator.pop(context);
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(backgroundColor: _primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    child: Text("SAVE QUESTION", style: GoogleFonts.poppins(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold)),
-                  ),
-                )
-              ],
-            ),
-          ),
+  Widget _buildProTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isNumber = false,
+  }) => Container(
+    margin: EdgeInsets.only(top: 1.h),
+    child: TextField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon),
+        filled: true,
+        fillColor: _bg,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _border),
         ),
       ),
-    ));
-  }
+    ),
+  );
+  Widget _buildProLabel(String t) => Text(
+    t,
+    style: GoogleFonts.poppins(
+      fontSize: 14.sp,
+      fontWeight: FontWeight.w700,
+      color: _textGrey,
+    ),
+  );
+  Widget _buildSensitiveSwitch() => SwitchListTile(
+    title: const Text("Sensitive Content", style: TextStyle(color: Colors.red)),
+    value: _isSensitive,
+    onChanged: (v) => setState(() => _isSensitive = v),
+  );
+  Widget _buildEmptyState() => Container(
+    padding: EdgeInsets.all(5.w),
+    child: const Center(child: Text("No levels added yet.")),
+  );
 }

@@ -6,59 +6,104 @@ import '../../models/quiz_topic_model.dart';
 import '../../repositories/teacher/teacher_quiz_repoistory.dart';
 import '../../services/cloudinary_service.dart';
 
-
 class TeacherQuizViewModel extends StateNotifier<TeacherQuizState> {
   final TeacherQuizRepository _repository;
   final CloudinaryService _cloudinaryService;
   StreamSubscription? _quizSubscription;
 
-  TeacherQuizViewModel(this._repository, this._cloudinaryService) : super(TeacherQuizState());
+  TeacherQuizViewModel(this._repository, this._cloudinaryService)
+    : super(TeacherQuizState());
 
-  // --- LOAD QUIZZES ---
-  void loadQuizzes(String category) {
-    _quizSubscription?.cancel();
-    state = state.copyWith(isLoading: true);
+  // --- DRAFT MANAGEMENT ---
+  void startDraft(QuizTopicModel? existingTopic) {
+    state = state.copyWith(draftTopic: existingTopic ?? QuizTopicModel.empty());
+  }
 
-    _quizSubscription = _repository.watchQuizzes(category).listen(
-            (data) {
-          state = state.copyWith(isLoading: false, quizzes: data);
-        },
-        onError: (e) {
-          state = state.copyWith(isLoading: false, errorMessage: e.toString());
-        }
+  void updateDraftQuestion(
+    int levelIndex,
+    int questionIndex,
+    QuestionModel updatedQuestion,
+  ) {
+    if (state.draftTopic == null) return;
+    final levels = List<QuizLevelModel>.from(state.draftTopic!.levels);
+    final questions = List<QuestionModel>.from(levels[levelIndex].questions);
+    questions[questionIndex] = updatedQuestion;
+    levels[levelIndex] = levels[levelIndex].copyWith(questions: questions);
+    state = state.copyWith(
+      draftTopic: state.draftTopic!.copyWith(levels: levels),
     );
   }
 
-  // --- ADD QUIZ ---
+  // --- LOAD ---
+  void loadQuizzes(String category) {
+    _quizSubscription?.cancel();
+    state = state.copyWith(isLoading: true);
+    _quizSubscription = _repository
+        .watchQuizzes(category)
+        .listen(
+          (data) {
+            state = state.copyWith(isLoading: false, quizzes: data);
+          },
+          onError: (e) {
+            state = state.copyWith(
+              isLoading: false,
+              errorMessage: e.toString(),
+            );
+          },
+        );
+  }
+
+  // --- DELETE (FIXED SIGNATURE) ---
+  /// This now accepts String ID to match your Dashboard UI
+  Future<void> deleteQuiz(String id, String category) async {
+    try {
+      // 1. Find the full data in local state to get image URLs before deleting
+      final topicToDelete = state.quizzes.firstWhere((q) => q.id == id);
+
+      // 2. Cleanup Cloudinary
+      for (var level in topicToDelete.levels) {
+        for (var q in level.questions) {
+          if (q.imageUrl != null && q.imageUrl!.startsWith('http')) {
+            await _cloudinaryService.deleteImage(q.imageUrl);
+          }
+        }
+      }
+
+      // 3. Delete from Firebase
+      await _repository.deleteQuiz(id, category);
+    } catch (e) {
+      state = state.copyWith(errorMessage: "Delete failed: $e");
+    }
+  }
+
+  // --- ADD / UPDATE ---
   Future<void> addQuiz(QuizTopicModel topic) async {
     state = state.copyWith(isLoading: true);
     try {
       final processedTopic = await _processImages(topic);
       await _repository.addQuiz(processedTopic);
-      state = state.copyWith(isLoading: false, isSuccess: true);
+      state = state.copyWith(
+        isLoading: false,
+        isSuccess: true,
+        draftTopic: null,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
 
-  // --- UPDATE QUIZ ---
   Future<void> updateQuiz(QuizTopicModel topic) async {
     state = state.copyWith(isLoading: true);
     try {
       final processedTopic = await _processImages(topic);
       await _repository.updateQuiz(processedTopic);
-      state = state.copyWith(isLoading: false, isSuccess: true);
+      state = state.copyWith(
+        isLoading: false,
+        isSuccess: true,
+        draftTopic: null,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
-    }
-  }
-
-  // --- DELETE QUIZ ---
-  Future<void> deleteQuiz(String id, String category) async {
-    try {
-      await _repository.deleteQuiz(id, category);
-    } catch (e) {
-      state = state.copyWith(errorMessage: "Delete failed: $e");
     }
   }
 
@@ -66,31 +111,22 @@ class TeacherQuizViewModel extends StateNotifier<TeacherQuizState> {
     state = state.copyWith(isSuccess: false);
   }
 
-  // --- HELPER: UPLOAD IMAGES ---
   Future<QuizTopicModel> _processImages(QuizTopicModel topic) async {
     List<QuizLevelModel> updatedLevels = [];
-
     for (var level in topic.levels) {
       List<QuestionModel> updatedQuestions = [];
-
       for (var q in level.questions) {
         String? imgUrl = q.imageUrl;
-
-        // If it's a local file path, upload it
         if (imgUrl != null && !imgUrl.startsWith('http')) {
           final file = File(imgUrl);
           if (file.existsSync()) {
-            // Use specific TEACHER PRESET: eco_teacher_quiz
             imgUrl = await _cloudinaryService.uploadTeacherQuizImage(file);
-          } else {
-            imgUrl = null;
           }
         }
         updatedQuestions.add(q.copyWith(imageUrl: imgUrl));
       }
       updatedLevels.add(level.copyWith(questions: updatedQuestions));
     }
-
     return topic.copyWith(levels: updatedLevels);
   }
 
