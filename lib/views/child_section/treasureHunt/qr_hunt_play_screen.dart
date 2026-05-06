@@ -4,14 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 import '../../../models/qr_hunt_read_model.dart';
 import '../../../viewmodels/child_view_model/qr_hunt/child_qr_hunt_provider.dart';
 
 class QrHuntPlayScreen extends ConsumerStatefulWidget {
-  // We need the static hunt data to know what clues to show
   final QrHuntReadModel hunt;
-
   const QrHuntPlayScreen({super.key, required this.hunt});
 
   @override
@@ -19,54 +18,128 @@ class QrHuntPlayScreen extends ConsumerStatefulWidget {
 }
 
 class _QrHuntPlayScreenState extends ConsumerState<QrHuntPlayScreen> {
-  // --- COLORS ---
-  final Color _bgDark = const Color(0xFF0F2027); // Deep background
+  final Color _bgDark = const Color(0xFF0F2027);
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+
+  // Logic: Connects UI to ViewModel for Bilingual Audio
+  Future<void> _handleSpeech(String text, String lang) async {
+    final notifier = ref.read(childQrHuntViewModelProvider.notifier);
+
+    // 1. Get audio from ViewModel
+    // (Returns bytes for Gemini, or null for Free Service playback)
+    final audioBytes = await notifier.getClueAudio(text, lang);
+
+    // 2. Only play if we received bytes (Gemini mode)
+    // Removed the 'else' block that showed the "unavailable" message
+    if (audioBytes != null) {
+      await _audioPlayer.play(BytesSource(audioBytes));
+    }
+  }
+
+  void _showLanguageSelector(String clueText) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: EdgeInsets.all(6.w),
+        decoration: const BoxDecoration(
+          color: Color(0xFF1B2559),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 12.w,
+              height: 5,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            SizedBox(height: 3.h),
+            Text(
+              "Listen to Clue",
+              style: GoogleFonts.poppins(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 3.h),
+            _buildLangOption("English", Icons.language, Colors.blue, clueText),
+            SizedBox(height: 2.h),
+            _buildLangOption("Urdu", Icons.translate, Colors.green, clueText),
+            SizedBox(height: 4.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLangOption(
+    String label,
+    IconData icon,
+    Color color,
+    String text,
+  ) {
+    return ListTile(
+      onTap: () {
+        Navigator.pop(context);
+        _handleSpeech(text, label);
+      },
+      leading: Container(
+        padding: EdgeInsets.all(2.w),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: color),
+      ),
+      title: Text(
+        label,
+        style: GoogleFonts.poppins(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      trailing: const Icon(Icons.play_arrow_rounded, color: Colors.white24),
+      tileColor: Colors.white.withOpacity(0.05),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Watch Real-Time Progress
     final state = ref.watch(childQrHuntViewModelProvider);
-
-    // Find progress for THIS specific hunt
-    final QrHuntProgressModel? progress = state.progressMap[widget.hunt.id];
-
-    // Default to 0 if not started yet
+    final progress = state.progressMap[widget.hunt.id];
     final int currentStep = progress?.currentClueIndex ?? 0;
     final bool isComplete = progress?.isCompleted ?? false;
 
     return PopScope(
-       canPop: false,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if(!didPop){
-          context.goNamed('treasureHunt');
-        }
+        if (!didPop) context.goNamed('treasureHunt');
       },
       child: Scaffold(
         backgroundColor: _bgDark,
         body: Stack(
           children: [
-            // Background Gradient
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF0F2027),
-                    const Color(0xFF203A43),
-                    const Color(0xFF2C5364),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-            ),
-
+            _buildBackground(),
             SafeArea(
               child: Column(
                 children: [
-                  // --- HEADER ---
-                  _buildHeader(isComplete, currentStep, widget.hunt.clues.length),
-
-                  // --- CLUES LIST ---
+                  _buildHeader(
+                    isComplete,
+                    currentStep,
+                    widget.hunt.clues.length,
+                  ),
                   Expanded(
                     child: ListView.builder(
                       padding: EdgeInsets.symmetric(
@@ -75,23 +148,19 @@ class _QrHuntPlayScreenState extends ConsumerState<QrHuntPlayScreen> {
                       ),
                       itemCount: widget.hunt.clues.length,
                       itemBuilder: (context, index) {
-                        // Determine State of this specific clue
                         bool isFound = index < currentStep;
                         bool isActive = index == currentStep && !isComplete;
-                        bool isLocked = index > currentStep;
-
                         return _buildClueTile(
-                          index: index,
-                          clueText: widget.hunt.clues[index],
-                          isFound: isFound,
-                          isActive: isActive,
-                          isLocked: isLocked,
+                          state.isSpeaking,
+                          index,
+                          widget.hunt.clues[index],
+                          isFound,
+                          isActive,
+                          index > currentStep,
                         );
                       },
                     ),
                   ),
-
-                  // --- ACTION BUTTON (Only if active) ---
                   if (!isComplete)
                     Padding(
                       padding: EdgeInsets.all(5.w),
@@ -106,16 +175,24 @@ class _QrHuntPlayScreenState extends ConsumerState<QrHuntPlayScreen> {
     );
   }
 
-  // --- WIDGETS ---
+  Widget _buildBackground() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    );
+  }
 
   Widget _buildHeader(bool isComplete, int current, int total) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
-        ),
+        color: Colors.white.withOpacity(0.05),
+        border: const Border(bottom: BorderSide(color: Colors.white10)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -123,16 +200,6 @@ class _QrHuntPlayScreenState extends ConsumerState<QrHuntPlayScreen> {
           IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
             onPressed: () => context.pop(),
-          ),
-          IconButton(
-            icon: Icon(Icons.report_problem_rounded, color: Colors.white54),
-            onPressed: () {
-              context.pushNamed('childReportIssueScreen', extra: {
-                'id': widget.hunt.id,
-                'title': widget.hunt.title,
-                'type': 'QR Hunt'
-              });
-            },
           ),
           Column(
             children: [
@@ -155,165 +222,167 @@ class _QrHuntPlayScreenState extends ConsumerState<QrHuntPlayScreen> {
               ),
             ],
           ),
-          // Progress Circle
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              CircularProgressIndicator(
-                value: total == 0 ? 0 : current / total,
-                backgroundColor: Colors.white10,
-                color: isComplete ? Colors.green : Colors.orange,
-              ),
-              Text(
-                "${((current / total) * 100).toInt()}%",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
+          _buildProgressCircle(current, total, isComplete),
         ],
       ),
     );
   }
 
-  Widget _buildClueTile({
-    required int index,
-    required String clueText,
-    required bool isFound,
-    required bool isActive,
-    required bool isLocked,
-  }) {
-    Color cardColor = Colors.white.withValues(alpha: 0.05);
-    Color borderColor = Colors.transparent;
-    IconData statusIcon = Icons.lock;
-    Color iconColor = Colors.grey;
-
-    if (isFound) {
-      cardColor = Colors.green.withValues(alpha: 0.1);
-      borderColor = Colors.green.withValues(alpha: 0.3);
-      statusIcon = Icons.check_circle;
-      iconColor = Colors.green;
-    } else if (isActive) {
-      cardColor = Colors.deepPurple.withValues(alpha: 0.2);
-      borderColor = Colors.amber; // Highlight active
-      statusIcon = Icons.location_on;
-      iconColor = Colors.amber;
-    } else if (isLocked) {
-// Blur text for locked clues
-    }
-
-    return GestureDetector(
-      onTap: () {
-        if (isActive) {
-          // If clicked active card, go to scanner
-          _goToScanner();
-        } else if (isLocked) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Solve previous clues first!"),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      },
-      child: Container(
-        margin: EdgeInsets.only(bottom: 2.h),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor, width: isActive ? 1.5 : 0.5),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: Colors.amber.withValues(alpha: 0.2),
-                    blurRadius: 15,
-                  ),
-                ]
-              : [],
+  Widget _buildProgressCircle(int current, int total, bool isComplete) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        CircularProgressIndicator(
+          value: (total == 0) ? 0 : current / total,
+          backgroundColor: Colors.white10,
+          color: isComplete ? Colors.green : Colors.orange,
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Padding(
-              padding: EdgeInsets.all(4.w),
-              child: Row(
-                children: [
-                  // Step Number
-                  Container(
-                    width: 12.w,
-                    height: 12.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        "${index + 1}",
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16.sp,
-                        ),
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 4.w),
+        Text(
+          "${((current / (total == 0 ? 1 : total)) * 100).toInt()}%",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
 
-                  // Clue Text
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          isFound
-                              ? "Solved"
-                              : (isActive ? "Current Clue" : "Locked"),
-                          style: GoogleFonts.poppins(
-                            fontSize: 10.sp,
-                            color: iconColor,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.0,
-                          ),
-                        ),
-                        SizedBox(height: 0.5.h),
-                        isLocked
-                            ? ImageFiltered(
-                                imageFilter: ImageFilter.blur(
-                                  sigmaX: 4,
-                                  sigmaY: 4,
-                                ),
-                                child: Text(
-                                  "Hidden clue text...",
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white54,
-                                    fontSize: 14.sp,
-                                  ),
-                                ),
-                              )
-                            : Text(
-                                clueText,
-                                style: GoogleFonts.poppins(
-                                  color: Colors.white,
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                      ],
-                    ),
-                  ),
+  Widget _buildClueTile(
+    bool isGlobalSpeaking,
+    int index,
+    String clueText,
+    bool isFound,
+    bool isActive,
+    bool isLocked,
+  ) {
+    Color cardColor = isFound
+        ? Colors.green.withOpacity(0.1)
+        : (isActive
+              ? Colors.deepPurple.withOpacity(0.2)
+              : Colors.white.withOpacity(0.05));
+    Color borderColor = isFound
+        ? Colors.green.withOpacity(0.3)
+        : (isActive ? Colors.amber : Colors.transparent);
 
-                  // Status Icon
-                  Icon(statusIcon, color: iconColor, size: 20.sp),
-                ],
+    return Container(
+      margin: EdgeInsets.only(bottom: 2.h),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor, width: isActive ? 1.5 : 0.5),
+        boxShadow: isActive
+            ? [BoxShadow(color: Colors.amber.withOpacity(0.1), blurRadius: 15)]
+            : [],
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(4.w),
+        child: Row(
+          children: [
+            _buildStepNumber(index),
+            SizedBox(width: 4.w),
+            Expanded(
+              child: _buildClueContent(
+                clueText,
+                isFound,
+                isActive,
+                isLocked,
+                isFound
+                    ? Colors.green
+                    : (isActive ? Colors.amber : Colors.grey),
               ),
             ),
+            if (isActive)
+              isGlobalSpeaking
+                  ? SizedBox(
+                      width: 5.w,
+                      height: 5.w,
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.amber,
+                      ),
+                    )
+                  : IconButton(
+                      icon: const Icon(
+                        Icons.volume_up_rounded,
+                        color: Colors.amber,
+                      ),
+                      onPressed: () => _showLanguageSelector(clueText),
+                    )
+            else
+              Icon(
+                isFound ? Icons.check_circle : Icons.lock,
+                color: isFound ? Colors.green : Colors.grey,
+                size: 20.sp,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepNumber(int index) {
+    return Container(
+      width: 12.w,
+      height: 12.w,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          "${index + 1}",
+          style: GoogleFonts.poppins(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16.sp,
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildClueContent(
+    String text,
+    bool isFound,
+    bool isActive,
+    bool isLocked,
+    Color statusColor,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isFound ? "Solved" : (isActive ? "Current Clue" : "Locked"),
+          style: GoogleFonts.poppins(
+            fontSize: 10.sp,
+            color: statusColor,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.0,
+          ),
+        ),
+        SizedBox(height: 0.5.h),
+        isLocked
+            ? ImageFiltered(
+                imageFilter: ImageFilter.blur(sigmaX: 4, sigmaY: 4),
+                child: Text(
+                  "Hidden clue text...",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white54,
+                    fontSize: 14.sp,
+                  ),
+                ),
+              )
+            : Text(
+                text,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+      ],
     );
   }
 
@@ -322,7 +391,8 @@ class _QrHuntPlayScreenState extends ConsumerState<QrHuntPlayScreen> {
       width: double.infinity,
       height: 7.h,
       child: ElevatedButton.icon(
-        onPressed: _goToScanner,
+        onPressed: () =>
+            context.pushNamed('qrScannerScreen', extra: widget.hunt),
         icon: const Icon(Icons.qr_code_scanner, color: Colors.black),
         label: Text(
           "Scan to Solve",
@@ -333,20 +403,13 @@ class _QrHuntPlayScreenState extends ConsumerState<QrHuntPlayScreen> {
           ),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF00E676), // Neon Green
+          backgroundColor: const Color(0xFF00E676),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 10,
-          shadowColor: Colors.greenAccent.withValues(alpha: 0.5),
         ),
       ),
     );
-  }
-
-  void _goToScanner() {
-    // Navigate to QR Scanner Screen
-    // Pass the Hunt Model so the scanner knows what to validate against
-    context.pushNamed('qrScannerScreen', extra: widget.hunt);
   }
 }

@@ -6,6 +6,7 @@ class ChildQrHuntState {
   final Map<String, QrHuntProgressModel> progressMap; // Key: huntId
   final String? errorMessage;
   final bool scanSuccess; // To trigger UI feedback
+  final bool isSpeaking;
 
   ChildQrHuntState({
     this.isLoading = false,
@@ -13,6 +14,7 @@ class ChildQrHuntState {
     this.progressMap = const {},
     this.errorMessage,
     this.scanSuccess = false,
+    this.isSpeaking = false,
   });
 
   ChildQrHuntState copyWith({
@@ -21,6 +23,7 @@ class ChildQrHuntState {
     Map<String, QrHuntProgressModel>? progressMap,
     String? errorMessage,
     bool? scanSuccess,
+    bool? isSpeaking,
   }) {
     return ChildQrHuntState(
       isLoading: isLoading ?? this.isLoading,
@@ -28,6 +31,7 @@ class ChildQrHuntState {
       progressMap: progressMap ?? this.progressMap,
       errorMessage: errorMessage,
       scanSuccess: scanSuccess ?? false,
-    );
+      isSpeaking: isSpeaking ?? this.isSpeaking,
+      );
   }
 }

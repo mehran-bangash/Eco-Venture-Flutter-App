@@ -61,7 +61,7 @@ class AppRouter {
     // This logic only runs for children.
     // It checks if a 'sessionInvalid' flag exists in your AuthState.
     final bool isChild = role?.toLowerCase() == 'child';
-    final bool isSessionInvalid = authState.isSessionInvalid ?? false;
+    final bool isSessionInvalid = authState.isSessionInvalid;
 
     if (isChild && userId != null && isSessionInvalid) {
       // If session is invalid, force them back to landing/login

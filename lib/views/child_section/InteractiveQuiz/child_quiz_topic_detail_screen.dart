@@ -87,15 +87,18 @@ class _ChildQuizTopicDetailScreenState
               ),
             ),
             Positioned(
-              top: -5.h, right: -15.w,
+              top: -5.h,
+              right: -15.w,
               child: _buildGlowBlob(Colors.cyan.withOpacity(0.12), 70.w, t, 0),
             ),
             Positioned(
-              bottom: 5.h, left: -20.w,
+              bottom: 5.h,
+              left: -20.w,
               child: _buildGlowBlob(Colors.pink.withOpacity(0.08), 80.w, t, 2),
             ),
             Positioned(
-              top: 30.h, left: 10.w,
+              top: 30.h,
+              left: 10.w,
               child: _buildGlowBlob(Colors.amber.withOpacity(0.08), 50.w, t, 4),
             ),
           ],
@@ -106,8 +109,10 @@ class _ChildQuizTopicDetailScreenState
 
   Widget _buildGlowBlob(Color color, double size, double t, double phase) {
     return Transform.translate(
-      offset: Offset(30 * math.sin(t * 2 * math.pi + phase),
-          30 * math.cos(t * 2 * math.pi + phase)),
+      offset: Offset(
+        30 * math.sin(t * 2 * math.pi + phase),
+        30 * math.cos(t * 2 * math.pi + phase),
+      ),
       child: Container(
         width: size,
         height: size,
@@ -128,7 +133,7 @@ class _ChildQuizTopicDetailScreenState
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if(!didPop) context.goNamed('interactiveQuiz');
+        if (!didPop) context.goNamed('interactiveQuiz');
       },
       child: Scaffold(
         backgroundColor: _bgSurface,
@@ -158,19 +163,30 @@ class _ChildQuizTopicDetailScreenState
                             child: GridView.builder(
                               physics: const BouncingScrollPhysics(),
                               padding: EdgeInsets.only(bottom: 5.h),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 4.w,
-                                mainAxisSpacing: 2.5.h,
-                                childAspectRatio: 0.82,
-                              ),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 4.w,
+                                    mainAxisSpacing: 2.5.h,
+                                    childAspectRatio: 0.82,
+                                  ),
                               itemCount: widget.topic.levels.length,
                               itemBuilder: (context, index) {
                                 final level = widget.topic.levels[index];
-                                bool isLocked = level.order > 1 &&
-                                    (progressMap["${topicId}_${level.order - 1}"]?.isPassed != true);
+                                bool isLocked =
+                                    level.order > 1 &&
+                                    (progressMap["${topicId}_${level.order - 1}"]
+                                            ?.isPassed !=
+                                        true);
 
-                                return _buildProLevelCard(level, isLocked, widget.topic, index);
+                                // Pass progressMap as the 5th argument
+                                return _buildProLevelCard(
+                                  level,
+                                  isLocked,
+                                  widget.topic,
+                                  index,
+                                  progressMap,
+                                );
                               },
                             ),
                           ),
@@ -200,9 +216,18 @@ class _ChildQuizTopicDetailScreenState
                 color: Colors.white,
                 shape: BoxShape.circle,
                 border: Border.all(color: _slate200),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10)],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                  ),
+                ],
               ),
-              child: Icon(Icons.arrow_back_ios_new, color: _primaryDark, size: 17.sp),
+              child: Icon(
+                Icons.arrow_back_ios_new,
+                color: _primaryDark,
+                size: 17.sp,
+              ),
             ),
           ),
           Expanded(
@@ -228,7 +253,11 @@ class _ChildQuizTopicDetailScreenState
                 shape: BoxShape.circle,
                 border: Border.all(color: _slate200),
               ),
-              child: Icon(Icons.refresh_rounded, color: _primaryDark, size: 18.sp),
+              child: Icon(
+                Icons.refresh_rounded,
+                color: _primaryDark,
+                size: 18.sp,
+              ),
             ),
           ),
         ],
@@ -236,52 +265,74 @@ class _ChildQuizTopicDetailScreenState
     );
   }
 
-  Widget _buildProLevelCard(QuizLevelModel level, bool isLocked, QuizTopicModel topic, int index) {
+  Widget _buildProLevelCard(
+    QuizLevelModel level,
+    bool isLocked,
+    QuizTopicModel topic,
+    int index,
+    Map<String, dynamic> progressMap,
+  ) {
     final accentColor = _accentColors[index % _accentColors.length];
+    final String key = "${topic.id}_${level.order}";
+    final bool isPassed =
+        progressMap[key]?.isPassed ?? false; // Check if already passed
 
     return GestureDetector(
       onTap: () {
         if (isLocked) {
           _showLockedMessage(level.order - 1);
         } else {
-          context.goNamed('quizQuestionScreen', extra: QuizQuestionArgs(
-            level: level,
-            topicId: topic.id!,
-            topicName: widget.topic.topicName,
-            category: topic.category,
-          ));
+          context.goNamed(
+            'quizQuestionScreen',
+            extra: QuizQuestionArgs(
+              level: level,
+              topicId: topic.id!,
+              topicName: widget.topic.topicName,
+              category: topic.category,
+            ),
+          );
         }
       },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: isLocked ? _slate200 : accentColor.withOpacity(0.3), width: 2),
+          border: Border.all(
+            color: isPassed
+                ? Colors.green.shade300
+                : (isLocked ? _slate200 : accentColor.withOpacity(0.3)),
+            width: 2,
+          ),
           boxShadow: [
-            // HIGH ELEVATION: Deeper professional shadows
             BoxShadow(
-              color: isLocked ? Colors.black.withOpacity(0.03) : accentColor.withOpacity(0.15),
+              color: isPassed
+                  ? Colors.green.withOpacity(0.1)
+                  : (isLocked
+                        ? Colors.black.withOpacity(0.03)
+                        : accentColor.withOpacity(0.15)),
               blurRadius: 30,
               spreadRadius: 2,
               offset: const Offset(0, 15),
-            ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Stack(
           children: [
-            // Floating Decorative Icon
-            Positioned(
-              top: -5, right: -5,
-              child: Opacity(
-                opacity: 0.05,
-                child: Icon(Icons.auto_awesome_rounded, color: isLocked ? _subText : accentColor, size: 30.sp),
+            // SUCCESS RIBBON (Top Right)
+            if (isPassed)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  padding: EdgeInsets.all(1.w),
+                  decoration: const BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.check, color: Colors.white, size: 14.sp),
+                ),
               ),
-            ),
+
             Padding(
               padding: EdgeInsets.all(4.5.w),
               child: Column(
@@ -292,22 +343,42 @@ class _ChildQuizTopicDetailScreenState
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 2.5.w, vertical: 0.4.h),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 2.5.w,
+                          vertical: 0.4.h,
+                        ),
                         decoration: BoxDecoration(
-                          color: isLocked ? _slate200 : accentColor.withOpacity(0.12),
+                          color: isPassed
+                              ? Colors.green.withOpacity(0.1)
+                              : (isLocked
+                                    ? _slate200
+                                    : accentColor.withOpacity(0.12)),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           "LVL ${level.order}",
                           style: GoogleFonts.poppins(
-                            color: isLocked ? _subText : accentColor,
+                            color: isPassed
+                                ? Colors.green
+                                : (isLocked ? _subText : accentColor),
                             fontWeight: FontWeight.w800,
                             fontSize: 11.sp,
                           ),
                         ),
                       ),
-                      Icon(isLocked ? Icons.lock_rounded : Icons.lock_open_rounded,
-                          color: isLocked ? _subText.withOpacity(0.4) : accentColor, size: 16.sp),
+                      Icon(
+                        isLocked
+                            ? Icons.lock_rounded
+                            : (isPassed
+                                  ? Icons.stars_rounded
+                                  : Icons.lock_open_rounded),
+                        color: isPassed
+                            ? Colors.amber
+                            : (isLocked
+                                  ? _subText.withOpacity(0.4)
+                                  : accentColor),
+                        size: 16.sp,
+                      ),
                     ],
                   ),
                   SizedBox(height: 1.5.h),
@@ -318,11 +389,21 @@ class _ChildQuizTopicDetailScreenState
                     height: 14.w,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isLocked ? _bgSurface : accentColor.withOpacity(0.1),
+                      color: isPassed
+                          ? Colors.green.withOpacity(0.1)
+                          : (isLocked
+                                ? _bgSurface
+                                : accentColor.withOpacity(0.1)),
                     ),
                     child: Icon(
-                      isLocked ? Icons.lock_outline_rounded : Icons.play_arrow_rounded,
-                      color: isLocked ? _subText : accentColor,
+                      isLocked
+                          ? Icons.lock_outline_rounded
+                          : (isPassed
+                                ? Icons.replay_rounded
+                                : Icons.play_arrow_rounded),
+                      color: isPassed
+                          ? Colors.green
+                          : (isLocked ? _subText : accentColor),
                       size: 22.sp,
                     ),
                   ),
@@ -333,15 +414,16 @@ class _ChildQuizTopicDetailScreenState
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(vertical: 1.h),
                     decoration: BoxDecoration(
-                      color: isLocked ? _bgSurface : accentColor,
+                      color: isLocked
+                          ? _bgSurface
+                          : (isPassed ? Colors.green : accentColor),
                       borderRadius: BorderRadius.circular(15),
-                      boxShadow: isLocked ? [] : [
-                        BoxShadow(color: accentColor.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))
-                      ],
                     ),
                     child: Center(
                       child: Text(
-                        isLocked ? "Locked" : "Start Now",
+                        isLocked
+                            ? "Locked"
+                            : (isPassed ? "Review" : "Start Now"),
                         style: GoogleFonts.poppins(
                           color: isLocked ? _subText : Colors.white,
                           fontWeight: FontWeight.w800,
@@ -362,7 +444,10 @@ class _ChildQuizTopicDetailScreenState
   void _showLockedMessage(int prevLevel) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text("Complete Level $prevLevel first! 🔒", style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+        content: Text(
+          "Complete Level $prevLevel first! 🔒",
+          style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
         margin: EdgeInsets.all(4.w),
@@ -382,11 +467,26 @@ class DetailFloatingObjectsPainter extends CustomPainter {
     _drawCircle(canvas, size, 0.1, 0.2, 15, slate, 0.8, paint);
     _drawCircle(canvas, size, 0.7, 0.5, 25, slate, -0.5, paint);
   }
-  void _drawCircle(Canvas canvas, Size size, double x, double y, double r, Color c, double s, Paint p) {
+
+  void _drawCircle(
+    Canvas canvas,
+    Size size,
+    double x,
+    double y,
+    double r,
+    Color c,
+    double s,
+    Paint p,
+  ) {
     double dx = (x + (animationValue * s * 0.1)) % 1.0;
     double dy = (y + (math.sin(animationValue * 2 * math.pi * s) * 0.05)) % 1.0;
-    canvas.drawCircle(Offset(dx * size.width, dy * size.height), r, p..color = c);
+    canvas.drawCircle(
+      Offset(dx * size.width, dy * size.height),
+      r,
+      p..color = c,
+    );
   }
+
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

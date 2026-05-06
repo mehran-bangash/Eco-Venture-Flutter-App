@@ -112,7 +112,7 @@ class QuizLevelModel {
   final String title;
   final int passingPercentage;
   final int points;
-  final int timerSeconds; // NEW: Added timer field
+  final int timerSeconds;
   final List<QuestionModel> questions;
 
   QuizLevelModel({
@@ -120,9 +120,10 @@ class QuizLevelModel {
     required this.title,
     required this.passingPercentage,
     required this.points,
-    this.timerSeconds = 30, // Default 30 seconds
+    this.timerSeconds = 0, // Change default to 0 (meaning no timer)
     required this.questions,
   });
+
 
   Map<String, dynamic> toMap() {
     return {
@@ -140,7 +141,8 @@ class QuizLevelModel {
       title: map['title'] ?? '',
       passingPercentage: map['passing_percentage']?.toInt() ?? 60,
       points: map['points']?.toInt() ?? 0,
-      timerSeconds: map['timer_seconds']?.toInt() ?? 30, // Read from Firebase
+      // If timer_seconds is missing in DB, it becomes 0
+      timerSeconds: map['timer_seconds']?.toInt() ?? 0,
       questions: List<QuestionModel>.from(
         (map['questions'] as List<dynamic>? ?? []).map<QuestionModel>(
               (x) => QuestionModel.fromMap(Map<String, dynamic>.from(x as Map)),
@@ -167,6 +169,7 @@ class QuizLevelModel {
     );
   }
 }
+
 class QuestionModel {
   final String question;
   final List<String> options;
