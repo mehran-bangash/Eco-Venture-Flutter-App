@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../models/video_model.dart';
 import '../../../viewmodels/multimedia_content/teacher_multimedia_provider.dart';
 
-
 class TeacherVideoDashboard extends ConsumerStatefulWidget {
   const TeacherVideoDashboard({super.key});
 
@@ -25,6 +24,31 @@ class _TeacherVideoDashboardState extends ConsumerState<TeacherVideoDashboard> {
     Future.microtask(() => ref.read(teacherMultimediaViewModelProvider.notifier).loadVideos());
   }
 
+  void _showDeleteConfirmation(VideoModel video) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Delete Video?", style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
+        content: Text("This will permanently remove the video from the app and cloud storage."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel", style: GoogleFonts.poppins(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: _primary),
+            onPressed: () {
+              // Logic: The ViewModel deleteVideo(id) handles both Cloudinary and Firebase
+              ref.read(teacherMultimediaViewModelProvider.notifier).deleteVideo(video.id);
+              Navigator.pop(context);
+            },
+            child: Text("Delete", style: GoogleFonts.poppins(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(teacherMultimediaViewModelProvider);
@@ -38,17 +62,23 @@ class _TeacherVideoDashboardState extends ConsumerState<TeacherVideoDashboard> {
         centerTitle: true,
         title: Text("My Videos", style: GoogleFonts.poppins(color: _textDark, fontWeight: FontWeight.w700, fontSize: 18.sp)),
       ),
-      body: state.isLoading
-          ? Center(child: CircularProgressIndicator(color: _primary))
-          : state.videos.isEmpty
-          ? Center(child: Text("No Videos Added", style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.grey)))
-          : ListView.separated(
-        padding: EdgeInsets.all(5.w),
-        itemCount: state.videos.length,
-        separatorBuilder: (c, i) => SizedBox(height: 2.h),
-        itemBuilder: (context, index) {
-          return _buildVideoCard(state.videos[index]);
-        },
+      body: Stack(
+        children: [
+          state.isLoading && state.videos.isEmpty
+              ? Center(child: CircularProgressIndicator(color: _primary))
+              : state.videos.isEmpty
+              ? Center(child: Text("No Videos Added", style: GoogleFonts.poppins(fontSize: 16.sp, color: Colors.grey)))
+              : ListView.separated(
+            padding: EdgeInsets.all(5.w),
+            itemCount: state.videos.length,
+            separatorBuilder: (c, i) => SizedBox(height: 2.h),
+            itemBuilder: (context, index) {
+              return _buildVideoCard(state.videos[index]);
+            },
+          ),
+          if (state.isLoading && state.videos.isNotEmpty)
+            const Center(child: CircularProgressIndicator()),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.pushNamed('teacherAddVideoScreen'),
@@ -99,9 +129,7 @@ class _TeacherVideoDashboardState extends ConsumerState<TeacherVideoDashboard> {
               ),
               IconButton(
                 icon: Icon(Icons.delete, color: Colors.red, size: 18.sp),
-                onPressed: () {
-                  ref.read(teacherMultimediaViewModelProvider.notifier).deleteVideo(video.id);
-                },
+                onPressed: () => _showDeleteConfirmation(video),
               ),
             ],
           )
@@ -109,5 +137,4 @@ class _TeacherVideoDashboardState extends ConsumerState<TeacherVideoDashboard> {
       ),
     );
   }
-
 }

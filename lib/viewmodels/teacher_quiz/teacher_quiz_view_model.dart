@@ -64,7 +64,7 @@ class TeacherQuizViewModel extends StateNotifier<TeacherQuizState> {
       for (var level in topicToDelete.levels) {
         for (var q in level.questions) {
           if (q.imageUrl != null && q.imageUrl!.startsWith('http')) {
-            await _cloudinaryService.deleteImage(q.imageUrl);
+            await _cloudinaryService.deleteFile(q.imageUrl);
           }
         }
       }

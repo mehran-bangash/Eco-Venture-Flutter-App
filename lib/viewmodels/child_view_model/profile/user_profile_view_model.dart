@@ -115,7 +115,7 @@ class UserProfileViewModel extends StateNotifier<UserProfileState> {
       final imgUrl = profile?["imgUrl"];
 
       if (imgUrl != null && imgUrl.isNotEmpty) {
-        await _cloudinaryService.deleteImage(imgUrl);
+        await _cloudinaryService.deleteFile(imgUrl);
       }
 
       await _repo.deleteUserProfile(uid);

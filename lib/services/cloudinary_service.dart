@@ -7,9 +7,8 @@ import 'dart:async';
 
 class CloudinaryService {
   final String cloudName = "dc6suw4tu";
-  // IMPORTANT: Fill these for deletion to work
-  final String apiKey = "512897754688659";// remove later from here
-  final String apiSecret = "uBlrQa-nXVs3Flq-QOVHyR60bCA";// remove later from here
+  final String apiKey = "512897754688659";
+  final String apiSecret = "uBlrQa-nXVs3Flq-QOVHyR60bCA";
 
   final String defaultPreset = "ecoventure";
   final String studentTaskPreset = "Eco_stem_challenges";
@@ -25,47 +24,52 @@ class CloudinaryService {
     return url.replaceAll("/upload/", "/upload/q_auto,f_auto/");
   }
 
-  /// Extracts Public ID from Cloudinary URL for deletion
+  // FIXED: Logic to extract ONLY the public_id, correctly stripping transformations and versions
   String? _getPublicIdFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
-      final pathSegments = uri.pathSegments;
-      final uploadIndex = pathSegments.indexOf('upload');
+      final segments = uri.pathSegments;
+      final uploadIndex = segments.indexOf('upload');
       if (uploadIndex == -1) return null;
 
-      // Extract parts after 'upload/v1234567/' or 'upload/'
-      final relevantSegments = pathSegments.sublist(uploadIndex + 1);
-      if (relevantSegments.first.startsWith('v') &&
-          relevantSegments.first.length > 5) {
-        relevantSegments.removeAt(0);
-      }
+      final relevantSegments = segments.sublist(uploadIndex + 1);
 
-      final fullName = relevantSegments.join('/');
-      return fullName.split('.').first;
+      // Filter out transformation segments (contain comma) and version segments (start with 'v' + digits)
+      final publicIdSegments = relevantSegments.where((segment) {
+        final isTransformation = segment.contains(',');
+        final isVersion = RegExp(r'^v\d+$').hasMatch(segment);
+        return !isTransformation && !isVersion;
+      }).toList();
+
+      if (publicIdSegments.isEmpty) return null;
+
+      final fullName = publicIdSegments.join('/');
+      return fullName.split('.').first; // Removes extension (.mp4, .jpg, etc)
     } catch (e) {
       return null;
     }
   }
 
-  /// NEW: Robust Delete Logic
-  Future<void> deleteImage(String? imageUrl) async {
-    if (imageUrl == null || imageUrl.isEmpty) return;
+  // FIXED: Using Admin API with DELETE method for reliable cloud deletion
+  Future<void> deleteFile(String? fileUrl, {bool isVideo = false}) async {
+    if (fileUrl == null ||
+        fileUrl.isEmpty ||
+        !fileUrl.contains("cloudinary.com"))
+      return;
 
     try {
-      final publicId = _getPublicIdFromUrl(imageUrl);
+      final publicId = _getPublicIdFromUrl(fileUrl);
       if (publicId == null) return;
 
       final authHeader =
           'Basic ${base64Encode(utf8.encode('$apiKey:$apiSecret'))}';
+      final resourceType = isVideo ? "video" : "image";
 
-      // Determine if it's video or image based on URL
-      final resourceType = imageUrl.contains("/video/") ? "video" : "image";
-
-      final response = await http.post(
+      // Admin API uses DELETE request for resources
+      final response = await http.delete(
         Uri.parse(
-          "https://api.cloudinary.com/v1_1/$cloudName/$resourceType/destroy",
+          "https://api.cloudinary.com/v1_1/$cloudName/resources/$resourceType/upload?public_ids[]=$publicId",
         ),
-        body: {'public_id': publicId, 'api_key': apiKey},
         headers: {"Authorization": authHeader},
       );
 
@@ -75,9 +79,12 @@ class CloudinaryService {
         print("Cloudinary delete failed: ${response.body}");
       }
     } catch (e) {
-      print("Error deleting image: $e");
+      print("Error deleting file: $e");
     }
   }
+
+  Future<void> deleteImage(String? imageUrl) async =>
+      await deleteFile(imageUrl, isVideo: false);
 
   Future<String?> uploadImage(File imageFile, {String? preset}) async {
     try {
@@ -109,7 +116,6 @@ class CloudinaryService {
     }
   }
 
-  // --- PRESET WRAPPERS (No changes to logic) ---
   Future<String?> uploadTaskImage(File imageFile) async =>
       await uploadImage(imageFile, preset: studentTaskPreset);
 
@@ -122,7 +128,7 @@ class CloudinaryService {
     return uploadedUrls;
   }
 
-  Future<String?> _upload(
+  Future<dynamic> _upload(
     File file,
     String preset, {
     bool isVideo = false,
@@ -133,11 +139,12 @@ class CloudinaryService {
       final fileType = mimeType.split('/');
       final resourceType = isVideo ? 'video' : 'image';
       final uri = Uri.parse(
-        "https://api.cloudinary.com/v1_1/$cloudName/$resourceType/upload",
+        "https://api.cloudinary.com/v1_1/$cloudName/upload",
       );
 
       final request = http.MultipartRequest("POST", uri)
         ..fields['upload_preset'] = preset
+        ..fields['resource_type'] = resourceType
         ..files.add(
           await http.MultipartFile.fromPath(
             'file',
@@ -146,33 +153,43 @@ class CloudinaryService {
           ),
         );
 
-      final response = await request.send().timeout(
-        const Duration(seconds: 30),
-      );
-      final responseData = await response.stream.bytesToString();
+      final response = await request.send().timeout(const Duration(minutes: 5));
+      final responseData = await http.Response.fromStream(response);
 
       if (response.statusCode == 200) {
-        final jsonResponse = json.decode(responseData);
-        return _optimizeUrl(jsonResponse['secure_url']);
+        final jsonResponse = json.decode(responseData.body);
+        final url = _optimizeUrl(jsonResponse['secure_url']);
+        if (isVideo) {
+          double dur = (jsonResponse['duration'] ?? 0).toDouble();
+          int m = (dur / 60).floor();
+          int s = (dur % 60).round();
+          return {
+            "url": url,
+            "duration":
+                "${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}",
+          };
+        }
+        return url;
       }
-      throw "Server Error: ${response.statusCode}";
+      throw json.decode(responseData.body)['error']?['message'] ??
+          "Error ${response.statusCode}";
     } catch (e) {
-      throw "Upload Failed: $e";
+      throw e.toString();
     }
   }
 
   Future<String?> uploadTeacherQuizImage(File imageFile) async =>
-      await _upload(imageFile, teacherQuizPreset);
+      await _upload(imageFile, teacherQuizPreset) as String?;
   Future<String?> uploadTeacherStemImage(File imageFile) async =>
-      await _upload(imageFile, teacherStemPreset);
-  Future<String?> uploadTeacherMultimediaFile(
+      await _upload(imageFile, teacherStemPreset) as String?;
+  Future<dynamic> uploadTeacherMultimediaFile(
     File file, {
     bool isVideo = false,
   }) async => await _upload(file, teacherMultimediaPreset, isVideo: isVideo);
   Future<String?> uploadTeacherQrImage(File imageFile) async =>
-      await _upload(imageFile, teacherQrHuntPreset);
+      await _upload(imageFile, teacherQrHuntPreset) as String?;
   Future<String?> uploadReportScreenshot(File file) async =>
-      await _upload(file, reportPreset);
+      await _upload(file, reportPreset) as String?;
   Future<String?> uploadChildNaturePhotoImage(File imageFile) async =>
-      await _upload(imageFile, childNaturePhotoPreset);
+      await _upload(imageFile, childNaturePhotoPreset) as String?;
 }

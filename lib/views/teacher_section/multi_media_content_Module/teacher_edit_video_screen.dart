@@ -1,4 +1,3 @@
-import 'package:eco_venture/core/config/app_constants.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -7,9 +6,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../../../models/video_model.dart';
 import '../../../core/config/api_constants.dart';
+import '../../../core/config/app_constants.dart';
 import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/multimedia_content/teacher_multimedia_provider.dart';
 
@@ -36,8 +37,6 @@ class _TeacherEditVideoScreenState
 
   String _selectedCategory = 'Science';
   final List<String> _categories = ['Science', 'Maths', 'History', 'Ecosystem'];
-
-  // --- NEW: Age Selection State ---
   String? _selectedAgeGroup;
 
   File? _newVideoFile;
@@ -56,13 +55,11 @@ class _TeacherEditVideoScreenState
     _existingVideoUrl = widget.videoData.videoUrl;
     _tagsController.text = widget.videoData.tags.join(", ");
     _isSensitive = widget.videoData.isSensitive;
+    _selectedAgeGroup = widget.videoData.ageGroup;
 
     if (_categories.contains(widget.videoData.category)) {
       _selectedCategory = widget.videoData.category;
     }
-
-    // --- NEW: Initialize selected age group based on existing model value ---
-    _selectedAgeGroup = widget.videoData.ageGroup;
   }
 
   @override
@@ -74,82 +71,29 @@ class _TeacherEditVideoScreenState
     super.dispose();
   }
 
-
-  // --- NOTIFICATION LOGIC ---
-  Future<void> _sendClassNotification(
-      String teacherId,
-      String videoTitle,
-      String ageGroup,
-      ) async {
-    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
-
-    try {
-      final response = await http.post(
-        Uri.parse(backendUrl),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "teacherId": teacherId,
-          "type": "Video",
-          "title": "Video Updated: $videoTitle ✏️",
-          "body": "The video for Group $ageGroup has been updated. Check it out!",
-          "ageGroup": ageGroup,
-        }),
-      );
-
-      if (response.statusCode == 200) {
-        print("✅ Video Update Notification sent successfully");
-      }
-    } catch (e) {
-      print("❌ Error calling notification backend: $e");
-    }
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String mm = twoDigits(d.inMinutes.remainder(60));
+    String ss = twoDigits(d.inSeconds.remainder(60));
+    return "$mm:$ss";
   }
 
-  Future<void> _updateVideo() async {
-    if (_titleController.text.isEmpty || _selectedAgeGroup == null) return;
-
-    String? teacherId = SharedPreferencesHelper.instance.getUserId();
-    if (teacherId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Error: No Teacher ID. Re-login."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    List<String> tagsList = _tagsController.text
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-
-    if (_isSensitive && !tagsList.contains('scary')) {
-      tagsList.add('scary');
-    }
-    if (!_isSensitive) {
-      tagsList.remove('scary');
-    }
-
-    final updatedVideo = widget.videoData.copyWith(
-      title: _titleController.text.trim(),
-      description: _descController.text.trim(),
-      category: _selectedCategory,
-      videoUrl: _newVideoFile?.path ?? _existingVideoUrl,
-      thumbnailUrl: _newThumbnail?.path ?? _existingThumbnailUrl,
-      duration: _durationController.text,
-      uploadedAt: widget.videoData.uploadedAt,
-      tags: tagsList,
-      isSensitive: _isSensitive,
-      ageGroup: _selectedAgeGroup!, // Updated Classification
-    );
-
-    await ref
-        .read(teacherMultimediaViewModelProvider.notifier)
-        .updateVideo(updatedVideo);
-
-    if (!_isSensitive) {
-      await _sendClassNotification(teacherId, updatedVideo.title, _selectedAgeGroup!);
+  Future<void> _pickVideo() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+    if (video != null) {
+      final file = File(video.path);
+      setState(() => _newVideoFile = file);
+      try {
+        final controller = VideoPlayerController.file(file);
+        await controller.initialize();
+        setState(() {
+          _durationController.text = _formatDuration(controller.value.duration);
+        });
+        await controller.dispose();
+      } catch (e) {
+        debugPrint("Error fetching video duration: $e");
+      }
     }
   }
 
@@ -159,10 +103,62 @@ class _TeacherEditVideoScreenState
     if (img != null) setState(() => _newThumbnail = File(img.path));
   }
 
-  Future<void> _pickVideo() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
-    if (video != null) setState(() => _newVideoFile = File(video.path));
+  Future<void> _updateVideo() async {
+    if (_titleController.text.isEmpty || _selectedAgeGroup == null) return;
+    String? teacherId = SharedPreferencesHelper.instance.getUserId();
+    if (teacherId == null) return;
+
+    List<String> tagsList = _tagsController.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (_isSensitive && !tagsList.contains('scary')) tagsList.add('scary');
+
+    final updatedVideo = widget.videoData.copyWith(
+      title: _titleController.text.trim(),
+      description: _descController.text.trim(),
+      category: _selectedCategory,
+      videoUrl: _newVideoFile?.path ?? _existingVideoUrl!,
+      thumbnailUrl: _newThumbnail?.path ?? _existingThumbnailUrl,
+      duration: _durationController.text,
+      tags: tagsList,
+      isSensitive: _isSensitive,
+      ageGroup: _selectedAgeGroup!,
+    );
+
+    await ref
+        .read(teacherMultimediaViewModelProvider.notifier)
+        .updateVideo(updatedVideo);
+    if (!_isSensitive) {
+      await _sendClassNotification(
+        teacherId,
+        updatedVideo.title,
+        _selectedAgeGroup!,
+      );
+    }
+  }
+
+  Future<void> _sendClassNotification(
+    String teacherId,
+    String title,
+    String age,
+  ) async {
+    try {
+      await http.post(
+        Uri.parse(ApiConstants.notifyChildClassEndPoints),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "teacherId": teacherId,
+          "type": "Video",
+          "title": "Video Updated: $title ✏️",
+          "body": "The video for Group $age has been updated!",
+          "ageGroup": age,
+        }),
+      );
+    } catch (e) {
+      debugPrint("Notification Error: $e");
+    }
   }
 
   @override
@@ -171,26 +167,8 @@ class _TeacherEditVideoScreenState
 
     ref.listen(teacherMultimediaViewModelProvider, (prev, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isSensitive
-                  ? "Video Updated! (No notification - marked sensitive)"
-                  : "Video Updated & Class Notified!",
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
         ref.read(teacherMultimediaViewModelProvider.notifier).resetSuccess();
         Navigator.pop(context);
-      }
-      if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: ${next.errorMessage}"),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     });
 
@@ -235,13 +213,6 @@ class _TeacherEditVideoScreenState
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -256,12 +227,9 @@ class _TeacherEditVideoScreenState
                         maxLines: 3,
                       ),
                       SizedBox(height: 2.h),
-
-                      // --- NEW: Age Selection Dropdown ---
                       _buildLabel("Target Age (Years)"),
                       _buildAgeDropdown(),
                       SizedBox(height: 2.h),
-
                       Row(
                         children: [
                           Expanded(
@@ -280,7 +248,9 @@ class _TeacherEditVideoScreenState
                               children: [
                                 _buildLabel("Duration"),
                                 _buildTextField(
-                                    _durationController, "e.g. 05:30"),
+                                  _durationController,
+                                  "e.g. 05:30",
+                                ),
                               ],
                             ),
                           ),
@@ -290,7 +260,6 @@ class _TeacherEditVideoScreenState
                   ),
                 ),
                 SizedBox(height: 3.h),
-
                 Container(
                   padding: EdgeInsets.all(4.w),
                   decoration: BoxDecoration(
@@ -327,13 +296,6 @@ class _TeacherEditVideoScreenState
                             color: _textDark,
                           ),
                         ),
-                        subtitle: Text(
-                          "Marks as 'Scary' for parent filters.",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14.sp,
-                            color: Colors.black54,
-                          ),
-                        ),
                         value: _isSensitive,
                         onChanged: (val) => setState(() => _isSensitive = val),
                       ),
@@ -341,150 +303,74 @@ class _TeacherEditVideoScreenState
                   ),
                 ),
                 SizedBox(height: 3.h),
-
-                Container(
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel("Thumbnail Image"),
-                      SizedBox(height: 1.h),
-                      InkWell(
-                        onTap: _pickThumbnail,
-                        child: Container(
-                          height: 18.h,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
-                            image: thumbnailProvider != null
-                                ? DecorationImage(
+                _buildLabel("Thumbnail Image"),
+                InkWell(
+                  onTap: _pickThumbnail,
+                  child: Container(
+                    height: 18.h,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                      image: thumbnailProvider != null
+                          ? DecorationImage(
                               image: thumbnailProvider,
                               fit: BoxFit.cover,
                             )
-                                : null,
-                          ),
-                          child: thumbnailProvider == null
-                              ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.image,
-                                    color: Colors.orange, size: 30.sp),
-                                SizedBox(height: 1.h),
-                                Text(
-                                  "Tap to change thumbnail",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14.sp,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
+                          : null,
+                    ),
+                    child: thumbnailProvider == null
+                        ? Center(
+                            child: Icon(
+                              Icons.image,
+                              color: Colors.orange,
+                              size: 30.sp,
                             ),
                           )
-                              : Stack(
-                            children: [
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: InkWell(
-                                  onTap: () => setState(() {
-                                    _newThumbnail = null;
-                                    _existingThumbnailUrl = null;
-                                  }),
-                                  child: const CircleAvatar(
-                                    backgroundColor: Colors.white,
-                                    radius: 16,
-                                    child: Icon(Icons.close,
-                                        size: 20, color: Colors.red),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                        : null,
                   ),
                 ),
                 SizedBox(height: 3.h),
-
-                Container(
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel("Video File"),
-                      SizedBox(height: 1.h),
-                      InkWell(
-                        onTap: _pickVideo,
-                        child: Container(
-                          height: 15.h,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300),
+                _buildLabel("Video File"),
+                InkWell(
+                  onTap: _pickVideo,
+                  child: Container(
+                    height: 15.h,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            (_newVideoFile != null || _existingVideoUrl != null)
+                                ? Icons.check_circle
+                                : Icons.video_library,
+                            color:
+                                (_newVideoFile != null ||
+                                    _existingVideoUrl != null)
+                                ? Colors.green
+                                : _primaryRed,
+                            size: 32.sp,
                           ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  _newVideoFile != null ||
-                                      _existingVideoUrl != null
-                                      ? Icons.check_circle
-                                      : Icons.video_library,
-                                  color: _newVideoFile != null ||
-                                      _existingVideoUrl != null
-                                      ? Colors.green
-                                      : _primaryRed,
-                                  size: 32.sp,
-                                ),
-                                SizedBox(height: 1.h),
-                                Text(
-                                  _newVideoFile != null ||
-                                      _existingVideoUrl != null
-                                      ? "Video selected (tap to change)"
-                                      : "Tap to change video file",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14.sp,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
+                          Text(
+                            "Tap to change video file",
+                            style: GoogleFonts.poppins(
+                              fontSize: 14.sp,
+                              color: Colors.grey,
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
                 SizedBox(height: 5.h),
-
                 SizedBox(
                   width: double.infinity,
                   height: 7.h,
@@ -495,21 +381,19 @@ class _TeacherEditVideoScreenState
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      elevation: 5,
                     ),
                     child: state.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
-                      "Update Video",
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                            "Update Video",
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontSize: 16.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
-                SizedBox(height: 5.h),
               ],
             ),
           ),
@@ -524,7 +408,8 @@ class _TeacherEditVideoScreenState
   }
 
   Widget _buildAgeDropdown() {
-    final items = [...AppConstants.teacherClassRanges];
+    // Logic Fix: Ensure the current value exists in the dropdown list to prevent crash
+    final items = List<String>.from(AppConstants.teacherClassRanges);
     if (_selectedAgeGroup != null && !items.contains(_selectedAgeGroup)) {
       items.add(_selectedAgeGroup!);
     }
@@ -540,17 +425,16 @@ class _TeacherEditVideoScreenState
         child: DropdownButton<String>(
           value: _selectedAgeGroup,
           isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down, color: _primaryBlue, size: 24.sp),
           items: items
               .map(
                 (range) => DropdownMenuItem(
-              value: range,
-              child: Text(
-                "Group $range",
-                style: GoogleFonts.poppins(fontSize: 15.sp),
-              ),
-            ),
-          )
+                  value: range,
+                  child: Text(
+                    "Group $range",
+                    style: GoogleFonts.poppins(fontSize: 15.sp),
+                  ),
+                ),
+              )
               .toList(),
           onChanged: (v) => setState(() => _selectedAgeGroup = v!),
         ),
@@ -571,61 +455,45 @@ class _TeacherEditVideoScreenState
   );
 
   Widget _buildTextField(
-      TextEditingController ctrl,
-      String hint, {
-        int maxLines = 1,
-      }) {
-    return TextField(
-      controller: ctrl,
-      maxLines: maxLines,
-      style: GoogleFonts.poppins(fontSize: 15.sp),
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: const Color(0xFFF8F9FA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _primaryBlue, width: 1.5),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdown() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 4.w),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+    TextEditingController ctrl,
+    String hint, {
+    int maxLines = 1,
+  }) => TextField(
+    controller: ctrl,
+    maxLines: maxLines,
+    style: GoogleFonts.poppins(fontSize: 15.sp),
+    decoration: InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: const Color(0xFFF8F9FA),
+      border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _border),
+        borderSide: BorderSide(color: _border),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedCategory,
-          isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down, color: _primaryBlue, size: 22.sp),
-          items: _categories
-              .map(
-                (c) => DropdownMenuItem(
-              value: c,
-              child: Text(
-                c,
-                style: GoogleFonts.poppins(fontSize: 15.sp),
+    ),
+  );
+
+  Widget _buildDropdown() => Container(
+    padding: EdgeInsets.symmetric(horizontal: 4.w),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF8F9FA),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: _border),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: _selectedCategory,
+        isExpanded: true,
+        items: _categories
+            .map(
+              (c) => DropdownMenuItem(
+                value: c,
+                child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)),
               ),
-            ),
-          )
-              .toList(),
-          onChanged: (v) => setState(() => _selectedCategory = v!),
-        ),
+            )
+            .toList(),
+        onChanged: (v) => setState(() => _selectedCategory = v!),
       ),
-    );
-  }
+    ),
+  );
 }

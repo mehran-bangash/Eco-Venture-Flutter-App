@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 
-
 import '../../../../models/video_model.dart';
 import '../../../core/config/api_constants.dart';
 import '../../../services/shared_preferences_helper.dart';
@@ -25,7 +24,7 @@ class TeacherAddVideoScreen extends ConsumerStatefulWidget {
 class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
-  final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _durationController = TextEditingController(text: "Auto-calculated");
   final TextEditingController _tagsController = TextEditingController();
 
   String _selectedCategory = 'Science';
@@ -51,10 +50,10 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
   }
 
   Future<void> _sendClassNotification(
-    String teacherId,
-    String videoTitle,
-    String ageGroup,
-  ) async {
+      String teacherId,
+      String videoTitle,
+      String ageGroup,
+      ) async {
     const String backendUrl = ApiConstants.notifyChildClassEndPoints;
     try {
       await http.post(
@@ -82,7 +81,14 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
   Future<void> _pickVideo() async {
     final ImagePicker picker = ImagePicker();
     final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
-    if (video != null) setState(() => _videoFile = File(video.path));
+    // Logic: Removed VideoPlayer initialization to prevent ExoPlayer crashes.
+    // Duration is now handled server-side by Cloudinary in the ViewModel.
+    if (video != null) {
+      setState(() {
+        _videoFile = File(video.path);
+        _durationController.text = "Fetching on upload...";
+      });
+    }
   }
 
   Future<void> _uploadVideo() async {
@@ -101,28 +107,6 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
     String? teacherId = SharedPreferencesHelper.instance.getUserId();
     if (teacherId == null) return;
 
-    // --- Compression Logic ---
-    File videoToUpload = _videoFile!;
-    File? thumbToUpload = _thumbnailImage;
-
-    /* // Implementation for when you add the packages:
-    final MediaInfo? info = await VideoCompress.compressVideo(
-      _videoFile!.path,
-      quality: VideoQuality.MediumQuality,
-      deleteOrigin: false,
-    );
-    if (info != null && info.file != null) videoToUpload = info.file!;
-
-    if (_thumbnailImage != null) {
-      final String targetPath = _thumbnailImage!.path.replaceFirst('.jpg', '_compressed.jpg');
-      final XFile? result = await FlutterImageCompress.compressAndGetFile(
-        _thumbnailImage!.absolute.path, targetPath,
-        quality: 70,
-      );
-      if (result != null) thumbToUpload = File(result.path);
-    }
-    */
-
     List<String> tagsList = _tagsController.text
         .split(',')
         .map((e) => e.trim())
@@ -138,11 +122,9 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
       title: _titleController.text.trim(),
       description: _descController.text.trim(),
       category: _selectedCategory,
-      videoUrl: videoToUpload.path,
-      thumbnailUrl: thumbToUpload?.path,
-      duration: _durationController.text.isNotEmpty
-          ? _durationController.text
-          : "00:00",
+      videoUrl: _videoFile!.path,
+      thumbnailUrl: _thumbnailImage?.path,
+      duration: "00:00", // Placeholder: overwritten by Cloudinary in ViewModel
       uploadedAt: DateTime.now(),
       tags: tagsList,
       isSensitive: _isSensitive,
@@ -176,6 +158,12 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
       if (next.isSuccess) {
         ref.read(teacherMultimediaViewModelProvider.notifier).resetSuccess();
         Navigator.pop(context);
+      }
+      // Issue 2 Fix: Display the actual Cloudinary error message from ViewModel
+      if (next.errorMessage != null && next.errorMessage != prev?.errorMessage) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.errorMessage!), backgroundColor: Colors.red),
+        );
       }
     });
 
@@ -234,7 +222,7 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildLabel("Duration"),
-                          _buildTextField(_durationController, "e.g. 05:30"),
+                          _buildTextField(_durationController, "Calculating...", enabled: false),
                         ],
                       ),
                     ),
@@ -299,13 +287,13 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
                     child: state.isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : Text(
-                            "Upload Video",
-                            style: GoogleFonts.poppins(
-                              fontSize: 16.sp,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                      "Upload Video",
+                      style: GoogleFonts.poppins(
+                        fontSize: 16.sp,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -313,8 +301,8 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
           ),
           if (state.isLoading)
             Container(
-              color: Colors.black26,
-              child: const Center(child: CircularProgressIndicator()),
+              color: Colors.black45,
+              child: const Center(child: CircularProgressIndicator(color: Colors.white)),
             ),
         ],
       ),
@@ -340,13 +328,13 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
           items: AppConstants.teacherClassRanges
               .map(
                 (range) => DropdownMenuItem(
-                  value: range,
-                  child: Text(
-                    "Group $range",
-                    style: GoogleFonts.poppins(fontSize: 15.sp),
-                  ),
-                ),
-              )
+              value: range,
+              child: Text(
+                "Group $range",
+                style: GoogleFonts.poppins(fontSize: 15.sp),
+              ),
+            ),
+          )
               .toList(),
           onChanged: (v) => setState(() => _selectedAgeGroup = v),
         ),
@@ -374,17 +362,19 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
     ),
   );
   Widget _buildTextField(
-    TextEditingController ctrl,
-    String hint, {
-    int maxLines = 1,
-  }) => TextField(
+      TextEditingController ctrl,
+      String hint, {
+        int maxLines = 1,
+        bool enabled = true,
+      }) => TextField(
     controller: ctrl,
     maxLines: maxLines,
+    enabled: enabled,
     style: GoogleFonts.poppins(fontSize: 15.sp),
     decoration: InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: Colors.white,
+      fillColor: enabled ? Colors.white : Colors.grey.shade100,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: _border),
@@ -406,10 +396,10 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
         items: _categories
             .map(
               (c) => DropdownMenuItem(
-                value: c,
-                child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)),
-              ),
-            )
+            value: c,
+            child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)),
+          ),
+        )
             .toList(),
         onChanged: (v) => setState(() => _selectedCategory = v!),
       ),
@@ -429,15 +419,15 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
           border: Border.all(color: _border),
           image: _thumbnailImage != null
               ? DecorationImage(
-                  image: FileImage(_thumbnailImage!),
-                  fit: BoxFit.cover,
-                )
+            image: FileImage(_thumbnailImage!),
+            fit: BoxFit.cover,
+          )
               : null,
         ),
         child: _thumbnailImage == null
             ? Center(
-                child: Icon(Icons.image, color: Colors.orange, size: 30.sp),
-              )
+          child: Icon(Icons.image, color: Colors.orange, size: 30.sp),
+        )
             : null,
       ),
     );
@@ -457,15 +447,15 @@ class _TeacherAddVideoScreenState extends ConsumerState<TeacherAddVideoScreen> {
         ),
         child: _videoFile == null
             ? Center(
-                child: Icon(Icons.video_library, color: _primary, size: 30.sp),
-              )
+          child: Icon(Icons.video_library, color: _primary, size: 30.sp),
+        )
             : Center(
-                child: Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
-                  size: 40.sp,
-                ),
-              ),
+          child: Icon(
+            Icons.check_circle,
+            color: Colors.green,
+            size: 40.sp,
+          ),
+        ),
       ),
     );
   }
