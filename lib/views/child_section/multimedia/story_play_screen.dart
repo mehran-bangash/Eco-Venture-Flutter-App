@@ -1,10 +1,11 @@
-// FIX: Added import for File
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:translator/translator.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../models/story_model.dart';
 import '../../../viewmodels/child_view_model/multimedia_content/video_story_provider.dart';
@@ -22,10 +23,15 @@ class StoryPlayScreen extends ConsumerStatefulWidget {
 class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
   final PageController _pageController = PageController();
   final FlutterTts _flutterTts = FlutterTts();
+  final GoogleTranslator _translator = GoogleTranslator();
 
   int _currentPage = 0;
   bool _isPlaying = false;
   String? _userId;
+  String _selectedLocale = "en-US";
+
+  // Caching for translated text
+  final Map<int, String> _urduCache = {};
 
   @override
   void initState() {
@@ -35,11 +41,23 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
   }
 
   Future<void> _initTts() async {
-    await _flutterTts.setLanguage("en-US");
     await _flutterTts.setPitch(1.0);
 
     _flutterTts.setCompletionHandler(() {
-      if (mounted) setState(() => _isPlaying = false);
+      if (mounted && _isPlaying) {
+        if (_currentPage < widget.story.pages.length - 1) {
+          Future.delayed(const Duration(milliseconds: 800), () {
+            if (mounted && _isPlaying) {
+              _pageController.nextPage(
+                duration: const Duration(milliseconds: 800),
+                curve: Curves.easeInOut,
+              );
+            }
+          });
+        } else {
+          setState(() => _isPlaying = false);
+        }
+      }
     });
   }
 
@@ -47,18 +65,6 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
     ref.read(storyViewModelProvider.notifier).incrementView(widget.story);
     final id = SharedPreferencesHelper.instance.getUserId();
     if (mounted) setState(() => _userId = id);
-  }
-
-  Future<void> _togglePlay(String storyText) async {
-    if (_isPlaying) {
-      await _flutterTts.stop();
-      setState(() => _isPlaying = false);
-    } else {
-      if (storyText.isNotEmpty) {
-        setState(() => _isPlaying = true);
-        await _flutterTts.speak(storyText);
-      }
-    }
   }
 
   void _onLikeTapped(StoryModel currentStory) {
@@ -83,6 +89,83 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
         );
   }
 
+  void _showLanguageSelection(String storyText) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.symmetric(vertical: 3.h),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Select Language",
+              style: GoogleFonts.poppins(
+                fontWeight: FontWeight.bold,
+                fontSize: 17.sp,
+              ),
+            ),
+            SizedBox(height: 2.h),
+            ListTile(
+              leading: const Icon(Icons.language, color: Colors.blue),
+              title: const Text("English"),
+              onTap: () {
+                Navigator.pop(context);
+                _startReading(storyText, "en-US");
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.language, color: Colors.green),
+              title: const Text("Urdu (اردو)"),
+              onTap: () {
+                Navigator.pop(context);
+                _startReading(storyText, "ur-PK");
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startReading(String text, String locale) async {
+    setState(() {
+      _selectedLocale = locale;
+      _isPlaying = true;
+    });
+
+    await _flutterTts.setLanguage(locale);
+
+    String textToSpeak = text;
+    if (locale == "ur-PK") {
+      // Check cache first
+      if (_urduCache.containsKey(_currentPage)) {
+        textToSpeak = _urduCache[_currentPage]!;
+      } else {
+        var translation = await _translator.translate(
+          text,
+          from: 'en',
+          to: 'ur',
+        );
+        textToSpeak = translation.text;
+        _urduCache[_currentPage] = textToSpeak; // Save to cache
+      }
+    }
+
+    await _flutterTts.speak(textToSpeak);
+  }
+
+  Future<void> _togglePlay(String storyText) async {
+    if (_isPlaying) {
+      await _flutterTts.stop();
+      setState(() => _isPlaying = false);
+    } else {
+      _showLanguageSelection(storyText);
+    }
+  }
+
   @override
   void dispose() {
     _flutterTts.stop();
@@ -94,7 +177,6 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
   Widget build(BuildContext context) {
     final storyState = ref.watch(storyViewModelProvider);
 
-    // Get Live Data
     final StoryModel? currentStory = storyState.stories
         ?.cast<StoryModel?>()
         .firstWhere(
@@ -103,7 +185,6 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
         );
 
     final pages = currentStory?.pages ?? widget.story.pages;
-    final bool isLastPage = _currentPage == pages.length - 1;
 
     final likeColor = (currentStory?.userLikes[_userId] == true)
         ? Colors.blue
@@ -115,9 +196,7 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          context.goNamed('multiMediaContent');
-        }
+        if (!didPop) context.goNamed('multiMediaContent');
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF4F7FE),
@@ -164,33 +243,37 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
                 controller: _pageController,
                 itemCount: pages.length,
                 onPageChanged: (index) {
-                  _flutterTts.stop();
-                  setState(() {
-                    _currentPage = index;
-                    _isPlaying = false;
-                  });
+                  setState(() => _currentPage = index);
+                  if (_isPlaying) {
+                    _startReading(pages[index].text, _selectedLocale);
+                  }
                 },
                 itemBuilder: (context, index) {
                   final page = pages[index];
                   return SingleChildScrollView(
                     child: Column(
                       children: [
+                        // Caching for Images
                         Container(
                           margin: EdgeInsets.all(5.w),
                           height: 35.h,
                           width: 100.w,
-                          decoration: BoxDecoration(
+                          child: ClipRRect(
                             borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black12, blurRadius: 10),
-                            ],
-                            image: (page.imageUrl.isNotEmpty)
-                                ? DecorationImage(
-                                    image: NetworkImage(page.imageUrl),
-                                    fit: BoxFit.cover,
-                                  )
-                                : null,
-                            color: Colors.grey.shade200,
+                            child: CachedNetworkImage(
+                              imageUrl: page.imageUrl,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey.shade200,
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                color: Colors.grey.shade200,
+                                child: const Icon(Icons.error),
+                              ),
+                            ),
                           ),
                         ),
                         Padding(
@@ -204,8 +287,6 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
                             ),
                           ),
                         ),
-
-                        // --- FIXED: Show Like/Dislike ON THE PAGE if it's the last one ---
                         if (index == pages.length - 1)
                           Padding(
                             padding: EdgeInsets.only(top: 4.h),
@@ -228,16 +309,13 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
                               ],
                             ),
                           ),
-
-                        SizedBox(height: 10.h), // Spacer for FAB
+                        SizedBox(height: 10.h),
                       ],
                     ),
                   );
                 },
               ),
             ),
-
-            // Page Indicators
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
@@ -258,8 +336,6 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
             SizedBox(height: 2.h),
           ],
         ),
-
-        // --- FIXED: FAB IS ALWAYS VISIBLE ---
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
             if (pages.isNotEmpty) _togglePlay(pages[_currentPage].text);
@@ -273,7 +349,7 @@ class _StoryPlayScreenState extends ConsumerState<StoryPlayScreen> {
           ),
           label: Text(
             _isPlaying ? "Stop" : "Read",
-            style: TextStyle(color: Colors.white),
+            style: const TextStyle(color: Colors.white),
           ),
         ),
       ),
