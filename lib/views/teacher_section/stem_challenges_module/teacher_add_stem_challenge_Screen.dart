@@ -7,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
 import '../../../../models/stem_challenge_model.dart';
 import '../../../core/config/api_constants.dart';
-import '../../../core/config/app_constants.dart'; // IMPORTED
+import '../../../core/config/app_constants.dart';
 import '../../../services/shared_preferences_helper.dart';
 import '../../../viewmodels/teacher_stem_challenge/teacher_stem_provider.dart';
 import 'package:http/http.dart' as http;
@@ -29,7 +29,6 @@ class _TeacherAddStemChallengeScreenState
   final Color _textDark = const Color(0xFF1B2559);
   final Color _textGrey = const Color(0xFFA3AED0);
   final Color _borderGrey = const Color(0xFFE0E0E0);
-  final Color _dashedBorderColor = const Color(0xFFBDBDBD);
 
   // --- CONTROLLERS & STATE ---
   final TextEditingController _titleController = TextEditingController();
@@ -49,10 +48,13 @@ class _TeacherAddStemChallengeScreenState
   String _selectedDifficulty = 'Easy';
   final List<String> _difficultyLevels = ['Easy', 'Medium', 'Hard'];
 
-  // FIX: Changed from _selectedYear to _selectedAgeGroup
   String? _selectedAgeGroup;
 
-  File? _challengeImage;
+  // Media State
+  File? _challengeImage; // Cover Image
+  final List<File> _extraImages = [];
+  final List<File> _selectedVideos = [];
+
   List<String> _materials = ['Baking Soda', 'Vinegar'];
   List<String> _steps = [
     "Mix baking soda and vinegar",
@@ -62,32 +64,41 @@ class _TeacherAddStemChallengeScreenState
   bool _isSensitive = false;
   bool _shouldPopAfterSave = false;
 
+  // --- MEDIA PICKING ---
+  Future<void> _pickExtraImages() async {
+    final images = await ImagePicker().pickMultiImage();
+    if (images.isNotEmpty) {
+      setState(() => _extraImages.addAll(images.map((e) => File(e.path))));
+    }
+  }
+
+  Future<void> _pickVideo() async {
+    final video = await ImagePicker().pickVideo(source: ImageSource.gallery);
+    if (video != null) {
+      setState(() => _selectedVideos.add(File(video.path)));
+    }
+  }
+
   // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(
-      String teacherId,
-      String challengeTitle,
-      String ageGroup,
-      ) async {
-    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
-
+    String teacherId,
+    String title,
+    String ageGroup,
+  ) async {
     try {
-      final response = await http.post(
-        Uri.parse(backendUrl),
+      await http.post(
+        Uri.parse(ApiConstants.notifyChildClassEndPoints),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "teacherId": teacherId,
           "type": "STEM Challenge",
-          "title": "New STEM Challenge: $challengeTitle 🔬",
+          "title": "New STEM Challenge: $title 🔬",
           "body": "A new STEM challenge for Group $ageGroup is ready!",
           "ageGroup": ageGroup,
         }),
       );
-
-      if (response.statusCode == 200) {
-        print("✅ STEM Challenge Notification sent successfully");
-      }
     } catch (e) {
-      print("❌ Error calling notification backend: $e");
+      debugPrint("Notification error: $e");
     }
   }
 
@@ -99,7 +110,10 @@ class _TeacherAddStemChallengeScreenState
       if (next.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(next.errorMessage!, style: TextStyle(fontSize: 15.sp)),
+            content: Text(
+              next.errorMessage!,
+              style: TextStyle(fontSize: 15.sp),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -109,21 +123,17 @@ class _TeacherAddStemChallengeScreenState
           SnackBar(
             content: Text(
               _isSensitive
-                  ? "Challenge Saved! (No notification - marked sensitive)"
+                  ? "Challenge Saved!"
                   : "Challenge Saved & Class Notified!",
-              style: TextStyle(fontSize: 15.sp),
             ),
             backgroundColor: Colors.green,
           ),
         );
-
         ref.read(teacherStemViewModelProvider.notifier).resetSuccess();
-
-        if (_shouldPopAfterSave) {
+        if (_shouldPopAfterSave)
           Navigator.pop(context);
-        } else {
+        else
           _clearForm();
-        }
       }
     });
 
@@ -134,230 +144,161 @@ class _TeacherAddStemChallengeScreenState
           Column(
             children: [
               _buildHeader(),
-
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.h),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // --- CARD 1 ---
-                      Container(
-                        padding: EdgeInsets.all(5.w),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.05),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionHeader("Challenge Basics"),
-                            SizedBox(height: 2.5.h),
-                            _buildLabel("Challenge Title"),
-                            _buildTextField(
-                              controller: _titleController,
-                              hint: "e.g. Bridge Building",
-                            ),
-                            SizedBox(height: 2.5.h),
-
-                            // --- NEW: Dynamic Target Class Selection ---
-                            _buildLabel("Target Class / Age Group"),
-                            _buildAgeDropdown(),
-                            SizedBox(height: 2.5.h),
-
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel("Category"),
-                                      _buildDropdown(
-                                        _categories,
-                                        _selectedCategory,
-                                            (v) => setState(
-                                              () => _selectedCategory = v!,
-                                        ),
+                      // CARD 1: Basics
+                      _buildSectionCard(
+                        title: "Challenge Basics",
+                        children: [
+                          _buildLabel("Challenge Title"),
+                          _buildTextField(
+                            controller: _titleController,
+                            hint: "e.g. Bridge Building",
+                          ),
+                          SizedBox(height: 2.5.h),
+                          _buildLabel("Target Class / Age Group"),
+                          _buildAgeDropdown(),
+                          SizedBox(height: 2.5.h),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel("Category"),
+                                    _buildDropdown(
+                                      _categories,
+                                      _selectedCategory,
+                                      (v) => setState(
+                                        () => _selectedCategory = v!,
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                                SizedBox(width: 4.w),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel("Difficulty"),
-                                      _buildDropdown(
-                                        _difficultyLevels,
-                                        _selectedDifficulty,
-                                            (v) => setState(
-                                              () => _selectedDifficulty = v!,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 2.5.h),
-                            _buildLabel("Points Reward"),
-                            _buildTextField(
-                              controller: _pointsController,
-                              hint: "50",
-                              isNumber: true,
-                            ),
-
-                            SizedBox(height: 2.5.h),
-                            _buildLabel("Tags (comma-separated)"),
-                            _buildTextField(
-                              controller: _tagsController,
-                              hint: "e.g. chemicals, outdoor, tools, engineering",
-                            ),
-
-                            SizedBox(height: 2.5.h),
-                            SwitchListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text("Mark as Sensitive Content",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 15.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.red.shade400,
-                                  )),
-                              subtitle: Text(
-                                "If enabled, this challenge will be blocked for younger children.",
-                                style: GoogleFonts.poppins(fontSize: 12.sp),
                               ),
-                              value: _isSensitive,
-                              onChanged: (v) => setState(() => _isSensitive = v),
-                              activeThumbColor: Colors.red,
+                              SizedBox(width: 4.w),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel("Difficulty"),
+                                    _buildDropdown(
+                                      _difficultyLevels,
+                                      _selectedDifficulty,
+                                      (v) => setState(
+                                        () => _selectedDifficulty = v!,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 2.5.h),
+                          _buildLabel("Points Reward"),
+                          _buildTextField(
+                            controller: _pointsController,
+                            hint: "50",
+                            isNumber: true,
+                          ),
+                          SizedBox(height: 2.5.h),
+                          _buildLabel("Tags (comma-separated)"),
+                          _buildTextField(
+                            controller: _tagsController,
+                            hint: "e.g. chemicals, outdoor",
+                          ),
+                          SizedBox(height: 2.5.h),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              "Mark as Sensitive Content",
+                              style: GoogleFonts.poppins(
+                                fontSize: 15.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.red.shade400,
+                              ),
                             ),
-                          ],
-                        ),
+                            value: _isSensitive,
+                            onChanged: (v) => setState(() => _isSensitive = v),
+                            activeThumbColor: Colors.red,
+                          ),
+                        ],
                       ),
                       SizedBox(height: 3.h),
 
-                      // --- CARD 2 ---
-                      Container(
-                        padding: EdgeInsets.all(5.w),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.05),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildSectionHeader("Visuals"),
-                            SizedBox(height: 2.h),
-                            _buildLabel("Cover Image"),
-                            _buildImageUpload(),
-                          ],
-                        ),
+                      // CARD 2: Visuals & Media
+                      _buildSectionCard(
+                        title: "Media (Photos & Videos)",
+                        children: [
+                          _buildLabel("Cover Image"),
+                          _buildImageUpload(),
+                          SizedBox(height: 3.h),
+                          _buildLabel("Additional Images"),
+                          _buildMediaPickerButton(
+                            "Add Photos",
+                            Icons.add_a_photo,
+                            _pickExtraImages,
+                          ),
+                          if (_extraImages.isNotEmpty) _buildImagePreviewGrid(),
+                          SizedBox(height: 3.h),
+                          _buildLabel("Videos"),
+                          _buildMediaPickerButton(
+                            "Add Videos",
+                            Icons.video_call,
+                            _pickVideo,
+                          ),
+                          if (_selectedVideos.isNotEmpty)
+                            _buildVideoPreviewList(),
+                        ],
                       ),
                       SizedBox(height: 3.h),
 
-                      // --- CARD 3 ---
-                      Container(
-                        padding: EdgeInsets.all(5.w),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.05),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
+                      // CARD 3: Materials
+                      _buildSectionCard(
+                        title: "Materials",
+                        trailing: _buildAddButton(
+                          "Add Item",
+                          () => _showAddItemDialog(
+                            "Material",
+                            (val) => setState(() => _materials.add(val)),
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _buildSectionHeader("Materials"),
-                                _buildAddButton(
-                                  "Add Item",
-                                      () => _showAddItemDialog(
-                                    "Material",
-                                        (val) =>
-                                        setState(() => _materials.add(val)),
+                        children: [
+                          Wrap(
+                            spacing: 2.w,
+                            runSpacing: 1.h,
+                            children: _materials
+                                .map(
+                                  (m) => _buildChip(
+                                    m,
+                                    () => setState(() => _materials.remove(m)),
                                   ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 2.h),
-                            Wrap(
-                              spacing: 2.w,
-                              runSpacing: 1.h,
-                              children: _materials
-                                  .map(
-                                    (m) => _buildChip(
-                                  m,
-                                      () =>
-                                      setState(() => _materials.remove(m)),
-                                ),
-                              )
-                                  .toList(),
-                            ),
-                          ],
-                        ),
+                                )
+                                .toList(),
+                          ),
+                        ],
                       ),
                       SizedBox(height: 3.h),
 
-                      // --- CARD 4 ---
-                      Container(
-                        padding: EdgeInsets.all(5.w),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.05),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
+                      // CARD 4: Instructions
+                      _buildSectionCard(
+                        title: "Instructions",
+                        trailing: _buildAddButton(
+                          "Add Step",
+                          () => _showAddItemDialog(
+                            "Step Description",
+                            (val) => setState(() => _steps.add(val)),
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                _buildSectionHeader("Instructions"),
-                                _buildAddButton(
-                                  "Add Step",
-                                      () => _showAddItemDialog(
-                                    "Step Description",
-                                        (val) => setState(() => _steps.add(val)),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 2.h),
-                            ..._steps.asMap().entries.map(
-                                  (e) => _buildStepItem(e.key + 1, e.value),
-                            ),
-                          ],
-                        ),
+                        children: [
+                          ..._steps.asMap().entries.map(
+                            (e) => _buildStepItem(e.key + 1, e.value),
+                          ),
+                        ],
                       ),
 
                       SizedBox(height: 5.h),
@@ -383,55 +324,46 @@ class _TeacherAddStemChallengeScreenState
 
   // --- SAVE LOGIC ---
   Future<void> _saveChallenge() async {
-    // FIX: Check for _selectedAgeGroup
     if (_titleController.text.trim().isEmpty || _selectedAgeGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all basics, including Target Class")),
-      );
-      return;
-    }
-    if (_pointsController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter points")),
+        const SnackBar(content: Text("Title and Class Group are required")),
       );
       return;
     }
 
     String? teacherId = SharedPreferencesHelper.instance.getUserId();
-    if (teacherId == null) return;
-
     List<String> tagsList = _tagsController.text
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
 
-    if (_isSensitive && !tagsList.contains('scary')) {
-      tagsList.add('scary');
-    }
-    if (!_isSensitive) {
-      tagsList.remove('scary');
-    }
-
     final newChallenge = StemChallengeModel(
+      adminId: teacherId,
       title: _titleController.text.trim(),
       category: _selectedCategory,
       difficulty: _selectedDifficulty,
       points: int.tryParse(_pointsController.text.trim()) ?? 0,
       imageUrl: _challengeImage?.path,
+      imageUrls: _extraImages.map((e) => e.path).toList(),
+      videoUrls: _selectedVideos.map((e) => e.path).toList(),
       materials: _materials,
       steps: _steps,
       tags: tagsList,
       isSensitive: _isSensitive,
-      ageGroup: _selectedAgeGroup!, // Directly use selected group
+      ageGroup: _selectedAgeGroup!,
     );
 
     await ref
         .read(teacherStemViewModelProvider.notifier)
         .addChallenge(newChallenge);
 
-    if (!_isSensitive) {
-      await _sendClassNotification(teacherId, newChallenge.title, _selectedAgeGroup!);
+    if (!_isSensitive && teacherId != null) {
+      await _sendClassNotification(
+        teacherId,
+        newChallenge.title,
+        _selectedAgeGroup!,
+      );
     }
   }
 
@@ -439,57 +371,142 @@ class _TeacherAddStemChallengeScreenState
     setState(() {
       _titleController.clear();
       _pointsController.text = "50";
-      _materialController.clear();
       _tagsController.clear();
-      _selectedCategory = _categories.first;
-      _selectedDifficulty = _difficultyLevels.first;
-      _selectedAgeGroup = null; // Clear group
       _challengeImage = null;
+      _extraImages.clear();
+      _selectedVideos.clear();
       _materials = [];
       _steps = [];
-      _isSensitive = false;
+      _selectedAgeGroup = null;
     });
   }
 
-  // --- DYNAMIC DROPDOWN FOR STEM ---
-  Widget _buildAgeDropdown() {
+  // --- RESTORED UI HELPERS ---
+
+  Widget _buildSectionCard({
+    required String title,
+    Widget? trailing,
+    required List<Widget> children,
+  }) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
+      padding: EdgeInsets.all(5.w),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(14),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedAgeGroup,
-          hint: Text(
-            "Select Class Group",
-            style: GoogleFonts.poppins(color: Colors.grey, fontSize: 15.sp),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSectionHeader(title),
+              if (trailing != null) trailing,
+            ],
           ),
-          isExpanded: true,
-          icon: Icon(
-            Icons.keyboard_arrow_down,
-            color: _primaryBlue,
-            size: 22.sp,
-          ),
-          items: AppConstants.teacherClassRanges
-              .map(
-                (range) => DropdownMenuItem(
-              value: range,
-              child: Text(
-                "Group $range",
-                style: GoogleFonts.poppins(
-                  fontSize: 15.sp,
-                  color: _textDark,
-                  fontWeight: FontWeight.w500,
-                ),
+          SizedBox(height: 2.5.h),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMediaPickerButton(
+    String label,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(4.w),
+        decoration: BoxDecoration(
+          color: _primaryBlue.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _primaryBlue.withOpacity(0.2)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: _primaryBlue),
+            SizedBox(width: 2.w),
+            Text(
+              label,
+              style: GoogleFonts.poppins(
+                color: _primaryBlue,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagePreviewGrid() {
+    return Padding(
+      padding: EdgeInsets.only(top: 2.h),
+      child: Wrap(
+        spacing: 2.w,
+        runSpacing: 1.h,
+        children: _extraImages
+            .map(
+              (file) => Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.file(
+                      file,
+                      width: 22.w,
+                      height: 22.w,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: GestureDetector(
+                      onTap: () => setState(() => _extraImages.remove(file)),
+                      child: const CircleAvatar(
+                        radius: 10,
+                        backgroundColor: Colors.red,
+                        child: Icon(Icons.close, size: 12, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildVideoPreviewList() {
+    return Column(
+      children: _selectedVideos
+          .map(
+            (file) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.movie, color: Colors.blue),
+              title: Text(
+                file.path.split('/').last,
+                style: TextStyle(fontSize: 14.sp),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => setState(() => _selectedVideos.remove(file)),
               ),
             ),
           )
-              .toList(),
-          onChanged: (v) => setState(() => _selectedAgeGroup = v),
-        ),
-      ),
+          .toList(),
     );
   }
 
@@ -542,26 +559,6 @@ class _TeacherAddStemChallengeScreenState
     );
   }
 
-  Widget _buildSectionHeader(String title) => Text(
-    title,
-    style: GoogleFonts.poppins(
-      fontSize: 17.sp,
-      fontWeight: FontWeight.w800,
-      color: _textDark,
-    ),
-  );
-  Widget _buildLabel(String text) => Padding(
-    padding: EdgeInsets.only(bottom: 1.h),
-    child: Text(
-      text,
-      style: GoogleFonts.poppins(
-        fontSize: 15.sp,
-        fontWeight: FontWeight.w600,
-        color: _textDark,
-      ),
-    ),
-  );
-
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
@@ -584,10 +581,6 @@ class _TeacherAddStemChallengeScreenState
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: _primaryBlue, width: 1.5),
@@ -596,11 +589,7 @@ class _TeacherAddStemChallengeScreenState
     );
   }
 
-  Widget _buildDropdown(
-      List<String> items,
-      String selected,
-      Function(String?) onChanged,
-      ) {
+  Widget _buildAgeDropdown() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 0.5.h),
       decoration: BoxDecoration(
@@ -609,29 +598,24 @@ class _TeacherAddStemChallengeScreenState
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: selected,
+          value: _selectedAgeGroup,
           isExpanded: true,
-          icon: Icon(
-            Icons.keyboard_arrow_down,
-            color: _primaryBlue,
-            size: 22.sp,
-          ),
-          items: items
+          hint: const Text("Select Class Group"),
+          items: AppConstants.teacherClassRanges
               .map(
-                (e) => DropdownMenuItem(
-              value: e,
-              child: Text(
-                e,
-                style: GoogleFonts.poppins(
-                  fontSize: 15.sp,
-                  color: _textDark,
-                  fontWeight: FontWeight.w500,
+                (r) => DropdownMenuItem(
+                  value: r,
+                  child: Text(
+                    "Group $r",
+                    style: GoogleFonts.poppins(
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          )
+              )
               .toList(),
-          onChanged: onChanged,
+          onChanged: (v) => setState(() => _selectedAgeGroup = v),
         ),
       ),
     );
@@ -647,80 +631,34 @@ class _TeacherAddStemChallengeScreenState
       ),
       child: InkWell(
         onTap: () async {
-          final ImagePicker picker = ImagePicker();
-          final XFile? img = await picker.pickImage(
+          final img = await ImagePicker().pickImage(
             source: ImageSource.gallery,
           );
           if (img != null) setState(() => _challengeImage = File(img.path));
         },
-        borderRadius: BorderRadius.circular(16),
         child: Container(
-          height: 22.h,
+          height: 20.h,
           width: double.infinity,
           alignment: Alignment.center,
-          decoration: _challengeImage == null
-              ? BoxDecoration(
-            color: _primaryBlue.withOpacity(0.05),
-            borderRadius: BorderRadius.circular(16),
-          )
-              : null,
           child: _challengeImage != null
               ? ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.file(
-              _challengeImage!,
-              fit: BoxFit.cover,
-              width: double.infinity,
-              height: double.infinity,
-            ),
-          )
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.file(
+                    _challengeImage!,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                  ),
+                )
               : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.cloud_upload_rounded,
-                size: 32.sp,
-                color: _primaryBlue,
-              ),
-              SizedBox(height: 1.h),
-              Text(
-                "Tap to upload image",
-                style: GoogleFonts.poppins(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w600,
-                  color: _primaryBlue,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.cloud_upload, size: 30.sp, color: _primaryBlue),
+                    Text(
+                      "Upload Cover Photo",
+                      style: GoogleFonts.poppins(color: _primaryBlue),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAddButton(String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(30),
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
-        decoration: BoxDecoration(
-          color: _primaryBlue.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.add, size: 18.sp, color: _primaryBlue),
-            SizedBox(width: 1.5.w),
-            Text(
-              label,
-              style: GoogleFonts.poppins(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.bold,
-                color: _primaryBlue,
-              ),
-            ),
-          ],
         ),
       ),
     );
@@ -737,56 +675,44 @@ class _TeacherAddStemChallengeScreenState
         ),
       ),
       backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: _primaryBlue.withOpacity(0.2)),
-      ),
       deleteIcon: Icon(Icons.close, size: 18.sp, color: Colors.redAccent),
       onDeleted: onDelete,
-      padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
+      side: BorderSide(color: _primaryBlue.withOpacity(0.2)),
     );
   }
 
   Widget _buildStepItem(int index, String text) {
     return Container(
-        margin: EdgeInsets.only(bottom: 2.h),
-        padding: EdgeInsets.all(4.w),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F9FA),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 14.sp,
-              backgroundColor: _primaryBlue,
-              child: Text(
-                "$index",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.bold,
-                ),
+      margin: EdgeInsets.only(bottom: 1.5.h),
+      padding: EdgeInsets.all(4.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 12.sp,
+            backgroundColor: _primaryBlue,
+            child: Text(
+              "$index",
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(width: 3.w),
-            Expanded(
-              child: Text(
-                text,
-                style: GoogleFonts.poppins(fontSize: 15.sp, color: _textDark),
-              ),
-            ),
-            InkWell(
-              onTap: () => setState(() => _steps.remove(text)),
-              child: Icon(
-                Icons.delete_outline,
-                color: Colors.redAccent,
-                size: 20.sp,
-              ),
-            ),
-          ],
-        )
+          ),
+          SizedBox(width: 3.w),
+          Expanded(
+            child: Text(text, style: GoogleFonts.poppins(fontSize: 14.sp)),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+            onPressed: () => setState(() => _steps.remove(text)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -795,27 +721,25 @@ class _TeacherAddStemChallengeScreenState
       children: [
         SizedBox(
           width: double.infinity,
-          height: 7.5.h,
+          height: 7.h,
           child: ElevatedButton(
             onPressed: isLoading
                 ? null
                 : () {
-              setState(() => _shouldPopAfterSave = true);
-              _saveChallenge();
-            },
+                    setState(() => _shouldPopAfterSave = true);
+                    _saveChallenge();
+                  },
             style: ElevatedButton.styleFrom(
               backgroundColor: _primaryBlue,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(15),
               ),
-              elevation: 5,
             ),
-            child: Text(
+            child: const Text(
               "Publish Challenge",
-              style: GoogleFonts.poppins(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
+              style: TextStyle(
                 color: Colors.white,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
@@ -823,28 +747,22 @@ class _TeacherAddStemChallengeScreenState
         SizedBox(height: 2.h),
         SizedBox(
           width: double.infinity,
-          height: 7.5.h,
-          child: ElevatedButton(
+          height: 7.h,
+          child: OutlinedButton(
             onPressed: isLoading
                 ? null
                 : () {
-              setState(() => _shouldPopAfterSave = false);
-              _saveChallenge();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _lightBlue,
+                    setState(() => _shouldPopAfterSave = false);
+                    _saveChallenge();
+                  },
+            style: OutlinedButton.styleFrom(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(15),
               ),
-              elevation: 0,
             ),
             child: Text(
               "Save & Add Another",
-              style: GoogleFonts.poppins(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
-                color: _primaryBlue,
-              ),
+              style: TextStyle(color: _primaryBlue),
             ),
           ),
         ),
@@ -857,58 +775,77 @@ class _TeacherAddStemChallengeScreenState
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          "Add $title",
-          style: GoogleFonts.poppins(
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        content: TextField(
-          controller: ctrl,
-          style: TextStyle(fontSize: 15.sp),
-          decoration: InputDecoration(
-            hintText: "Enter detail",
-            filled: true,
-            fillColor: const Color(0xFFF8F9FA),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
+        title: Text("Add $title"),
+        content: TextField(controller: ctrl, autofocus: true),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              "Cancel",
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey),
-            ),
+            child: const Text("Cancel"),
           ),
           ElevatedButton(
             onPressed: () {
-              if (ctrl.text.trim().isNotEmpty) {
-                onAdd(ctrl.text.trim());
-                Navigator.pop(ctx);
-              }
+              if (ctrl.text.isNotEmpty) onAdd(ctrl.text);
+              Navigator.pop(ctx);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _primaryBlue,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: Text(
-              "Add",
-              style: TextStyle(fontSize: 14.sp, color: Colors.white),
-            ),
+            child: const Text("Add"),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildSectionHeader(String title) => Text(
+    title,
+    style: GoogleFonts.poppins(
+      fontSize: 17.sp,
+      fontWeight: FontWeight.w800,
+      color: _textDark,
+    ),
+  );
+  Widget _buildLabel(String text) => Padding(
+    padding: EdgeInsets.only(bottom: 1.h),
+    child: Text(
+      text,
+      style: GoogleFonts.poppins(
+        fontSize: 15.sp,
+        fontWeight: FontWeight.w600,
+        color: _textDark,
+      ),
+    ),
+  );
+  Widget _buildAddButton(String label, VoidCallback onTap) => InkWell(
+    onTap: onTap,
+    child: Row(
+      children: [
+        Icon(Icons.add, color: _primaryBlue, size: 16.sp),
+        Text(
+          label,
+          style: TextStyle(color: _primaryBlue, fontWeight: FontWeight.bold),
+        ),
+      ],
+    ),
+  );
+  Widget _buildDropdown(
+    List<String> items,
+    String selected,
+    Function(String?) onChanged,
+  ) => Container(
+    padding: EdgeInsets.symmetric(horizontal: 4.w),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF8F9FA),
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: DropdownButtonHideUnderline(
+      child: DropdownButton<String>(
+        value: selected,
+        isExpanded: true,
+        items: items
+            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+            .toList(),
+        onChanged: onChanged,
+      ),
+    ),
+  );
 }
 
 class DashedRectPainter extends CustomPainter {
@@ -935,8 +872,7 @@ class DashedRectPainter extends CustomPainter {
           Radius.circular(radius),
         ),
       );
-    PathMetrics pathMetrics = path.computeMetrics();
-    for (PathMetric pathMetric in pathMetrics) {
+    for (PathMetric pathMetric in path.computeMetrics()) {
       double distance = 0.0;
       while (distance < pathMetric.length) {
         canvas.drawPath(

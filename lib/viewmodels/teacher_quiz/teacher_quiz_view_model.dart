@@ -14,6 +14,19 @@ class TeacherQuizViewModel extends StateNotifier<TeacherQuizState> {
   TeacherQuizViewModel(this._repository, this._cloudinaryService)
     : super(TeacherQuizState());
 
+  // --- HELPER: EXTRACT ALL IMAGE URLS FROM A TOPIC ---
+  Set<String> _getAllImageUrls(QuizTopicModel topic) {
+    final urls = <String>{};
+    for (var level in topic.levels) {
+      for (var q in level.questions) {
+        if (q.imageUrl != null && q.imageUrl!.startsWith('http')) {
+          urls.add(q.imageUrl!);
+        }
+      }
+    }
+    return urls;
+  }
+
   // --- DRAFT MANAGEMENT ---
   void startDraft(QuizTopicModel? existingTopic) {
     state = state.copyWith(draftTopic: existingTopic ?? QuizTopicModel.empty());
@@ -41,42 +54,31 @@ class TeacherQuizViewModel extends StateNotifier<TeacherQuizState> {
     _quizSubscription = _repository
         .watchQuizzes(category)
         .listen(
-          (data) {
-            state = state.copyWith(isLoading: false, quizzes: data);
-          },
-          onError: (e) {
-            state = state.copyWith(
-              isLoading: false,
-              errorMessage: e.toString(),
-            );
-          },
+          (data) => state = state.copyWith(isLoading: false, quizzes: data),
+          onError: (e) => state = state.copyWith(
+            isLoading: false,
+            errorMessage: e.toString(),
+          ),
         );
   }
 
-  // --- DELETE (FIXED SIGNATURE) ---
-  /// This now accepts String ID to match your Dashboard UI
+  // --- DELETE ---
   Future<void> deleteQuiz(String id, String category) async {
     try {
-      // 1. Find the full data in local state to get image URLs before deleting
       final topicToDelete = state.quizzes.firstWhere((q) => q.id == id);
+      final urls = _getAllImageUrls(topicToDelete);
 
-      // 2. Cleanup Cloudinary
-      for (var level in topicToDelete.levels) {
-        for (var q in level.questions) {
-          if (q.imageUrl != null && q.imageUrl!.startsWith('http')) {
-            await _cloudinaryService.deleteFile(q.imageUrl);
-          }
-        }
+      for (var url in urls) {
+        await _cloudinaryService.deleteFile(url);
       }
 
-      // 3. Delete from Firebase
       await _repository.deleteQuiz(id, category);
     } catch (e) {
       state = state.copyWith(errorMessage: "Delete failed: $e");
     }
   }
 
-  // --- ADD / UPDATE ---
+  // --- ADD ---
   Future<void> addQuiz(QuizTopicModel topic) async {
     state = state.copyWith(isLoading: true);
     try {
@@ -92,10 +94,25 @@ class TeacherQuizViewModel extends StateNotifier<TeacherQuizState> {
     }
   }
 
+  // --- UPDATE (WITH CLOUDINARY SYNC) ---
   Future<void> updateQuiz(QuizTopicModel topic) async {
     state = state.copyWith(isLoading: true);
     try {
+      // 1. Get old version to find removed images
+      final oldTopic = state.quizzes.firstWhere((q) => q.id == topic.id);
+      final oldUrls = _getAllImageUrls(oldTopic);
+
+      // 2. Process new images
       final processedTopic = await _processImages(topic);
+      final newUrls = _getAllImageUrls(processedTopic);
+
+      // 3. Delete orphan images from Cloudinary
+      for (var url in oldUrls) {
+        if (!newUrls.contains(url)) {
+          await _cloudinaryService.deleteFile(url);
+        }
+      }
+
       await _repository.updateQuiz(processedTopic);
       state = state.copyWith(
         isLoading: false,
@@ -107,9 +124,7 @@ class TeacherQuizViewModel extends StateNotifier<TeacherQuizState> {
     }
   }
 
-  void resetSuccess() {
-    state = state.copyWith(isSuccess: false);
-  }
+  void resetSuccess() => state = state.copyWith(isSuccess: false);
 
   Future<QuizTopicModel> _processImages(QuizTopicModel topic) async {
     List<QuizLevelModel> updatedLevels = [];

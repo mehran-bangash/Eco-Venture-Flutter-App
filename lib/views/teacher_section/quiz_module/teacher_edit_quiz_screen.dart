@@ -273,6 +273,16 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
   }
 
   Widget _buildAgeDropdown() {
+    // FIXED: Ensure no duplicate items and include current value to prevent crash
+    final List<String> dropdownItems = List<String>.from(
+      AppConstants.teacherClassRanges,
+    );
+    if (_selectedAgeGroup != null &&
+        !dropdownItems.contains(_selectedAgeGroup)) {
+      dropdownItems.add(_selectedAgeGroup!);
+    }
+    final uniqueItems = dropdownItems.toSet().toList();
+
     return Container(
       margin: EdgeInsets.only(top: 1.h),
       padding: EdgeInsets.symmetric(horizontal: 4.w),
@@ -285,7 +295,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
         child: DropdownButton<String>(
           value: _selectedAgeGroup,
           isExpanded: true,
-          items: AppConstants.teacherClassRanges
+          items: uniqueItems
               .map(
                 (range) => DropdownMenuItem(
                   value: range,
@@ -355,7 +365,6 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     );
   }
 
-  // --- LEVEL EDITOR (TIMER ADDED) ---
   void _showLevelEditor({QuizLevelModel? existingLevel, int? index}) {
     final titleCtrl = TextEditingController(text: existingLevel?.title ?? "");
     final orderCtrl = TextEditingController(
@@ -367,7 +376,6 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     final passCtrl = TextEditingController(
       text: existingLevel?.passingPercentage.toString() ?? "60",
     );
-    // TIMER CONTROLLER ADDED
     final timerCtrl = TextEditingController(
       text: existingLevel?.timerSeconds.toString() ?? "30",
     );
@@ -473,7 +481,6 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
                           ),
                         ),
                         SizedBox(width: 3.w),
-                        // TIMER UI FIELD ADDED
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -556,8 +563,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
                       order: int.tryParse(orderCtrl.text) ?? 1,
                       passingPercentage: int.tryParse(passCtrl.text) ?? 60,
                       points: int.tryParse(pointsCtrl.text) ?? 10,
-                      timerSeconds:
-                          int.tryParse(timerCtrl.text) ?? 30, // TIMER SAVED
+                      timerSeconds: int.tryParse(timerCtrl.text) ?? 30,
                       questions: tempQuestions,
                     );
                     setState(() {
@@ -602,16 +608,20 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
             : "",
       ),
     );
-    int correctIdx = (existingQuestion != null)
+    int correctIdx =
+        (existingQuestion != null && existingQuestion.options.isNotEmpty)
         ? existingQuestion.options.indexOf(existingQuestion.answer)
         : 0;
+    if (correctIdx == -1) correctIdx = 0;
+
     File? newImg;
     String? oldUrl = existingQuestion?.imageUrl;
+    bool isImageRemoved = false;
 
     showDialog(
       context: ctx,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Dialog(
+        builder: (context, setDialogState) => Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -635,10 +645,19 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
                     icon: Icons.help_outline,
                   ),
                   SizedBox(height: 2.h),
+                  // UPDATED: Added clear callback to image editor
                   _buildImageEditor(
                     newImg,
-                    oldUrl,
-                    (f) => setState(() => newImg = f),
+                    isImageRemoved ? null : oldUrl,
+                    (f) => setDialogState(() {
+                      newImg = f;
+                      isImageRemoved = false;
+                    }),
+                    () => setDialogState(() {
+                      newImg = null;
+                      oldUrl = null;
+                      isImageRemoved = true;
+                    }),
                   ),
                   ...List.generate(
                     4,
@@ -647,7 +666,8 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
                         Radio(
                           value: i,
                           groupValue: correctIdx,
-                          onChanged: (v) => setState(() => correctIdx = v!),
+                          onChanged: (v) =>
+                              setDialogState(() => correctIdx = v!),
                           activeColor: _primary,
                         ),
                         Expanded(
@@ -672,7 +692,9 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
                             question: qTextCtrl.text,
                             options: opCtrls.map((c) => c.text).toList(),
                             answer: opCtrls[correctIdx].text,
-                            imageUrl: newImg?.path ?? oldUrl,
+                            imageUrl: isImageRemoved
+                                ? null
+                                : (newImg?.path ?? oldUrl),
                           ),
                         );
                         Navigator.pop(context);
@@ -720,7 +742,7 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
         ),
         subtitle: Text(
           "${level.questions.length} Qs • ${level.timerSeconds}s Timer",
-        ), // TIMER SHOWN ON CARD
+        ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -738,31 +760,72 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     );
   }
 
-  Widget _buildImageEditor(File? newF, String? url, Function(File) onPick) {
-    return InkWell(
-      onTap: () async {
-        final img = await ImagePicker().pickImage(source: ImageSource.gallery);
-        if (img != null) onPick(File(img.path));
-      },
-      child: Container(
-        height: 12.h,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: _bg,
-          borderRadius: BorderRadius.circular(12),
-          image: newF != null
-              ? DecorationImage(image: FileImage(newF), fit: BoxFit.cover)
-              : (url != null
-                    ? DecorationImage(
-                        image: NetworkImage(url),
-                        fit: BoxFit.cover,
-                      )
-                    : null),
+  // UPDATED: Added onClear function to remove images from cloud
+  Widget _buildImageEditor(
+    File? newF,
+    String? url,
+    Function(File) onPick,
+    VoidCallback onClear,
+  ) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () async {
+            final img = await ImagePicker().pickImage(
+              source: ImageSource.gallery,
+            );
+            if (img != null) onPick(File(img.path));
+          },
+          child: Container(
+            height: 15.h,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: _bg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _border),
+              image: newF != null
+                  ? DecorationImage(image: FileImage(newF), fit: BoxFit.cover)
+                  : (url != null && url.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(url),
+                            fit: BoxFit.cover,
+                          )
+                        : null),
+            ),
+            child: (newF == null && (url == null || url.isEmpty))
+                ? const Center(
+                    child: Icon(Icons.camera_alt, color: Colors.grey),
+                  )
+                : Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: CircleAvatar(
+                        backgroundColor: Colors.white70,
+                        radius: 14,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          icon: const Icon(
+                            Icons.close,
+                            size: 18,
+                            color: Colors.red,
+                          ),
+                          onPressed: onClear,
+                        ),
+                      ),
+                    ),
+                  ),
+          ),
         ),
-        child: (newF == null && url == null)
-            ? const Center(child: Icon(Icons.camera_alt))
-            : null,
-      ),
+        if (newF != null || (url != null && url.isNotEmpty))
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              "Tap to change image",
+              style: TextStyle(fontSize: 11.sp, color: Colors.grey),
+            ),
+          ),
+      ],
     );
   }
 
@@ -776,31 +839,45 @@ class _TeacherEditQuizScreenState extends ConsumerState<TeacherEditQuizScreen> {
     child: TextField(
       controller: controller,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      style: GoogleFonts.poppins(fontSize: 15.sp),
       decoration: InputDecoration(
         hintText: hint,
-        prefixIcon: Icon(icon),
+        prefixIcon: Icon(icon, color: _primary),
         filled: true,
         fillColor: _bg,
+        contentPadding: EdgeInsets.symmetric(vertical: 1.5.h),
         border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: _border),
+        ),
+        enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: _border),
         ),
       ),
     ),
   );
+
   Widget _buildProLabel(String t) => Text(
     t,
     style: GoogleFonts.poppins(
       fontSize: 14.sp,
       fontWeight: FontWeight.w700,
-      color: _textGrey,
+      color: _textDark,
     ),
   );
+
   Widget _buildSensitiveSwitch() => SwitchListTile(
-    title: const Text("Sensitive Content", style: TextStyle(color: Colors.red)),
+    title: const Text(
+      "Sensitive Content",
+      style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+    ),
+    subtitle: const Text("Mark if content contains complex tools or hazards."),
     value: _isSensitive,
+    activeColor: Colors.red,
     onChanged: (v) => setState(() => _isSensitive = v),
   );
+
   Widget _buildEmptyState() => Container(
     padding: EdgeInsets.all(5.w),
     child: const Center(child: Text("No levels added yet.")),

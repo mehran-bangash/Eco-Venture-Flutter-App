@@ -85,11 +85,13 @@ class TeacherAllModuleService {
       final newKey = _generateKey();
       final challengeWithMeta = challenge.copyWith(id: newKey, adminId: teacherId);
       final path = 'Teacher_Content/$teacherId/StemChallenges/${challenge.category}/$newKey';
+      // toMap now returns valid Realtime Database types (Strings)
       await _database.ref(path).set(challengeWithMeta.toMap());
     } catch (e) {
       throw Exception('Failed to add STEM challenge: $e');
     }
   }
+
 
   Future<void> updateStemChallenge(StemChallengeModel challenge) async {
     if (challenge.id == null) throw Exception("Challenge ID is missing");
@@ -111,7 +113,6 @@ class TeacherAllModuleService {
       throw Exception('Failed to delete STEM challenge: $e');
     }
   }
-
   Stream<List<StemChallengeModel>> getTeacherStemChallengesStream(String category) async* {
     final teacherId = await _getTeacherId();
     yield* _database.ref('Teacher_Content/$teacherId/StemChallenges/$category').onValue.map((event) {
@@ -122,7 +123,6 @@ class TeacherAllModuleService {
         data.forEach((key, value) {
           if (value is Map) {
             final challengeMap = Map<String, dynamic>.from(value);
-            challengeMap['id'] = key.toString();
             challenges.add(StemChallengeModel.fromMap(key.toString(), challengeMap));
           }
         });

@@ -24,7 +24,6 @@ class CloudinaryService {
     return url.replaceAll("/upload/", "/upload/q_auto,f_auto/");
   }
 
-  // FIXED: Logic to extract ONLY the public_id, correctly stripping transformations and versions
   String? _getPublicIdFromUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -34,7 +33,6 @@ class CloudinaryService {
 
       final relevantSegments = segments.sublist(uploadIndex + 1);
 
-      // Filter out transformation segments (contain comma) and version segments (start with 'v' + digits)
       final publicIdSegments = relevantSegments.where((segment) {
         final isTransformation = segment.contains(',');
         final isVersion = RegExp(r'^v\d+$').hasMatch(segment);
@@ -44,13 +42,12 @@ class CloudinaryService {
       if (publicIdSegments.isEmpty) return null;
 
       final fullName = publicIdSegments.join('/');
-      return fullName.split('.').first; // Removes extension (.mp4, .jpg, etc)
+      return fullName.split('.').first;
     } catch (e) {
       return null;
     }
   }
 
-  // FIXED: Using Admin API with DELETE method for reliable cloud deletion
   Future<void> deleteFile(String? fileUrl, {bool isVideo = false}) async {
     if (fileUrl == null ||
         fileUrl.isEmpty ||
@@ -65,7 +62,6 @@ class CloudinaryService {
           'Basic ${base64Encode(utf8.encode('$apiKey:$apiSecret'))}';
       final resourceType = isVideo ? "video" : "image";
 
-      // Admin API uses DELETE request for resources
       final response = await http.delete(
         Uri.parse(
           "https://api.cloudinary.com/v1_1/$cloudName/resources/$resourceType/upload?public_ids[]=$publicId",
@@ -180,16 +176,49 @@ class CloudinaryService {
 
   Future<String?> uploadTeacherQuizImage(File imageFile) async =>
       await _upload(imageFile, teacherQuizPreset) as String?;
+
   Future<String?> uploadTeacherStemImage(File imageFile) async =>
       await _upload(imageFile, teacherStemPreset) as String?;
+
+  // NEW: Logic for uploading multiple STEM images
+  Future<List<String>> uploadMultipleStemImages(List<File> images) async {
+    List<String> urls = [];
+    for (var image in images) {
+      final res = await _upload(image, teacherStemPreset, isVideo: false);
+      if (res is String) urls.add(res);
+    }
+    return urls;
+  }
+
+  // NEW: Logic for uploading multiple STEM videos
+  Future<List<String>> uploadMultipleStemVideos(List<File> videos) async {
+    List<String> urls = [];
+    for (var video in videos) {
+      final res = await _upload(video, teacherStemPreset, isVideo: true);
+      if (res is Map && res.containsKey('url')) {
+        urls.add(res['url']);
+      }
+    }
+    return urls;
+  }
+
+  // NEW: Logic for STEM Video or Image upload (Single file)
+  Future<dynamic> uploadTeacherStemFile(
+    File file, {
+    bool isVideo = false,
+  }) async => await _upload(file, teacherStemPreset, isVideo: isVideo);
+
   Future<dynamic> uploadTeacherMultimediaFile(
     File file, {
     bool isVideo = false,
   }) async => await _upload(file, teacherMultimediaPreset, isVideo: isVideo);
+
   Future<String?> uploadTeacherQrImage(File imageFile) async =>
       await _upload(imageFile, teacherQrHuntPreset) as String?;
+
   Future<String?> uploadReportScreenshot(File file) async =>
       await _upload(file, reportPreset) as String?;
+
   Future<String?> uploadChildNaturePhotoImage(File imageFile) async =>
       await _upload(imageFile, childNaturePhotoPreset) as String?;
 }

@@ -104,7 +104,13 @@ class _TeacherEditVideoScreenState
   }
 
   Future<void> _updateVideo() async {
-    if (_titleController.text.isEmpty || _selectedAgeGroup == null) return;
+    if (_titleController.text.isEmpty || _selectedAgeGroup == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Title and Age Group are required")),
+      );
+      return;
+    }
+
     String? teacherId = SharedPreferencesHelper.instance.getUserId();
     if (teacherId == null) return;
 
@@ -130,6 +136,7 @@ class _TeacherEditVideoScreenState
     await ref
         .read(teacherMultimediaViewModelProvider.notifier)
         .updateVideo(updatedVideo);
+
     if (!_isSensitive) {
       await _sendClassNotification(
         teacherId,
@@ -408,12 +415,10 @@ class _TeacherEditVideoScreenState
   }
 
   Widget _buildAgeDropdown() {
-    // Logic Fix: Ensure the current value exists in the dropdown list to prevent crash
     final items = List<String>.from(AppConstants.teacherClassRanges);
     if (_selectedAgeGroup != null && !items.contains(_selectedAgeGroup)) {
       items.add(_selectedAgeGroup!);
     }
-
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 4.w),
       decoration: BoxDecoration(
@@ -426,6 +431,7 @@ class _TeacherEditVideoScreenState
           value: _selectedAgeGroup,
           isExpanded: true,
           items: items
+              .toSet()
               .map(
                 (range) => DropdownMenuItem(
                   value: range,
@@ -453,7 +459,6 @@ class _TeacherEditVideoScreenState
       ),
     ),
   );
-
   Widget _buildTextField(
     TextEditingController ctrl,
     String hint, {
@@ -472,7 +477,6 @@ class _TeacherEditVideoScreenState
       ),
     ),
   );
-
   Widget _buildDropdown() => Container(
     padding: EdgeInsets.symmetric(horizontal: 4.w),
     decoration: BoxDecoration(

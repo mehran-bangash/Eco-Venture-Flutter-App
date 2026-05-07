@@ -14,16 +14,16 @@ class TeacherMultimediaViewModel extends StateNotifier<TeacherMultimediaState> {
   StreamSubscription? _storySub;
 
   TeacherMultimediaViewModel(this._repository, this._cloudinaryService)
-    : super(TeacherMultimediaState());
+      : super(TeacherMultimediaState());
 
   // --- VIDEOS ---
   void loadVideos() {
     _videoSub?.cancel();
     state = state.copyWith(isLoading: true);
     _videoSub = _repository.watchVideos().listen(
-      (data) => state = state.copyWith(isLoading: false, videos: data),
+          (data) => state = state.copyWith(isLoading: false, videos: data),
       onError: (e) =>
-          state = state.copyWith(isLoading: false, errorMessage: e.toString()),
+      state = state.copyWith(isLoading: false, errorMessage: e.toString()),
     );
   }
 
@@ -41,7 +41,20 @@ class TeacherMultimediaViewModel extends StateNotifier<TeacherMultimediaState> {
   Future<void> updateVideo(VideoModel video) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
+      // 1. Get the current version from state to identify changed files
+      final oldVideo = state.videos.firstWhere((v) => v.id == video.id);
+
+      // 2. Process new files (Upload locals to Cloudinary)
       final processed = await _processVideoFiles(video);
+
+      // 3. CLEANUP: Delete old files from Cloudinary if they were replaced
+      if (oldVideo.videoUrl != processed.videoUrl) {
+        await _cloudinaryService.deleteFile(oldVideo.videoUrl, isVideo: true);
+      }
+      if (oldVideo.thumbnailUrl != null && oldVideo.thumbnailUrl != processed.thumbnailUrl) {
+        await _cloudinaryService.deleteFile(oldVideo.thumbnailUrl, isVideo: false);
+      }
+
       await _repository.updateVideo(processed);
       state = state.copyWith(isLoading: false, isSuccess: true);
     } catch (e) {
@@ -53,8 +66,9 @@ class TeacherMultimediaViewModel extends StateNotifier<TeacherMultimediaState> {
     try {
       final video = state.videos.firstWhere((v) => v.id == id);
       await _cloudinaryService.deleteFile(video.videoUrl, isVideo: true);
-      if (video.thumbnailUrl != null)
+      if (video.thumbnailUrl != null) {
         await _cloudinaryService.deleteFile(video.thumbnailUrl, isVideo: false);
+      }
       await _repository.deleteVideo(id);
     } catch (e) {
       state = state.copyWith(errorMessage: "Delete failed: $e");
@@ -91,9 +105,9 @@ class TeacherMultimediaViewModel extends StateNotifier<TeacherMultimediaState> {
     _storySub?.cancel();
     state = state.copyWith(isLoading: true);
     _storySub = _repository.watchStories().listen(
-      (data) => state = state.copyWith(isLoading: false, stories: data),
+          (data) => state = state.copyWith(isLoading: false, stories: data),
       onError: (e) =>
-          state = state.copyWith(isLoading: false, errorMessage: e.toString()),
+      state = state.copyWith(isLoading: false, errorMessage: e.toString()),
     );
   }
 
@@ -108,11 +122,28 @@ class TeacherMultimediaViewModel extends StateNotifier<TeacherMultimediaState> {
     }
   }
 
-  // Restored updateStory to fix undefined_method error in Story Edit screen
   Future<void> updateStory(StoryModel story) async {
-    state = state.copyWith(isLoading: true);
+    state = state.copyWith(isLoading: true, errorMessage: null);
     try {
+      // 1. Get current version to identify removed/changed images
+      final oldStory = state.stories.firstWhere((s) => s.id == story.id);
+
+      // 2. Process/Upload new local images
       final processed = await _processStoryFiles(story);
+
+      // 3. CLEANUP: Thumbnail replacement
+      if (oldStory.thumbnailUrl != null && oldStory.thumbnailUrl != processed.thumbnailUrl) {
+        await _cloudinaryService.deleteFile(oldStory.thumbnailUrl, isVideo: false);
+      }
+
+      // 4. CLEANUP: Page images
+      final newImageUrls = processed.pages.map((p) => p.imageUrl).toSet();
+      for (var oldPage in oldStory.pages) {
+        if (oldPage.imageUrl.isNotEmpty && !newImageUrls.contains(oldPage.imageUrl)) {
+          await _cloudinaryService.deleteFile(oldPage.imageUrl, isVideo: false);
+        }
+      }
+
       await _repository.updateStory(processed);
       state = state.copyWith(isLoading: false, isSuccess: true);
     } catch (e) {
@@ -124,7 +155,6 @@ class TeacherMultimediaViewModel extends StateNotifier<TeacherMultimediaState> {
     try {
       final story = state.stories.firstWhere((s) => s.id == id);
 
-      // 1. Delete Thumbnail from Cloudinary
       if (story.thumbnailUrl != null && story.thumbnailUrl!.isNotEmpty) {
         await _cloudinaryService.deleteFile(
           story.thumbnailUrl!,
@@ -132,14 +162,12 @@ class TeacherMultimediaViewModel extends StateNotifier<TeacherMultimediaState> {
         );
       }
 
-      // 2. Loop and Delete all Page Images from Cloudinary
       for (var page in story.pages) {
         if (page.imageUrl.isNotEmpty) {
           await _cloudinaryService.deleteFile(page.imageUrl, isVideo: false);
         }
       }
 
-      // 3. Delete from Firebase
       await _repository.deleteStory(id);
     } catch (e) {
       state = state.copyWith(errorMessage: "Delete failed: $e");

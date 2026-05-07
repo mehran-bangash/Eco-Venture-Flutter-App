@@ -1,7 +1,7 @@
 import 'package:eco_venture/core/config/app_constants.dart';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui'; // Required for PathMetrics
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -26,7 +26,7 @@ class TeacherEditStoryScreen extends ConsumerStatefulWidget {
 
 class _TeacherEditStoryScreenState
     extends ConsumerState<TeacherEditStoryScreen> {
-  // --- PRO COLORS ---
+  // --- COLORS ---
   final Color _primaryPurple = const Color(0xFF8E2DE2);
   final Color _bg = const Color(0xFFF4F7FE);
   final Color _textDark = const Color(0xFF1B2559);
@@ -37,12 +37,10 @@ class _TeacherEditStoryScreenState
   final TextEditingController _descController = TextEditingController();
   final TextEditingController _tagsController = TextEditingController();
 
-  File? _coverImage; // New local file
-  String? _existingCoverUrl; // Old network URL
+  File? _coverImage;
+  String? _existingCoverUrl;
   late List<StoryPage> _pages;
   bool _isSensitive = false;
-
-  // --- NEW: Age Selection State ---
   String? _selectedAgeGroup;
 
   final List<String> _storyCategories = [
@@ -54,16 +52,14 @@ class _TeacherEditStoryScreenState
     "Family",
     "Funny",
     "Education",
-    "Educational", // Added this to match your error log exactly
+    "Educational",
   ];
-
 
   late String _selectedCategory;
 
   @override
   void initState() {
     super.initState();
-
     _titleController.text = widget.storyData.title;
     _descController.text = widget.storyData.description;
     _existingCoverUrl = widget.storyData.thumbnailUrl;
@@ -71,20 +67,15 @@ class _TeacherEditStoryScreenState
     _tagsController.text = widget.storyData.tags.join(', ');
     _isSensitive = widget.storyData.isSensitive;
 
-    // --- FIX: Handle Dropdown value mismatch to prevent crash ---
     final String dbCategory = widget.storyData.category;
-    // We check if the list contains the exact string from DB
     if (_storyCategories.contains(dbCategory)) {
       _selectedCategory = dbCategory;
     } else {
-      // If not found, try to find case-insensitive match or default to first item
       _selectedCategory = _storyCategories.firstWhere(
-            (cat) => cat.toLowerCase() == dbCategory.toLowerCase(),
+        (cat) => cat.toLowerCase() == dbCategory.toLowerCase(),
         orElse: () => _storyCategories.first,
       );
     }
-
-    // --- NEW: Initialize selected age group based on existing model value ---
     _selectedAgeGroup = widget.storyData.ageGroup;
   }
 
@@ -96,33 +87,25 @@ class _TeacherEditStoryScreenState
     super.dispose();
   }
 
-
-  // --- NOTIFICATION LOGIC ---
   Future<void> _sendClassNotification(
-      String teacherId,
-      String storyTitle,
-      String ageGroup,
-      ) async {
-    const String backendUrl = ApiConstants.notifyChildClassEndPoints;
-
+    String teacherId,
+    String storyTitle,
+    String ageGroup,
+  ) async {
     try {
-      final response = await http.post(
-        Uri.parse(backendUrl),
+      await http.post(
+        Uri.parse(ApiConstants.notifyChildClassEndPoints),
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "teacherId": teacherId,
           "type": "Story",
           "title": "Story Updated: $storyTitle 📖",
-          "body": "The story for Group $ageGroup has been updated. Check it out!",
+          "body": "The story for Group $ageGroup has been updated!",
           "ageGroup": ageGroup,
         }),
       );
-
-      if (response.statusCode == 200) {
-        print("✅ Story Update Notification sent successfully");
-      }
     } catch (e) {
-      print("❌ Error calling notification backend: $e");
+      debugPrint("❌ Notification error: $e");
     }
   }
 
@@ -138,24 +121,11 @@ class _TeacherEditStoryScreenState
     }
 
     String? teacherId = SharedPreferencesHelper.instance.getUserId();
-    if (teacherId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Error: No Teacher ID. Re-login."),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    // Process Tags
     List<String> tagsList = _tagsController.text
         .split(',')
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
-    if (_isSensitive && !tagsList.contains('scary')) tagsList.add('scary');
-    if (!_isSensitive) tagsList.remove('scary');
 
     final updatedStory = widget.storyData.copyWith(
       title: _titleController.text.trim(),
@@ -165,21 +135,27 @@ class _TeacherEditStoryScreenState
       tags: tagsList,
       isSensitive: _isSensitive,
       category: _selectedCategory,
-      ageGroup: _selectedAgeGroup!, // Pass updated classification
+      ageGroup: _selectedAgeGroup!,
     );
 
+    // The ViewModel updateStory method now handles comparing old vs new URLs for Cloudinary deletion
     await ref
         .read(teacherMultimediaViewModelProvider.notifier)
         .updateStory(updatedStory);
 
-    if (!_isSensitive) {
-      await _sendClassNotification(teacherId, updatedStory.title, _selectedAgeGroup!);
+    if (!_isSensitive && teacherId != null) {
+      await _sendClassNotification(
+        teacherId,
+        updatedStory.title,
+        _selectedAgeGroup!,
+      );
     }
   }
 
   Future<void> _pickCoverImage() async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? img = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? img = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+    );
     if (img != null) {
       setState(() {
         _coverImage = File(img.path);
@@ -194,26 +170,8 @@ class _TeacherEditStoryScreenState
 
     ref.listen(teacherMultimediaViewModelProvider, (prev, next) {
       if (next.isSuccess) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _isSensitive
-                  ? "Story Updated! (No notification - marked sensitive)"
-                  : "Story Updated & Class Notified!",
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
         ref.read(teacherMultimediaViewModelProvider.notifier).resetSuccess();
         Navigator.pop(context);
-      }
-      if (next.errorMessage != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Error: ${next.errorMessage}"),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     });
 
@@ -245,206 +203,59 @@ class _TeacherEditStoryScreenState
               children: [
                 _buildSectionHeader("Story Details"),
                 SizedBox(height: 2.h),
-                Container(
-                  padding: EdgeInsets.all(5.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.05),
-                        blurRadius: 10,
-                      ),
-                    ],
+                _buildCard([
+                  _buildLabel("Story Title"),
+                  _buildTextField(controller: _titleController, hint: "Title"),
+                  SizedBox(height: 2.h),
+                  _buildLabel("Target Age Group"),
+                  _buildAgeDropdown(),
+                  SizedBox(height: 2.h),
+                  _buildLabel("Description"),
+                  _buildTextField(
+                    controller: _descController,
+                    hint: "Summary...",
+                    maxLines: 3,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildLabel("Story Title"),
-                      _buildTextField(
-                        controller: _titleController,
-                        hint: "e.g. The Brave Little Rabbit",
-                      ),
-                      SizedBox(height: 2.h),
-
-                      // --- NEW: Target Age Dropdown ---
-                      _buildLabel("Target Age (Years)"),
-                      _buildAgeDropdown(),
-                      SizedBox(height: 2.h),
-
-                      _buildLabel("Description"),
-                      _buildTextField(
-                        controller: _descController,
-                        hint: "Short summary...",
-                        maxLines: 3,
-                      ),
-                      SizedBox(height: 2.h),
-                      _buildLabel("Category"),
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 3.w),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF8F9FA),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _borderGrey),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: _selectedCategory,
-                            isExpanded: true,
-                            items: _storyCategories.map((cat) {
-                              return DropdownMenuItem(
-                                value: cat,
-                                child: Text(
-                                  cat,
-                                  style: GoogleFonts.poppins(fontSize: 15.sp),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              if (value != null) {
-                                setState(() => _selectedCategory = value);
-                              }
-                            },
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 3.h),
-                      _buildLabel("Cover Illustration"),
-                      _buildCoverUpload(),
-                    ],
-                  ),
-                ),
+                  SizedBox(height: 2.h),
+                  _buildLabel("Category"),
+                  _buildCategoryDropdown(),
+                  SizedBox(height: 2.h),
+                  _buildLabel("Cover Illustration"),
+                  _buildCoverUpload(),
+                ]),
                 SizedBox(height: 3.h),
-                Container(
-                  padding: EdgeInsets.all(4.w),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: _borderGrey),
+                _buildCard([
+                  _buildLabel("Tags (comma separated)"),
+                  _buildTextField(
+                    controller: _tagsController,
+                    hint: "animals, nature",
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Content Safety",
-                        style: GoogleFonts.poppins(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
-                          color: _textDark,
-                        ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      "Contains Sensitive Content?",
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15.sp,
                       ),
-                      SizedBox(height: 1.h),
-                      _buildLabel("Tags (comma separated)"),
-                      _buildTextField(
-                        controller: _tagsController,
-                        hint: "e.g. animals, space, fun",
-                      ),
-                      SizedBox(height: 1.h),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(
-                          "Contains Sensitive Content?",
-                          style: GoogleFonts.poppins(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15.sp,
-                          ),
-                        ),
-                        subtitle: Text(
-                          "Marks as 'Scary' for parent filters.",
-                          style: GoogleFonts.poppins(fontSize: 12.sp, color: Colors.grey),
-                        ),
-                        value: _isSensitive,
-                        onChanged: (val) => setState(() => _isSensitive = val),
-                        activeThumbColor: Colors.redAccent,
-                      ),
-                    ],
+                    ),
+                    value: _isSensitive,
+                    onChanged: (val) => setState(() => _isSensitive = val),
+                    activeThumbColor: Colors.redAccent,
                   ),
-                ),
+                ]),
                 SizedBox(height: 3.h),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildSectionHeader("Pages (${_pages.length})"),
-                    InkWell(
-                      onTap: () => _showPageEditor(),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 3.w,
-                          vertical: 0.8.h,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _primaryPurple.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.add, size: 16.sp, color: _primaryPurple),
-                            SizedBox(width: 1.w),
-                            Text(
-                              "Add Page",
-                              style: GoogleFonts.poppins(
-                                fontSize: 12.sp,
-                                color: _primaryPurple,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    _buildAddPageBtn(),
                   ],
                 ),
                 SizedBox(height: 2.h),
-
-                if (_pages.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(4.h),
-                      child: Text(
-                        "No pages yet.",
-                        style: GoogleFonts.poppins(
-                          color: Colors.grey,
-                          fontSize: 14.sp,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _pages.length,
-                    separatorBuilder: (c, i) => SizedBox(height: 2.h),
-                    itemBuilder: (context, index) => _buildPageCard(index),
-                  ),
-
+                _buildPagesList(),
                 SizedBox(height: 5.h),
-
-                SizedBox(
-                  width: double.infinity,
-                  height: 7.h,
-                  child: ElevatedButton(
-                    onPressed: state.isLoading ? null : _updateStory,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryPurple,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 5,
-                    ),
-                    child: state.isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                      "Update Story",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
+                _buildUpdateBtn(state.isLoading),
                 SizedBox(height: 5.h),
               ],
             ),
@@ -452,9 +263,7 @@ class _TeacherEditStoryScreenState
           if (state.isLoading)
             Container(
               color: Colors.black26,
-              child: const Center(
-                child: CircularProgressIndicator(color: Colors.white),
-              ),
+              child: const Center(child: CircularProgressIndicator()),
             ),
         ],
       ),
@@ -462,10 +271,14 @@ class _TeacherEditStoryScreenState
   }
 
   Widget _buildAgeDropdown() {
-    final items = [...AppConstants.teacherClassRanges];
-    if (_selectedAgeGroup != null && !items.contains(_selectedAgeGroup)) {
-      items.add(_selectedAgeGroup!);
+    final List<String> dropdownItems = List<String>.from(
+      AppConstants.teacherClassRanges,
+    );
+    if (_selectedAgeGroup != null &&
+        !dropdownItems.contains(_selectedAgeGroup)) {
+      dropdownItems.add(_selectedAgeGroup!);
     }
+    final uniqueItems = dropdownItems.toSet().toList();
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 3.w),
@@ -478,205 +291,121 @@ class _TeacherEditStoryScreenState
         child: DropdownButton<String>(
           value: _selectedAgeGroup,
           isExpanded: true,
-          items: items.map((range) {
-            return DropdownMenuItem(
-              value: range,
-              child: Text(
-                "Group $range",
-                style: GoogleFonts.poppins(fontSize: 15.sp),
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              setState(() => _selectedAgeGroup = value);
-            }
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) => Text(
-    title,
-    style: GoogleFonts.poppins(
-      fontSize: 16.sp,
-      fontWeight: FontWeight.w700,
-      color: _textDark,
-    ),
-  );
-
-  Widget _buildLabel(String text) => Padding(
-    padding: EdgeInsets.only(bottom: 1.h),
-    child: Text(
-      text,
-      style: GoogleFonts.poppins(
-        fontSize: 14.sp,
-        fontWeight: FontWeight.w600,
-        color: Colors.grey[700],
-      ),
-    ),
-  );
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      style: GoogleFonts.poppins(fontSize: 15.sp),
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: const Color(0xFFF8F9FA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _borderGrey),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _borderGrey),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: _primaryPurple, width: 1.5),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCoverUpload() {
-    ImageProvider? imgProvider;
-    if (_coverImage != null) {
-      imgProvider = FileImage(_coverImage!);
-    } else if (_existingCoverUrl != null && _existingCoverUrl!.isNotEmpty) {
-      imgProvider = _existingCoverUrl!.startsWith('http')
-          ? NetworkImage(_existingCoverUrl!)
-          : FileImage(File(_existingCoverUrl!)) as ImageProvider;
-    }
-
-    return CustomPaint(
-      painter: DashedRectPainter(
-        color: _dashedBorderColor,
-        strokeWidth: 1.5,
-        gap: 6,
-        radius: 12,
-      ),
-      child: InkWell(
-        onTap: _pickCoverImage,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          height: 20.h,
-          width: double.infinity,
-          decoration: imgProvider == null
-              ? BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-          )
-              : null,
-          child: imgProvider != null
-              ? ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image(
-              image: imgProvider,
-              fit: BoxFit.cover,
-              width: double.infinity,
-            ),
-          )
-              : Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.image_rounded, size: 32.sp, color: Colors.grey),
-              SizedBox(height: 1.h),
-              Text(
-                "Upload Cover Art",
-                style: GoogleFonts.poppins(
-                  fontSize: 14.sp,
-                  color: Colors.grey,
+          items: uniqueItems
+              .map(
+                (r) => DropdownMenuItem(
+                  value: r,
+                  child: Text(
+                    "Group $r",
+                    style: GoogleFonts.poppins(fontSize: 15.sp),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              )
+              .toList(),
+          onChanged: (v) => setState(() => _selectedAgeGroup = v!),
         ),
       ),
     );
   }
 
-  Widget _buildPageCard(int index) {
-    final page = _pages[index];
+  Widget _buildCategoryDropdown() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 3.w),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _borderGrey),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedCategory,
+          isExpanded: true,
+          items: _storyCategories
+              .map(
+                (c) => DropdownMenuItem(
+                  value: c,
+                  child: Text(c, style: GoogleFonts.poppins(fontSize: 15.sp)),
+                ),
+              )
+              .toList(),
+          onChanged: (v) => setState(() => _selectedCategory = v!),
+        ),
+      ),
+    );
+  }
 
-    ImageProvider? pageImgProvider;
+  Widget _buildPagesList() {
+    if (_pages.isEmpty)
+      return Center(
+        child: Text(
+          "No pages added.",
+          style: TextStyle(color: Colors.grey, fontSize: 14.sp),
+        ),
+      );
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _pages.length,
+      separatorBuilder: (_, __) => SizedBox(height: 1.5.h),
+      itemBuilder: (ctx, i) => _buildPageItem(i),
+    );
+  }
+
+  Widget _buildPageItem(int index) {
+    final page = _pages[index];
+    ImageProvider? pageImg;
     if (page.imageUrl.isNotEmpty) {
-      if (page.imageUrl.startsWith('http')) {
-        pageImgProvider = NetworkImage(page.imageUrl);
-      } else {
-        pageImgProvider = FileImage(File(page.imageUrl));
-      }
+      pageImg = page.imageUrl.startsWith('http')
+          ? NetworkImage(page.imageUrl)
+          : FileImage(File(page.imageUrl)) as ImageProvider;
     }
 
     return Container(
-      padding: EdgeInsets.all(4.w),
+      padding: EdgeInsets.all(3.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10),
-        ],
+        border: Border.all(color: _borderGrey),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 14.sp,
             backgroundColor: _primaryPurple.withOpacity(0.1),
             child: Text(
               "${index + 1}",
               style: TextStyle(
                 color: _primaryPurple,
                 fontWeight: FontWeight.bold,
-                fontSize: 14.sp,
               ),
             ),
           ),
-          SizedBox(width: 4.w),
+          SizedBox(width: 3.w),
+          if (pageImg != null)
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image(
+                image: pageImg,
+                width: 12.w,
+                height: 12.w,
+                fit: BoxFit.cover,
+              ),
+            ),
+          SizedBox(width: 3.w),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  page.text,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(fontSize: 14.sp, color: _textDark),
-                ),
-                if (pageImgProvider != null) ...[
-                  SizedBox(height: 1.h),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image(
-                      image: pageImgProvider,
-                      height: 8.h,
-                      width: 15.w,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ],
-              ],
+            child: Text(
+              page.text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(fontSize: 14.sp),
             ),
           ),
-          Column(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.edit, color: Colors.blue),
-                onPressed: () => _showPageEditor(existingIndex: index),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () => setState(() => _pages.removeAt(index)),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.blue),
+            onPressed: () => _showPageEditor(existingIndex: index),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            onPressed: () => setState(() => _pages.removeAt(index)),
           ),
         ],
       ),
@@ -687,215 +416,270 @@ class _TeacherEditStoryScreenState
     final textCtrl = TextEditingController(
       text: existingIndex != null ? _pages[existingIndex].text : "",
     );
+    String? localPath;
+    String? netUrl;
 
-    File? pageImageFile;
-    String? pageImageUrl;
-
-    if (existingIndex != null && _pages[existingIndex].imageUrl.isNotEmpty) {
-      if (_pages[existingIndex].imageUrl.startsWith('http')) {
-        pageImageUrl = _pages[existingIndex].imageUrl;
-      } else {
-        pageImageFile = File(_pages[existingIndex].imageUrl);
-      }
+    if (existingIndex != null) {
+      if (_pages[existingIndex].imageUrl.startsWith('http'))
+        netUrl = _pages[existingIndex].imageUrl;
+      else
+        localPath = _pages[existingIndex].imageUrl;
     }
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          ImageProvider? editorImgProvider;
-          if (pageImageFile != null) {
-            editorImgProvider = FileImage(pageImageFile!);
-          } else if (pageImageUrl != null) {
-            editorImgProvider = pageImageUrl!.startsWith('http')
-                ? NetworkImage(pageImageUrl!)
-                : FileImage(File(pageImageUrl!)) as ImageProvider;
-          }
-
-          return Container(
-            height: 85.h,
-            padding: EdgeInsets.fromLTRB(
-              5.w,
-              2.h,
-              5.w,
-              MediaQuery.of(context).viewInsets.bottom + 2.h,
-            ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  width: 15.w,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
+        builder: (ctx, setMState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            5.w,
+            2.h,
+            5.w,
+            MediaQuery.of(ctx).viewInsets.bottom + 2.h,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Page Editor",
+                style: GoogleFonts.poppins(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16.sp,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              TextField(
+                controller: textCtrl,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: "Enter story text...",
+                  filled: true,
+                  fillColor: _bg,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-                SizedBox(height: 2.h),
-                Text(
-                  existingIndex == null
-                      ? "Add New Page"
-                      : "Edit Page ${existingIndex + 1}",
-                  style: GoogleFonts.poppins(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: _textDark,
-                  ),
-                ),
-                SizedBox(height: 3.h),
-
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel("Story Text"),
-                        TextField(
-                          controller: textCtrl,
-                          maxLines: 5,
-                          style: TextStyle(fontSize: 15.sp),
-                          decoration: InputDecoration(
-                            hintText: "Once upon a time...",
-                            filled: true,
-                            fillColor: const Color(0xFFF8F9FA),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 3.h),
-
-                        _buildLabel("Illustration (Optional)"),
-                        InkWell(
-                          onTap: () async {
-                            final ImagePicker picker = ImagePicker();
-                            final XFile? img = await picker.pickImage(
-                              source: ImageSource.gallery,
-                            );
-                            if (img != null) {
-                              setModalState(() {
-                                pageImageFile = File(img.path);
-                                pageImageUrl = null;
-                              });
-                            }
-                          },
-                          child: Container(
-                            height: 20.h,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade300),
-                              image: editorImgProvider != null
-                                  ? DecorationImage(
-                                image: editorImgProvider,
-                                fit: BoxFit.cover,
-                              )
-                                  : null,
-                            ),
-                            child: editorImgProvider == null
-                                ? Center(
-                              child: Column(
-                                mainAxisAlignment:
-                                MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.add_photo_alternate,
-                                    color: _primaryPurple,
-                                    size: 24.sp,
-                                  ),
-                                  Text(
-                                    "Add Image",
-                                    style: TextStyle(
-                                      color: _primaryPurple,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                                : null,
-                          ),
-                        ),
-                        if (editorImgProvider != null)
-                          Padding(
-                            padding: EdgeInsets.only(top: 1.h),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: () => setModalState(() {
-                                  pageImageFile = null;
-                                  pageImageUrl = null;
-                                }),
-                                child: const Text(
-                                  "Remove Image",
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                SizedBox(height: 2.h),
-                SizedBox(
+              ),
+              SizedBox(height: 2.h),
+              InkWell(
+                onTap: () async {
+                  final i = await ImagePicker().pickImage(
+                    source: ImageSource.gallery,
+                  );
+                  if (i != null)
+                    setMState(() {
+                      localPath = i.path;
+                      netUrl = null;
+                    });
+                },
+                child: Container(
+                  height: 15.h,
                   width: double.infinity,
-                  height: 7.h,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (textCtrl.text.trim().isEmpty &&
-                          pageImageFile == null &&
-                          pageImageUrl == null) {
-                        return;
-                      }
-
-                      final String newPath =
-                          pageImageFile?.path ?? pageImageUrl ?? "";
-
-                      final newPage = StoryPage(
-                        text: textCtrl.text,
-                        imageUrl: newPath,
-                      );
-
-                      setState(() {
-                        if (existingIndex != null) {
-                          _pages[existingIndex] = newPage;
-                        } else {
-                          _pages.add(newPage);
-                        }
-                      });
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _primaryPurple,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: Text(
-                      "Save Page",
-                      style: GoogleFonts.poppins(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
+                  decoration: BoxDecoration(
+                    color: _bg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _borderGrey),
+                  ),
+                  child: (localPath != null || netUrl != null)
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image(
+                            image: localPath != null
+                                ? FileImage(File(localPath!))
+                                : NetworkImage(netUrl!) as ImageProvider,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.add_photo_alternate,
+                          color: Colors.grey,
+                        ),
+                ),
+              ),
+              if (localPath != null || netUrl != null)
+                TextButton(
+                  onPressed: () => setMState(() {
+                    localPath = null;
+                    netUrl = null;
+                  }),
+                  child: const Text(
+                    "Remove Image",
+                    style: TextStyle(color: Colors.red),
                   ),
                 ),
-              ],
-            ),
-          );
-        },
+              SizedBox(height: 3.h),
+              _buildUpdateBtn(
+                false,
+                label: "SAVE PAGE",
+                onTap: () {
+                  if (textCtrl.text.isEmpty) return;
+                  setState(() {
+                    final p = StoryPage(
+                      text: textCtrl.text,
+                      imageUrl: localPath ?? netUrl ?? "",
+                    );
+                    if (existingIndex != null)
+                      _pages[existingIndex] = p;
+                    else
+                      _pages.add(p);
+                  });
+                  Navigator.pop(ctx);
+                },
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
+
+  Widget _buildCoverUpload() {
+    ImageProvider? img;
+    if (_coverImage != null)
+      img = FileImage(_coverImage!);
+    else if (_existingCoverUrl != null && _existingCoverUrl!.isNotEmpty)
+      img = NetworkImage(_existingCoverUrl!);
+
+    return CustomPaint(
+      painter: DashedRectPainter(
+        color: _dashedBorderColor,
+        strokeWidth: 1.5,
+        gap: 6,
+        radius: 12,
+      ),
+      child: InkWell(
+        onTap: _pickCoverImage,
+        child: Container(
+          height: 18.h,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: img != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image(image: img, fit: BoxFit.cover),
+                )
+              : Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.image, color: Colors.grey),
+                      Text(
+                        "Change Cover",
+                        style: GoogleFonts.poppins(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(List<Widget> children) => Container(
+    width: double.infinity,
+    padding: EdgeInsets.all(4.w),
+    margin: EdgeInsets.only(bottom: 2.h),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: _borderGrey),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: children,
+    ),
+  );
+  Widget _buildLabel(String t) => Padding(
+    padding: EdgeInsets.only(bottom: 1.h),
+    child: Text(
+      t,
+      style: GoogleFonts.poppins(
+        fontWeight: FontWeight.w600,
+        fontSize: 14.sp,
+        color: _textDark,
+      ),
+    ),
+  );
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    int maxLines = 1,
+  }) => TextField(
+    controller: controller,
+    maxLines: maxLines,
+    style: GoogleFonts.poppins(fontSize: 15.sp),
+    decoration: InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: const Color(0xFFF8F9FA),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
+    ),
+  );
+  Widget _buildSectionHeader(String title) => Text(
+    title,
+    style: GoogleFonts.poppins(
+      fontSize: 16.sp,
+      fontWeight: FontWeight.w700,
+      color: _textDark,
+    ),
+  );
+  Widget _buildAddPageBtn() => InkWell(
+    onTap: () => _showPageEditor(),
+    child: Container(
+      padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 0.5.h),
+      decoration: BoxDecoration(
+        color: _primaryPurple.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.add, size: 16.sp, color: _primaryPurple),
+          Text(
+            "Add Page",
+            style: TextStyle(
+              color: _primaryPurple,
+              fontWeight: FontWeight.bold,
+              fontSize: 12.sp,
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+  Widget _buildUpdateBtn(
+    bool loading, {
+    String label = "UPDATE STORY",
+    VoidCallback? onTap,
+  }) => SizedBox(
+    width: double.infinity,
+    height: 7.h,
+    child: ElevatedButton(
+      onPressed: loading ? null : (onTap ?? _updateStory),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: _primaryPurple,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      child: loading
+          ? const CircularProgressIndicator(color: Colors.white)
+          : Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+    ),
+  );
 }
 
 class DashedRectPainter extends CustomPainter {
@@ -922,8 +706,7 @@ class DashedRectPainter extends CustomPainter {
           Radius.circular(radius),
         ),
       );
-    PathMetrics pathMetrics = path.computeMetrics();
-    for (PathMetric pathMetric in pathMetrics) {
+    for (PathMetric pathMetric in path.computeMetrics()) {
       double distance = 0.0;
       while (distance < pathMetric.length) {
         canvas.drawPath(
